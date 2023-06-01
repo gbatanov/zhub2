@@ -1,0 +1,40 @@
+.empty {
+    height: 3px;
+    min-height: 3px;
+    border-top: 1px solid grey;
+    font-size: 1px;
+}
+
+h3{
+    font-size: 14px;
+}
+p {
+    font-size: 14px;;
+}
+td {
+    font-size: 14px;
+    padding: 4px;
+    min-width: 70px;
+}
+
+th{
+    font-size: 14px;
+    text-align: center;
+}
+
+tr.empty td{
+    padding: 0;
+    font-size: 1px;
+}
+td.lq{
+    text-align: center;
+}
+td.temp{
+    text-align: center;
+}
+th.temp{
+    min-width: 300px;
+}
+td.addr{
+    min-width: 50px;
+}
