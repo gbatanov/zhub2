@@ -32,7 +32,7 @@
 #include "exposer.h"
 
 extern std::atomic<bool> Flag;
-extern std::unique_ptr<zigbee::Coordinator> coordinator;
+extern std::unique_ptr<zigbee::Zhub> zhub;
 
 Exposer::Exposer(std::string url, int port)
 {
@@ -252,27 +252,27 @@ std::string Exposer::metrics()
 {
     std::string answer = "";
     // Получим давление
-    std::shared_ptr<zigbee::EndDevice> di = coordinator->get_device_by_mac((zigbee::IEEEAddress)0x00124b000b1bb401); // датчик климата в детской
+    std::shared_ptr<zigbee::EndDevice> di = zhub->get_device_by_mac((zigbee::IEEEAddress)0x00124b000b1bb401); // датчик климата в детской
     if (di)
         answer = answer + di->get_prom_pressure();
 
     for (auto &li : zigbee::EndDevice::PROM_MOTION_LIST)
     {
-        std::shared_ptr<zigbee::EndDevice> di = coordinator->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
             answer = answer + di->get_prom_motion_string();
     }
     for (auto &li : zigbee::EndDevice::PROM_RELAY_LIST)
     {
         // для сдвоенного реле показываем по отдельности
-        std::shared_ptr<zigbee::EndDevice> di = coordinator->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
 
             answer = answer + di->get_prom_relay_string();
     }
     for (auto &li : zigbee::EndDevice::PROM_DOOR_LIST)
     {
-        std::shared_ptr<zigbee::EndDevice> di = coordinator->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
             answer = answer + di->get_prom_door_string();
     }

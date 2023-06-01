@@ -28,7 +28,7 @@ using std::string;
 using std::vector;
 
 extern std::atomic<bool> Flag;
-extern std::unique_ptr<zigbee::Coordinator> coordinator;
+extern std::unique_ptr<zigbee::Zhub> zhub;
 using namespace zigbee;
 
 Uart::Uart()
@@ -159,7 +159,7 @@ vector<Command> Uart::parseReceivedData(vector<uint8_t> &data)
 
                 if ((payload_length <= PAYLOAD_MAX_LENGTH) && ((i + payload_length) <= data.size()))
                 {
-                    Command command(_UINT16(cmd1, cmd0), payload_length);
+                    Command command(CommandId(_UINT16(cmd1, cmd0)), payload_length);
 
                     std::copy_n(&data[i], payload_length, command.data()); // из data в command.data
                     i += payload_length;
@@ -185,7 +185,7 @@ vector<Command> Uart::parseReceivedData(vector<uint8_t> &data)
     return parsed_commands;
 }
 
-/// фактическая отправка команды
+/// фактическая отправка команды в координатор
 bool Uart::send_command_to_device(Command command)
 {
     if (!serial_->isOpen())
@@ -251,13 +251,14 @@ void Uart::loop()
         catch (std::exception &error)
         {
             gsbutils::dprintf(1, "loop exception: %s\n", error.what());
+            throw;
         }
     }
 }
 // Обработчик комманд, каждая команда идет в своем потоке
 void Uart::OnCommand(Command command)
 {
-    coordinator->add_command(command);
+    zhub->add_command(command);
 }
 
 void Uart::OnDisconnect()

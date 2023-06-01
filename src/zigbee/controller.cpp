@@ -68,20 +68,25 @@ using zigbee::zcl::Frame;
 extern std::mutex trans_mutex;
 extern std::atomic<uint8_t> transaction_sequence_number;
 
-const NetworkConfiguration Controller::default_configuration_ = {0xFFFF,                                                                                           // Pan ID.
-                                                                 0xDDDDDDDDDDDDDDDD,                                                                               // Extended pan ID.
-                                                                 zigbee::LogicalType::COORDINATOR,                                                                 // Logical type.
-                                                                 {11},                                                                                             // RF channel list.
-                                                                 {0x01, 0x03, 0x05, 0x07, 0x09, 0x0B, 0x0D, 0x0F, 0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0D}, // Precfg key.
+const std::vector<uint8_t> Controller::DEFAULT_RF_CHANNELS = {11};
+const std::vector<uint8_t> Controller::TEST_RF_CHANNELS = {15};
+/*
+const NetworkConfiguration Controller::default_configuration_ = {0xFFFF,                           // pan_id
+                                                                 0xDDDDDDDDDDDDDDDD,               // extended_pan_id - mac address
+                                                                 zigbee::LogicalType::COORDINATOR, // Logical type.
+                                                                 {11},                             // RF channel list.
+                                                                 {0x01, 0x03, 0x05, 0x07, 0x09, 0x0B, 0x0D, 0x0F, 0x00, 0x02,
+                                                                  0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0D}, // Precfg key.
                                                                  false};
 
-const NetworkConfiguration Controller::test_configuration_ = {0x1234,                                                                                           // Pan ID.
-                                                              0xDDDDDDDDDDDDDDDE,                                                                               // Extended pan ID.
-                                                              zigbee::LogicalType::COORDINATOR,                                                                 // Logical type.
-                                                              {12},                                                                                             // RF channel list.
-                                                              {0x01, 0x03, 0x05, 0x07, 0x09, 0x0B, 0x0D, 0x0F, 0x00, 0x02, 0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0D}, // Precfg key.
+const NetworkConfiguration Controller::test_configuration_ = {0x1a62,                           // Pan ID.
+                                                              0x124b001cdd4e4e,                 // Extended pan ID.
+                                                              zigbee::LogicalType::COORDINATOR, // Logical type.
+                                                              {15},                             // RF channel list.
+                                                              {0x01, 0x03, 0x05, 0x07, 0x09, 0x0B, 0x0D, 0x0F, 0x00, 0x02,
+                                                               0x04, 0x06, 0x08, 0x0A, 0x0C, 0x0D}, // Precfg key.
                                                               false};
-
+*/
 const std::vector<zigbee::SimpleDescriptor> Controller::default_endpoints_ = {{1,      // Enpoint number.
                                                                                0x0104, // Profile ID.
                                                                                0x05,   // Device ID.
@@ -125,41 +130,27 @@ bool Controller::init_adapter()
     return noAdapter;
 }
 // Старт Zigbee-сети
-bool Controller::startNetwork(NetworkConfiguration configuration)
+bool Controller::start_network(std::vector<uint8_t> rfChannels)
 {
     try
     {
-        int res = reset(ResetType::HARD,false,false);
+        int res = reset(ResetType::SOFT, false, false);
         if (0 == res)
             throw std::runtime_error("Adapter reseting error1");
 
-        if (res == 1) // был аппаратный сброс
-        {
-            // Перезаписываем при необходимости конфигурацию сети
-            gsbutils::dprintf(1, "Controller::startNetwork: Reading network configuration\n");
-            NetworkConfiguration currentConfiguration = readNetworkConfiguration();
+        // Перезаписываем при необходимости RF-каналы
+        std::vector<uint8_t> rf = read_rf_channels();
+        if (rf != rfChannels)
+            write_rf_channels(rfChannels);
+        finish_configuration();
 
-            if (currentConfiguration != configuration)
-            {
-                gsbutils::dprintf(1, "Controller::startNetwork: Writing correct network configuration\n"); // 0x00000800 for CH11;
-                if (!writeNetworkConfiguration(configuration))
-                    throw std::runtime_error("Network configuration write fail");
-
-                // После смены конфигурации еще раз делаем программный сброс
-                res = reset(ResetType::SOFT,false, false);
-                if (0 == res)
-                    throw std::runtime_error("Adapter reseting error2");
-            }
-        }
-        gsbutils::dprintf(1, "Controller::startNetwork: Startup zigbee adapter\n");
-
+        gsbutils::dprintf(1, "Controller::start_network: Startup zigbee adapter\n");
         // startup нужен всегда
         if (!startup())
             throw std::runtime_error("Adapter startup error");
-        gsbutils::dprintf(1, "Controller::startNetwork: Startup zigbee adapter SUCCESS\n");
 
         // Регистрация ендпойнтов самого координатора
-        gsbutils::dprintf(1, "Coordinator::start Endpoints registration:\n");
+        gsbutils::dprintf(1, "Zhub::start Endpoints registration:\n");
         for (auto &endpoint_descriptor : default_endpoints_)
         {
             if (!registerEndpoint(endpoint_descriptor))
@@ -169,7 +160,11 @@ bool Controller::startNetwork(NetworkConfiguration configuration)
                 OnError(sstream.str());
             }
         }
-
+        // получаем из файла связь сетевого и мак адресов, создаем объекты
+        getDevicesMapFromFile(true);
+        // разрешить прием входящих сообщений
+        isReady_ = true;
+        permitJoin(60s); // разрешаем джойн  при запуске на 1 минуту
         return true;
     }
     catch (std::exception &e)
@@ -181,13 +176,14 @@ bool Controller::startNetwork(NetworkConfiguration configuration)
 
 void Controller::on_message(zigbee::Command command)
 {
+    // Cообщения приходят от уже зарегистрированных работающих устройств,
+    // поэтому можно получить сам объект и работать с ним
+
     zigbee::Message message{};
 
     // AF часть сообщения
     message.cluster = static_cast<zigbee::zcl::Cluster>(_UINT16(command.payload(2), command.payload(3)));
     message.source.address = _UINT16(command.payload(4), command.payload(5));
-    // Эти сообщения приходят от уже зарегистрированных работающих устройств, поэтому можно получить сам объект по сетевому адресу
-
     message.destination.address = network_address_; // приемник - координатор
     message.source.number = command.payload(6);
     message.destination.number = command.payload(7);
@@ -198,38 +194,43 @@ void Controller::on_message(zigbee::Command command)
 
     std::shared_ptr<zigbee::EndDevice> ed = getDeviceByShortAddr(message.source.address);
     if (!ed)
+    {
+        gsbutils::dprintf(3, "Сообщение от устройства, незарегистрированного в моей рабочей системе\n");
         return;
-
+    }
     uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
 
 #ifdef DEBUG
     int dbg = 3;
 
-    gsbutils::dprintf(dbg, "Zdo::handle_command\n");
-    uint32_t ts = (uint32_t)command.payload(11) + (uint32_t)(command.payload(12) << 8) + (uint32_t)(command.payload(13) << 16) + (uint32_t)(command.payload(14) << 24);
-    gsbutils::dprintf_c(7, "GroupID: 0x%04x \n", _UINT16(command.payload(0), command.payload(1)));
-    gsbutils::dprintf_c(dbg, "ClusterID: 0x%04x \n", _UINT16(command.payload(2), command.payload(3)));
-    gsbutils::dprintf_c(dbg, "source shortAddr: 0x%04x \n", message.source.address);
-    gsbutils::dprintf_c(7, "destination address: 0x%04x \n", message.destination.address);
-    gsbutils::dprintf_c(dbg, "source endpoint: 0x%02x \n", message.source.number);
-    gsbutils::dprintf_c(7, "destination endpoint: 0x%02x \n", message.destination.number);
-    gsbutils::dprintf_c(7, "broadcast: 0x%02x \n", command.payload(8)); //
-    gsbutils::dprintf_c(dbg, "linkQuality: %d \n", message.linkquality);
-    gsbutils::dprintf_c(7, "SecurityUse: %d \n", command.payload(10));
-    gsbutils::dprintf_c(7, "ts %u \n", (uint32_t)(ts / 1000));                      // todo: привязать к реальному времени
-    gsbutils::dprintf_c(dbg, "TransferSequenceNumber: %d \n", command.payload(15)); //?? чаще всего, здесь 0, а реальное значение в payload
-    gsbutils::dprintf_c(dbg, "length of ZCL data %lu \n", length);
-    gsbutils::dprintf_c(dbg, "zcl_frame.frame_type: %02x \n", static_cast<unsigned>(message.zcl_frame.frame_control.type));
-    if (message.zcl_frame.manufacturer_code != 0xffff) // признак, что проприетарного кода производителя нет в сообщении
-        gsbutils::dprintf_c(7, " zcl_frame.manufacturer_code: %04x \n", message.zcl_frame.manufacturer_code);
-    gsbutils::dprintf_c(dbg, " zcl_frame.transaction_sequence_number: %d \n", message.zcl_frame.transaction_sequence_number); // номер транзакции, может повторять переданный в устройство номер, может иметь свой внутренний номер
-    gsbutils::dprintf_c(dbg, " message.zcl_frame.command: 0x%02x \n", message.zcl_frame.command);
-    gsbutils::dprintf_c(dbg, "zdo: message.zcl_frame.payload: ");
-    for (uint8_t &b : message.zcl_frame.payload)
+    gsbutils::dprintf_c(dbg, "Cluster %s (0x%04X) \n", get_cluster_string(message.cluster).c_str(), (uint16_t)message.cluster);
+    if (message.cluster != zcl::Cluster::TIME)
     {
-        gsbutils::dprintf_c(dbg, "0x%02x ", b);
+        uint32_t ts = (uint32_t)command.payload(11) + (uint32_t)(command.payload(12) << 8) + (uint32_t)(command.payload(13) << 16) + (uint32_t)(command.payload(14) << 24);
+        gsbutils::dprintf_c(7, "GroupID: 0x%04x \n", _UINT16(command.payload(0), command.payload(1)));
+        gsbutils::dprintf_c(dbg, "source endpoint:: shortAddr: 0x%04x ", message.source.address);
+        gsbutils::dprintf_c(dbg, "number: 0x%02x ", message.source.number);
+        gsbutils::dprintf_c(dbg, "%s \n", ed->get_human_name().c_str());
+        gsbutils::dprintf_c(7, "destination address: 0x%04x \n", message.destination.address);
+        gsbutils::dprintf_c(7, "destination endpoint: 0x%02x \n", message.destination.number);
+        gsbutils::dprintf_c(7, "broadcast: 0x%02x \n", command.payload(8)); //
+        gsbutils::dprintf_c(dbg, "linkQuality: %d \n", message.linkquality);
+        gsbutils::dprintf_c(7, "SecurityUse: %d \n", command.payload(10));
+        gsbutils::dprintf_c(7, "ts %u \n", (uint32_t)(ts / 1000));                                                               // todo: привязать к реальному времени
+        gsbutils::dprintf_c(dbg, "TransferSequenceNumber: %d \n", command.payload(15));                                          //?? чаще всего, здесь 0, а реальное значение в payload
+        gsbutils::dprintf_c(dbg, "zcl_frame.transaction_sequence_number: %d \n", message.zcl_frame.transaction_sequence_number); // номер транзакции, может повторять переданный в устройство номер, может иметь свой внутренний номер
+        if (message.zcl_frame.manufacturer_code != 0xffff)                                                                       // признак, что проприетарного кода производителя нет в сообщении
+            gsbutils::dprintf_c(7, "zcl_frame.manufacturer_code: %04x \n", message.zcl_frame.manufacturer_code);
+        gsbutils::dprintf_c(dbg, "length of ZCL data %lu \n", length);
+        gsbutils::dprintf_c(dbg, "zcl_frame::frame_type: %02x  ", static_cast<unsigned>(message.zcl_frame.frame_control.type));
+        gsbutils::dprintf_c(dbg, "command: 0x%02x \n", message.zcl_frame.command);
+        gsbutils::dprintf_c(dbg, "zdo: message.zcl_frame.payload: ");
+        for (uint8_t &b : message.zcl_frame.payload)
+        {
+            gsbutils::dprintf_c(dbg, "0x%02x ", b);
+        }
+        gsbutils::dprintf_c(dbg, "\n\n");
     }
-    gsbutils::dprintf_c(dbg, "\n\n");
 #else
     int dbg = 7;
 #endif
@@ -240,92 +241,42 @@ void Controller::on_message(zigbee::Command command)
     std::time_t tls = std::time(0); // get time now
     ed->set_last_seen((uint64_t)tls);
 
-    // Кнопка сброса на кастомах
-    if (message.cluster == zigbee::zcl::Cluster::ON_OFF &&
-        ed->deviceInfo.deviceType == 4 &&
-        message.source.number == 1)
+    if (message.zcl_frame.frame_control.type == zigbee::zcl::FrameType::GLOBAL)
     {
-        return;
-    }
-
-    // Команды, требующее парсинга аттрибутов, есть во всех кластерах.
-    // Поэтому эти команды выносим отдельно
-    if (
-        ((static_cast<zigbee::zcl::GlobalCommands>(message.zcl_frame.command) == zigbee::zcl::GlobalCommands::READ_ATTRIBUTES_RESPONSE || // 0x01
-          static_cast<zigbee::zcl::GlobalCommands>(message.zcl_frame.command) == zigbee::zcl::GlobalCommands::REPORT_ATTRIBUTES) &&       // 0x0a
-         message.cluster != zigbee::zcl::Cluster::ON_OFF) ||
-        (static_cast<zigbee::zcl::GlobalCommands>(message.zcl_frame.command) == zigbee::zcl::GlobalCommands::REPORT_ATTRIBUTES && // 0x0a
-         (message.cluster == zigbee::zcl::Cluster::ON_OFF)) ||
-        ((static_cast<zigbee::zcl::GlobalCommands>(message.zcl_frame.command) == zigbee::zcl::GlobalCommands::READ_ATTRIBUTES_RESPONSE &&
-          message.cluster == zigbee::zcl::Cluster::ON_OFF &&
-          message.zcl_frame.payload.size() > 0)))
-
-    {
-
-        try
+        // Глобальные команды
+        if ((static_cast<zigbee::zcl::GlobalCommands>(message.zcl_frame.command) == zigbee::zcl::GlobalCommands::READ_ATTRIBUTES_RESPONSE || // 0x01
+             static_cast<zigbee::zcl::GlobalCommands>(message.zcl_frame.command) == zigbee::zcl::GlobalCommands::REPORT_ATTRIBUTES)          // 0x0a
+        )
         {
-            bool with_status = (message.cluster != zigbee::zcl::Cluster::ANALOG_INPUT &&
-                                message.cluster != zigbee::zcl::Cluster::XIAOMI_SWITCH) &&
-                               static_cast<zigbee::zcl::GlobalCommands>(message.zcl_frame.command) != zigbee::zcl::GlobalCommands::REPORT_ATTRIBUTES;
-
-            if (message.zcl_frame.payload.size() > 0)
+            // Команды, требующие парсинга аттрибутов
+            try
             {
+                bool with_status = (message.cluster != zigbee::zcl::Cluster::ANALOG_INPUT && message.cluster != zigbee::zcl::Cluster::XIAOMI_SWITCH) &&
+                                   static_cast<zigbee::zcl::GlobalCommands>(message.zcl_frame.command) != zigbee::zcl::GlobalCommands::REPORT_ATTRIBUTES;
+
                 std::vector<zigbee::zcl::Attribute> attributes = zigbee::zcl::Attribute::parseAttributesPayload(message.zcl_frame.payload, with_status);
                 if (attributes.size() > 0)
                     on_attribute_report(message.source, message.cluster, attributes);
             }
-        }
-        catch (std::exception &error)
-        {
-            std::stringstream sstream{};
-            sstream << "Controller::OnMessage: Cluster: " << static_cast<uint16_t>(message.cluster)
-                    << " 1.Invalid received zcl payload (" << error.what() << ") from 0x" << std::hex << (uint16_t)message.source.address
-                    << " endpoint 0x" << std::hex << (uint16_t)message.source.number << " || ";
-            for (auto p : message.zcl_frame.payload)
+            catch (std::exception &error)
             {
-                sstream << std::hex << (uint16_t)p << " ";
+                gsbutils::dprintf(1, "%s\n", error.what());
             }
-            sstream << std::endl;
-            OnError(sstream.str());
         }
     }
     else
     {
-
-        //-----------------------------------------------------------------------------------------
-        // далее не аттрибуты, а кластеро-зависимые команды, на которые надо реагировать, вызывать какой-то Action
-        // кастомы сюда не приходят, у них всегда AttributeReport, даже при срабатывании
+        // Команды, специфичные для кластеров
         switch (message.cluster)
         {
         case zigbee::zcl::Cluster::ON_OFF:
         {
-
-#ifdef TEST
-            int dbg = 3;
-            gsbutils::dprintf(dbg, "Controller::onMessage: Cluster::ON_OFF: message.zcl_frame.command: 0x%02x Device 0x%04x\n", message.zcl_frame.command, message.source.address);
-            gsbutils::dprintf_c(dbg, "Controller::onMessage: Cluster::ON_OFF: message.zcl_frame.payload: ");
-            for (uint8_t &b : message.zcl_frame.payload)
-            {
-                gsbutils::dprintf_c(dbg, "0x%02x ", b);
-            }
-            gsbutils::dprintf_c(dbg, "\n");
-#endif
             // сюда же приходят команды с датчика движения IKEA 
             onoff_command(message); // отправляем команду на исполнение
         }
         break;
         case zigbee::zcl::Cluster::LEVEL_CONTROL:
         {
-#ifdef TEST
-            int dbg = 4;
-            gsbutils::dprintf(dbg, "Controller::onMessage: Cluster::LEVEL_CONTROL: message.zcl_frame.command: 0x%02x\n", message.zcl_frame.command);
-            gsbutils::dprintf_c(dbg, "Controller::onMessage: Cluster::LEVEL_CONTROL: message.zcl_frame.payload: ");
-            for (uint8_t &b : message.zcl_frame.payload)
-            {
-                gsbutils::dprintf_c(dbg, "0x%02x ", b);
-            }
-            gsbutils::dprintf_c(dbg, "\n");
-#endif
             // команды димирования.
             // код начала команды при нажатии кнопки приходит в ZCL Frame в payload
             // при отпускании payload отсутствует
@@ -334,17 +285,6 @@ void Controller::on_message(zigbee::Command command)
         break;
         case zigbee::zcl::Cluster::IAS_ZONE:
         {
-#ifdef TEST
-            int dbg = 4;
-            gsbutils::dprintf(dbg, "Controller::onMessage: Cluster::IAS_ZONE: message.zcl_frame.command: 0x%02x Device 0x%04x, \n", message.zcl_frame.command, message.source.address);
-            gsbutils::dprintf_c(dbg, "Controller::onMessage: Cluster::IAS_ZONE: message.zcl_frame.payload: ");
-            for (uint8_t &b : message.zcl_frame.payload)
-            {
-                gsbutils::dprintf_c(dbg, "%02x ", b);
-            }
-            gsbutils::dprintf_c(dbg, "\n");
-#endif
-
             // в этот кластер входят датчики движения от Sonoff и датчики открытия дверей от Sonoff
             // разделяю по типу устройств
             if (ed->get_device_type() == 2) // датчики движения Sonoff
@@ -354,7 +294,6 @@ void Controller::on_message(zigbee::Command command)
             }
             else if (ed->get_device_type() == 3) // датчики открытия дверей Sonoff
             {
-                gsbutils::dprintf(dbg, "Device 0x%02x Door Sensor: %s \n", message.source.address, message.zcl_frame.payload[0] ? "Opened" : "Closed");
                 handle_sonoff_door(ed, message.zcl_frame.payload[0]);
                 getPower(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
             }
@@ -377,22 +316,22 @@ void Controller::on_message(zigbee::Command command)
                     gsmmodem->master_call();
 #endif
                 }
-
-                gsbutils::dprintf(2, "Device 0x%02x Water Leak: %s \n ", message.source.address, message.zcl_frame.payload[0] ? "ALARM" : "NORMAL");
+                gsbutils::dprintf(1, "Device 0x%02x Water Leak: %s \n ", message.source.address, message.zcl_frame.payload[0] ? "ALARM" : "NORMAL");
             }
         }
         break;
-        case zigbee::zcl::Cluster::TIME:
+        case zigbee::zcl::Cluster::TIME: // 0x000A
         {
+            // необслуживаемый кластер
         }
         break;
         default:
         {
+            // неизвестный кластер
             gsbutils::dprintf(7, "Controller::on_message:  other command 0x%02x in cluster 0x%04x \n\n", message.zcl_frame.command, static_cast<uint16_t>(message.cluster));
         }
         }
     }
-
     after_message_action();
 }
 
@@ -430,21 +369,20 @@ void Controller::after_message_action()
     switch_off_with_timeout();
 }
 
-// Поставим проверку для некоторых реле - при отсутствии движения  больше получаса они должны быть принудительно выключены.
-// TODO: Розетки здесь не будут выключены, двухканальное реле тоже
+// При отсутствии движения  больше 20 минут устройства из списка EndDevice::OFF_LIST должны быть принудительно выключены.
 void Controller::switch_off_with_timeout()
 {
     static bool off = false; // признак, чтобы не частить
     if (lastMotionSensorActivity > 0)
     {
-        if (std::time(nullptr) - lastMotionSensorActivity > 1800)
+        if (std::time(nullptr) - lastMotionSensorActivity > 1200)
         {
             if (!off)
             {
                 off = true;
                 gsbutils::dprintf(1, "Принудительное выключение реле  при отсутствии людей дома \n");
 
-                tlg32->send_message("Принудительное выключение реле  при отсутствии людей дома.\n");
+                tlg32->send_message("Никого нет дома.\n");
 
                 for (const uint64_t &macAddress : EndDevice::OFF_LIST)
                 {
@@ -701,4 +639,524 @@ zigbee::NetworkAddress Controller::getShortAddrByMacAddr(zigbee::IEEEAddress mac
         return (zigbee::NetworkAddress)-1;
     }
     return (zigbee::NetworkAddress)-1;
+}
+
+// вызывается для набора аттрибутов в одном ответе от одного устройства
+void Controller::on_attribute_report(zigbee::Endpoint endpoint, Cluster cluster, std::vector<zcl::Attribute> attributes)
+{
+    std::shared_ptr<zigbee::EndDevice> ed = getDeviceByShortAddr(endpoint.address);
+    if (!ed)
+        return;
+    uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
+
+    switch (cluster)
+    {
+    case Cluster::BASIC: // 0x0000
+    {
+        zigbee::clusters::Basic clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::POWER_CONFIGURATION: // 0x0001
+    {
+        zigbee::clusters::PowerConfiguration clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::ON_OFF: // 0x0006
+    {
+        zigbee::clusters::OnOff clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::DEVICE_TEMPERATURE_CONFIGURATION: // 0x0002
+    {
+        zigbee::clusters::DeviceTemperatureConfiguration clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::ANALOG_INPUT: // 0x000C
+    {
+        // сюда относятся кастомы с датчиками температуры и влажности AM2302(DHT22) и  HDC1080
+        // двухканальное реле Aqara
+        zigbee::clusters::AnalogInput clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::MULTISTATE_INPUT: // 0x0012
+    {
+        zigbee::clusters::MultistateInput clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::XIAOMI_SWITCH: // 0xFCC0
+    {
+        zigbee::clusters::Xiaomi clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::SIMPLE_METERING: // 0x0702
+    {
+        zigbee::clusters::SimpleMetering clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::ELECTRICAL_MEASUREMENTS: // 0x0B04
+    {
+        zigbee::clusters::ElectricalMeasurements clusterHandler(ed);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    case Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER: // 0xe001
+    {                                               // умная розетка и кран
+        zigbee::clusters::Tuya clusterHandler(ed);
+        clusterHandler.attribute_handler_private(attributes, endpoint);
+    }
+    break;
+    case Cluster::TUYA_SWITCH_MODE_0: // 0xE000
+    {
+        zigbee::clusters::Tuya clusterHandler(ed);
+        clusterHandler.attribute_handler_switch_mode(attributes, endpoint);
+    }
+    break;
+    case Cluster::RSSI: // 0x000b
+    case Cluster::TIME: // 0x000a
+    {
+        zigbee::clusters::Other clusterHandler(ed, cluster);
+        clusterHandler.attribute_handler(attributes, endpoint);
+    }
+    break;
+    default:
+        gsbutils::dprintf(1, "Zhub::on_attribute_report: unknownCluster 0x%04x \n", (uint16_t)cluster);
+        for (auto attribute : attributes)
+        {
+            gsbutils::dprintf(1, "Zhub::on_attribute_report: unknown attribute Id 0x%04x in Cluster 0x%04x \n", attribute.id, (uint16_t)cluster);
+        }
+    } // switch
+}
+
+/*
+2.5.7 ZCL specification
+     * @param cluster - The cluster id of the requested report.
+     * @param attributeId - The attribute id for requested report.
+     * @param dataType - The two byte ZigBee type value for the requested report.
+     * @param minReportTime - Minimum number of seconds between reports.
+     * @param maxReportTime - Maximum number of seconds between reports.
+     * @param reportableChange - OCTET_STRING - Amount of change to trigger a report in curly braces. Empty curly braces if no change needs to be configured.
+*/
+bool Controller::configureReporting(zigbee::NetworkAddress address)
+{
+    return configureReporting(address, Cluster::POWER_CONFIGURATION);
+}
+bool Controller::configureReporting(zigbee::NetworkAddress address,
+                                    Cluster cluster,
+                                    uint16_t attributeId,
+                                    zcl::Attribute::DataType attribute_data_type,
+                                    uint16_t reportable_change)
+{
+#ifdef TEST
+    gsbutils::dprintf(1, "Configure Reporting \n");
+#endif
+    // default
+    //   uint16_t attributeId = 0x0000;
+    //   Attribute::DataType attribute_data_type = Attribute::DataType::UINT8;
+    // uint16_t reportable_change = 0x0000;
+
+    zigbee::Endpoint endpoint{address, 1};
+    // ZCL Header
+    Frame frame;
+    frame.frame_control.type = zigbee::zcl::FrameType::GLOBAL;
+    frame.frame_control.direction = zigbee::zcl::FrameDirection::FROM_CLIENT_TO_SERVER;
+    frame.frame_control.disable_default_response = true;
+    frame.frame_control.manufacturer_specific = false;
+    frame.transaction_sequence_number = generateTransactionSequenceNumber();
+    frame.command = zigbee::zcl::GlobalCommands::CONFIGURE_REPORTING; // 0x06
+// end ZCL Header
+
+// Интервал идет в секундах!
+#ifdef TEST
+    uint16_t min_interval = 180; // 3 min
+    uint16_t max_interval = 600; // 10 min
+#else
+    uint16_t min_interval = 60;   // 1 minutes
+    uint16_t max_interval = 3600; // 1 hours
+#endif
+
+    std::shared_ptr<zigbee::EndDevice> ed = getDeviceByShortAddr(address);
+    if (ed)
+    {
+        switch (ed->get_device_type())
+        {
+
+        case 7:                      // IKEA button
+            min_interval = 3600;     // 1 hour
+            max_interval = 3600 * 8; // 8 hours
+            break;
+        }
+    }
+
+    frame.payload.push_back(LOWBYTE(attributeId));
+    frame.payload.push_back(HIGHBYTE(attributeId));
+    frame.payload.push_back((uint8_t)attribute_data_type);
+    frame.payload.push_back(LOWBYTE(min_interval));
+    frame.payload.push_back(HIGHBYTE(min_interval));
+    frame.payload.push_back(LOWBYTE(max_interval));
+    frame.payload.push_back(HIGHBYTE(max_interval));
+    frame.payload.push_back(LOWBYTE(reportable_change));
+    frame.payload.push_back(HIGHBYTE(reportable_change));
+
+    sendMessage(endpoint, cluster, frame);
+    return true;
+    /*
+       CONFIGURE_REPORTING = 0x06,
+    cluster                                  0x000c
+    direction 0x00 uint8_t
+    uint16_t attribute_id                   0x0055
+    Attribute::DataType attribute_data_type 0x39
+    uint16_t min_interval                   0x3c
+    uint16_t max_interval                   0x384
+    vector<uint8_t> reportable_change       {0x3f800000}
+*/
+}
+
+// Вызываем при Join and Leave
+bool Controller::setDevicesMapToFile()
+{
+    std::string prefix = "/usr/local";
+
+    int dbg = 4;
+#ifdef TEST
+    dbg = 2;
+    std::string filename = prefix + "/etc/zhub2/map_addr_test.cfg";
+#else
+    std::string filename = prefix + "/etc/zhub2/map_addr.cfg";
+#endif
+    std::FILE *fd = std::fopen(filename.c_str(), "w");
+    if (!fd)
+    {
+        gsbutils::dprintf(1, "Zhub::setDevicesMapToFile: error opening file\n");
+        return false;
+    }
+
+    for (auto m : end_devices_address_map_)
+    {
+        fprintf(fd, "%04x %" PRIx64 " \n", m.first, m.second); // лидирующие нули у PRIx64 не записываются, надо учитывать при чтении
+        gsbutils::dprintf(dbg, "%04x %" PRIx64 " \n", m.first, m.second);
+    }
+
+    fclose(fd);
+    gsbutils::dprintf(dbg, "Zhub::setDevicesMapToFile: write map to file\n");
+
+    return true;
+}
+
+// Вызываем сразу после старта конфигуратора
+// заполняем std::map<zigbee::NetworkAddress, zigbee::IEEEAddress> end_devices_address_map_
+// Для варианта на компе и малине делаю запись в файл и чтение из файла, ибо с памятью CC2531 есть проблемы
+bool Controller::getDevicesMapFromFile(bool with_reg)
+{
+
+    int dbg = 3;
+    gsbutils::dprintf(3, "Zhub::getDevicesMap: START\n");
+
+    std::map<uint16_t, uint64_t> item_data = readMapFromFile();
+
+    for (auto b : item_data)
+    {
+        gsbutils::dprintf_c(dbg, "0x%04x 0x%" PRIx64 "\n", b.first, b.second);
+        joinDevice(b.first, b.second); // тут запись в файл не требуется
+    }
+    gsbutils::dprintf(3, "Zhub::getDevicesMap: FINISH\n");
+
+    return true;
+}
+
+std::map<uint16_t, uint64_t> Controller::readMapFromFile()
+{
+
+    std::map<uint16_t, uint64_t> item_data{};
+#ifdef TEST
+    std::string filename = "/usr/local/etc/zhub2/map_addr_test.cfg";
+#else
+    std::string filename = "/usr/local/etc/zhub2/map_addr.cfg";
+#endif
+    std::FILE *fd = std::fopen(filename.c_str(), "r");
+
+    if (fd)
+    {
+        unsigned int short_addr;
+        uint64_t mac_addr;
+        int r;
+        do
+        {
+            r = fscanf(fd, "%04x %" PRIx64 "", &short_addr, &mac_addr);
+            if (short_addr)
+                item_data.insert({(uint16_t)short_addr, mac_addr});
+            fgetc(fd);
+        } while (r != EOF);
+        fclose(fd);
+    }
+    else
+    {
+        gsbutils::dprintf(1, "File not found\n");
+    }
+
+    return item_data;
+}
+
+/// Создаем новое устройство
+/// Сохраняем ссылку на него в мапе
+/// Перед добавлением старое устройство (если есть в списках) удаляем
+/// @param norec писать или нет в файл, по умолчанию - нет
+void Controller::joinDevice(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address, bool norec)
+{
+    if (!norec)
+        std::lock_guard<std::mutex> lg(mtxJoin);
+    std::shared_ptr<EndDevice> ed = nullptr;
+    // Надо проверить, есть ли в списке устройство с таким мак-адресом,
+    // если нет, создаем устройство и добавляем в списки
+    // если есть, проверяем его сетевой адрес,
+    // если он совпадает, то ничего не делаем
+    // если не совпадает, значит устройство получило новый адрес, выполняем процедуру с удалением старого адреса
+    try
+    {
+        auto device = devices_.find(mac_address); // IEEEAddress служит ключом в мапе
+        if (device != devices_.end())
+        {
+            gsbutils::dprintf(3, "Device exists\n");
+            // устройство есть в списке устройств
+            ed = device->second;
+            zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
+            if (shortAddr != network_address)
+            {
+                ed->setNetworkAddress(network_address);
+                {
+                    while (end_devices_address_map_.count(shortAddr))
+                    {
+                        end_devices_address_map_.erase(shortAddr);
+                    }
+                    end_devices_address_map_.insert({network_address, mac_address});
+                }
+                if (!norec)
+                    setDevicesMapToFile();
+            }
+        }
+        else
+        {
+            gsbutils::dprintf(3, "Device not exists\n");
+            // устройство не найдено в списке устройств
+            ed = std::make_shared<EndDevice>(network_address, mac_address);
+
+            if (ed)
+            {
+                devices_.insert({mac_address, ed});
+                end_devices_address_map_.insert({network_address, mac_address});
+                if (!norec)
+                    setDevicesMapToFile();
+                gsbutils::dprintf(7, "Call ed->init()\n");
+                ed->init();
+            }
+        }
+    }
+    catch (std::exception &e)
+    {
+        gsbutils::dprintf(1, "Zhub::joinDevice error %s \n", e.what());
+    }
+}
+
+// Функция вызывается периодически  для устройств, не передающих эти параметры самостоятельно.
+// Ответ разбираем  в OnMessage
+void Controller::getPower(zigbee::NetworkAddress address, Cluster cluster)
+{
+    gsbutils::dprintf(7, "Controller::getPower\n");
+
+    Cluster cl = cluster;
+    std::vector<uint16_t> pwr_attr_ids{};
+    zigbee::Endpoint endpoint{address, 1};
+    if (cl == Cluster::POWER_CONFIGURATION) // 0x0001
+    {
+        pwr_attr_ids.push_back(zigbee::zcl::Attributes::PowerConfiguration::MAINS_VOLTAGE);   // 0x0000 Напряжение основного питания в 0,1 В UINT16
+        pwr_attr_ids.push_back(zigbee::zcl::Attributes::PowerConfiguration::BATTERY_VOLTAGE); // 0x0020 возвращает напряжение батарейки в десятых долях вольта UINT8
+        pwr_attr_ids.push_back(zigbee::zcl::Attributes::PowerConfiguration::BATTERY_REMAIN);  // 0x0021 Остаток заряда батареи в процентах
+    }
+    else
+    {
+        cl = Cluster::BASIC;                                                  // 0x0000
+        pwr_attr_ids.push_back(zigbee::zcl::Attributes::Basic::POWER_SOURCE); // 0x0007
+    }
+    Frame frame;
+    // команда READ_ATTRIBUTES выполняется только с FrameType::GLOBAL
+    frame.frame_control.type = zigbee::zcl::FrameType::GLOBAL;
+    frame.command = zigbee::zcl::GlobalCommands::READ_ATTRIBUTES; // 0x00
+
+    frame.frame_control.direction = zigbee::zcl::FrameDirection::FROM_CLIENT_TO_SERVER;
+    frame.frame_control.disable_default_response = false;
+    frame.frame_control.manufacturer_specific = false;
+    frame.manufacturer_code = 0;
+
+    frame.transaction_sequence_number = generateTransactionSequenceNumber();
+
+    //  в payload список запрашиваемых аттрибутов
+    for (uint16_t id : pwr_attr_ids)
+    {
+        frame.payload.push_back(LOWBYTE(id));
+        frame.payload.push_back(HIGHBYTE(id));
+    }
+
+    sendMessage(endpoint, cluster, frame, 10s);
+}
+
+// Предполагаем, что мы физически не можем одновременно спаривать два устройства
+// На самом деле, может быть и сразу кучей!!!
+void Controller::onJoin(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address)
+{
+    int dbg = 1;
+
+    gsbutils::dprintf(dbg, "Controllerb::onJoin mac_address 0x%" PRIx64 "\n", mac_address);
+    joinDevice(network_address, mac_address, true);
+
+    std::shared_ptr<zigbee::EndDevice> ed = get_device_by_mac(mac_address);
+    if (!ed)
+        return;
+
+    // bind срабатывает только при спаривании/переспаривании устройства, повторный биндинг дает ошибку
+    // ON_OFF попробуем конфигурить всегда
+    // для кастомных устройств репортинг не надо конфигурить!!!
+    bind(network_address, mac_address, 1, zigbee::zcl::Cluster::ON_OFF);
+    if (ed->get_device_type() != 4)
+        configureReporting(network_address, zigbee::zcl::Cluster::ON_OFF); //
+
+#ifdef TEST
+    // smart plug  - репортинга нет, данные получаем только по запросу аттрибутов
+    if (ed->get_device_type() == 10)
+    {
+        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS);
+        configureReporting(network_address, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, 0x0505, zcl::Attribute::DataType::UINT16, 0x00);
+        configureReporting(network_address, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, 0x0508, zcl::Attribute::DataType::UINT16, 0x00);
+    }
+/*
+    // краны репортинг отключил, после настройки кран перестал репортить
+    if ((uint64_t)mac_address == 0xa4c138373e89d731 || (uint64_t)mac_address == 0xa4c138d9758e1dcd)
+    {
+        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER);
+        configureReporting(network_address, zigbee::zcl::Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER);
+        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::TUYA_SWITCH_MODE_0);
+        configureReporting(network_address, zigbee::zcl::Cluster::TUYA_SWITCH_MODE_0);
+    }
+    */
+#endif
+
+    // Датчики движения и открытия дверей Sonoff
+    if (ed->get_device_type() == 2 || ed->get_device_type() == 3)
+    {
+        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::IAS_ZONE);
+        configureReporting(network_address, zigbee::zcl::Cluster::IAS_ZONE); //
+    }
+    // датчики движения IKEA
+    if (ed->get_device_type() == 8)
+    {
+        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::IAS_ZONE);
+        configureReporting(network_address, zigbee::zcl::Cluster::IAS_ZONE); //
+    }
+
+    // для икеевских устройств необходимо запрашивать питание, когда от них приходит сообщение
+    // у них есть POLL INTERVAL во время которого они могут принять комманду на исполнение
+    if (ed->get_device_type() == 7 || ed->get_device_type() == 8)
+    {
+        getPower(network_address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+    }
+    // у остальных устройств надо сделать привязку, чтобы получить параметры питания (оставшийся заряд батареи)
+    bind(network_address, mac_address, 1, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+    if (ed->get_device_type() != 4)
+        configureReporting(network_address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+
+#ifdef TEST
+    // пока спящий датчик не проявится сам, инфу об эндпойнтах не получить, только при спаривании
+    activeEndpoints(network_address);
+    simpleDescriptor(network_address, 1); // TODO: получить со всех эндпойнотов, полученных на предыдущем этапе
+#endif
+    getIdentifier(network_address); // Для многих устройств этот запрос обязателен!!!! Без него не работатет устройство, только регистрация в сети
+    gsbutils::dprintf(1, showDeviceInfo(network_address));
+}
+
+// Ничего не делаем, список поддерживается вручную
+// из координатора запись удаляется самим координатором
+void Controller::onLeave(NetworkAddress network_address, IEEEAddress mac_address)
+{
+    int dbg = 4;
+    gsbutils::dprintf(dbg, "Controller::onLeave 0x%04x 0x%" PRIx64 " \n", (uint16_t)network_address, (uint64_t)mac_address);
+}
+
+/// Идентификаторы возвращаются очень редко ( но возвращаются)
+/// их не надо ждать сразу, ответ будет в OnMessage
+/// реальная польза только в тестировании нового устройства, в штатном режиме можно отключить
+void Controller::getIdentifier(zigbee::NetworkAddress address)
+{
+    //   zigbee::Message message;
+    Cluster cl = Cluster::BASIC;
+    uint16_t id, id2, id3, id4, id5, id6;
+    zigbee::Endpoint endpoint{address, 1};
+    id = zigbee::zcl::Attributes::Basic::MODEL_IDENTIFIER; //
+    id2 = zigbee::zcl::Attributes::Basic::MANUFACTURER_NAME;
+    id3 = zigbee::zcl::Attributes::Basic::SW_BUILD_ID;          // SW_BUILD_ID = 0x4000
+    id4 = zigbee::zcl::Attributes::Basic::PRODUCT_LABEL;        //
+    id5 = zigbee::zcl::Attributes::Basic::DEVICE_ENABLED;       // у датчиков движения Sonoff его нет
+    id6 = zigbee::zcl::Attributes::Basic::PHYSICAL_ENVIRONMENT; //
+
+    // ZCL Header
+    Frame frame;
+    frame.frame_control.type = zigbee::zcl::FrameType::GLOBAL;
+    frame.frame_control.direction = zigbee::zcl::FrameDirection::FROM_CLIENT_TO_SERVER;
+    frame.frame_control.disable_default_response = true;
+    frame.frame_control.manufacturer_specific = false;
+    frame.command = zigbee::zcl::GlobalCommands::READ_ATTRIBUTES; // 0x00
+    frame.transaction_sequence_number = generateTransactionSequenceNumber();
+    // end ZCL Header
+
+    frame.payload.push_back(LOWBYTE(id));
+    frame.payload.push_back(HIGHBYTE(id));
+    frame.payload.push_back(LOWBYTE(id2));
+    frame.payload.push_back(HIGHBYTE(id2));
+    frame.payload.push_back(LOWBYTE(id3));
+    frame.payload.push_back(HIGHBYTE(id3));
+    frame.payload.push_back(LOWBYTE(id4));
+    frame.payload.push_back(HIGHBYTE(id4));
+    frame.payload.push_back(LOWBYTE(id5));
+    frame.payload.push_back(HIGHBYTE(id5));
+    frame.payload.push_back(LOWBYTE(id6));
+    frame.payload.push_back(HIGHBYTE(id6));
+
+    sendMessage(endpoint, cl, frame);
+}
+
+std::string Controller::showDeviceInfo(zigbee::NetworkAddress network_address)
+{
+    std::string result = "";
+
+    auto mac_address = end_devices_address_map_.find(network_address); // find ищет по ключу, а не по значению !!!
+
+    if (mac_address != end_devices_address_map_.end())
+    {
+        std::shared_ptr<zigbee::EndDevice> ed = get_device_by_mac(mac_address->second);
+        if (ed && !ed->getModelIdentifier().empty())
+        {
+            result = result + ed->getModelIdentifier();
+            if (!ed->getManufacturer().empty())
+            {
+                result = result + " | " + ed->getManufacturer();
+            }
+            if (!ed->getProductCode().empty())
+            {
+                result = result + " | " + ed->getProductCode();
+            }
+            result = result + "\n";
+        }
+    }
+    else
+    {
+        // такое бывает, после перезапуска программы - shortAddr уже есть у координатора, но объект не создан - TODO: уже не должно быть
+        gsbutils::dprintf(1, "Zhub::showDeviceInfo: shortAddr 0x%04x не найден в мапе адресов\n", network_address);
+    }
+
+    return result;
 }

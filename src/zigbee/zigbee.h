@@ -14,8 +14,8 @@ namespace zigbee
 #include "attribute.h"
 #include "end_device.h"
 #include "controller.h"
-#include "coordinator.h"
-
+#include "zhub.h"
+#include "cluster/cluster.h"
 }
 
 #endif

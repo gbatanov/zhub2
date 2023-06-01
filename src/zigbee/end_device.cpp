@@ -22,7 +22,7 @@
 #include "zigbee.h"
 #include "../main.h"
 
-extern std::unique_ptr<zigbee::Coordinator> coordinator;
+extern std::unique_ptr<zigbee::Zhub> zhub;
 
 using gsb_utils = gsbutils::SString;
 using namespace zigbee;
@@ -40,12 +40,12 @@ const std::map<const uint64_t, const DeviceInfo> EndDevice::KNOWN_DEVICES = {
     {0x54ef4410001933d3, {9, "Aqara", "SSM-U01", "КоридорСвет", "Реле 4(Свет в коридоре)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     {0x54ef44100018b523, {9, "Aqara", "SSM-U01", "ШкафСвет", "Реле 3(Шкаф, подсветка)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     {0x54ef4410005b2639, {9, "Aqara", "SSM-U01", "ТулетЗанят", "Реле 5(Туалет занят)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
-    {0x54ef441000609dcc, {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
+    {0x54ef441000609dcc, {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 1}},
     {0x00158d0009414d7e, {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     // Умные розетки
-    {0x70b3d52b6001b4a4, {10, "Girier", "TS011F", "Розетка1", "Розетка 1(Лампа Наташи)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
+    //   {0x70b3d52b6001b4a4, {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 0, 0}},
     {0x70b3d52b6001b5d9, {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
-    {0x70b3d52b60022ac9, {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Моя лампа)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
+    {0x70b3d52b60022ac9, {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в детской)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     {0x70b3d52b60022cfd, {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     // краны
     {0xa4c138d9758e1dcd, {6, "TUYA", "Valve", "КранГВ", "Кран 1 ГВ", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
@@ -98,9 +98,9 @@ const std::vector<uint64_t> EndDevice::OFF_LIST = {
     0x00158d0009414d7e, // свет и вентилятор в кухне
     0x54ef44100018b523, // шкаф(подсветка)
     0x54ef4410005b2639, // туалет занят
-    0x70b3d52b6001b4a4, // Умная розетка 1
-    0x70b3d52b60022ac9,  // Умная розетка 3
-    0x70b3d52b60022cfd // Умная розетка 4
+                        //    0x70b3d52b6001b4a4, // Умная розетка 1
+    0x70b3d52b60022ac9, // Умная розетка 3
+    0x70b3d52b60022cfd  // Умная розетка 4
 };
 
 // Список устройств для отображения в Графане
@@ -123,7 +123,7 @@ const std::vector<uint64_t> EndDevice::PROM_RELAY_LIST = {
     0x00158d0009414d7e,  // свет/вентилятор кухня
     0x54ef4410001933d3,  // свет в коридоре
     0x54ef4410005b2639}; // туалет занят
-    
+
 extern std::atomic<bool> Flag;
 
 EndDevice::EndDevice(zigbee::NetworkAddress shortAddr, zigbee::IEEEAddress IEEEAddress) : shortAddr_(shortAddr), IEEEAddress_(IEEEAddress) {}
@@ -192,7 +192,6 @@ std::string EndDevice::showPowerSource()
         result = result + "Other";
         break;
     default:
-        //        getPowerParams();
         return "";
         break;
     }
@@ -201,28 +200,14 @@ std::string EndDevice::showPowerSource()
 }
 std::string EndDevice::showBatteryRemain()
 {
-    std::string result = " ";
-    uint8_t val = battery_remain_percent_;
-
-    if (val > 0 && val <= 0x30)
+    std::string result = "";
+    uint8_t val = battery_remain_percent_ / 2;
+    char buf[16]{0};
+    int len = snprintf(buf, 16, "%d%%", val);
+    if (len > 0)
     {
-        result = result + " < 1/3 ";
-    }
-    else if (val > 0x30 && val <= 0x60)
-    {
-        result = result + " > 1/3 ";
-    }
-    else if (val > 0x60 && val <= 0x90)
-    {
-        result = result + " > 1/2 ";
-    }
-    else if (val > 0x90 && val <= 0xc8)
-    {
-        result = result + " > 3/4 ";
-    }
-    else
-    {
-        result = "";
+        buf[len] = 0;
+        result = std::string(buf);
     }
     return result;
 }
@@ -231,7 +216,7 @@ std::string EndDevice::showBatteryVoltage()
     if (battery_voltage_ > 0)
     {
         char buff[16]{0};
-        size_t len = snprintf(buff, 16, "%0.2f", battery_voltage_);
+        size_t len = snprintf(buff, 16, "%0.2fV", battery_voltage_);
         buff[len] = 0;
         return std::string(buff);
     }
@@ -243,7 +228,7 @@ std::string EndDevice::show_mains_voltage()
     if (mains_voltage_ > 0)
     {
         char buff[16]{0};
-        size_t len = snprintf(buff, 16, "%0.2f", mains_voltage_);
+        size_t len = snprintf(buff, 16, "%0.2fV", mains_voltage_);
         buff[len] = 0;
         return std::string(buff);
     }
@@ -255,7 +240,7 @@ std::string EndDevice::show_current()
     if (current_ < 0)
         return "";
     char buff[16]{0};
-    size_t len = snprintf(buff, 16, "%0.3f", current_);
+    size_t len = snprintf(buff, 16, "%0.3fA", current_);
     buff[len] = 0;
     return std::string(buff);
 }
@@ -296,7 +281,6 @@ std::string EndDevice::get_current_state(uint8_t channel)
 
     return state;
 }
-
 
 // Установка времени (таймстамп) последнего ответа устройства
 // В ответе функция фозвращает предыдущее значение

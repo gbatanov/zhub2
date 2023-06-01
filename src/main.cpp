@@ -64,7 +64,7 @@ std::string startTime{};
 std::atomic<bool> Flag{true};
 char *program_version = nullptr;
 
-std::unique_ptr<zigbee::Coordinator> coordinator;
+std::unique_ptr<zigbee::Zhub> zhub;
 // gsbutils::TTimer ikeaMotionTimer(180, ikeaMotionTimerCallback);
 gsbutils::CycleTimer timer1Min(60, timer1min);
 
@@ -86,9 +86,9 @@ using gsb_utils = gsbutils::SString;
 // Callback функция таймера для датчика движения ИКЕА
 void ikeaMotionTimerCallback()
 {
-    std::shared_ptr<zigbee::EndDevice> ed = coordinator->get_device_by_mac(0x0c4314fffe17d8a8);
+    std::shared_ptr<zigbee::EndDevice> ed = zhub->get_device_by_mac(0x0c4314fffe17d8a8);
     if (ed)
-        coordinator->handle_motion(ed, 0);
+        zhub->handle_motion(ed, 0);
 }
 
 static void sig_int(int signo)
@@ -154,13 +154,13 @@ static int cmdFunc()
             case 'P': //
             case 'p': //
             {
-                coordinator->switch_relay(0x00158d0009414d7e, c == 'P' ? 1 : 0, 1);
+                zhub->switch_relay(0x00158d0009414d7e, c == 'P' ? 1 : 0, 1);
             }
             break;
             case 'R':
             case 'r':
             {
-                coordinator->switch_relay(0x00158d0009414d7e, c == 'R' ? 1 : 0, 2);
+                zhub->switch_relay(0x00158d0009414d7e, c == 'R' ? 1 : 0, 2);
             }
             break;
             case 'd': // уровень отладки
@@ -169,10 +169,10 @@ static int cmdFunc()
             }
             break;
             case 'F': // включить вентилятор
-                coordinator->fan(1);
+                zhub->fan(1);
                 break;
             case 'f': // выключить вентилятор
-                coordinator->fan(0);
+                zhub->fan(0);
                 break;
 
             case 'q': // завершение программы
@@ -182,7 +182,7 @@ static int cmdFunc()
                 return 0;
 
             case 'j': // команда разрешения привязки
-                coordinator->permitJoin(std::chrono::seconds(60));
+                zhub->permitJoin(std::chrono::seconds(60));
                 break;
 
 #ifdef WITH_SIM800
@@ -262,8 +262,8 @@ int main(int argc, char *argv[])
 
         try
         {
-            coordinator = std::make_unique<zigbee::Coordinator>();
-            noAdapter = coordinator->init_adapter();
+            zhub = std::make_unique<zigbee::Zhub>();
+            noAdapter = zhub->init_adapter();
         }
         catch (std::exception &e)
         {
@@ -272,9 +272,11 @@ int main(int argc, char *argv[])
 
         if (!noAdapter)
         {
-            coordinator->start(
+            zhub->start(
 #ifdef TEST
-                zigbee::Controller::test_configuration_
+                zigbee::Controller::TEST_RF_CHANNELS
+#else
+                zigbee::Controller::DEFAULT_RF_CHANNELS
 #endif
             );
         }
@@ -364,7 +366,7 @@ int main(int argc, char *argv[])
     tlg32->stop();
 #endif
     gsbutils::stop();
-    coordinator->stop();
+    zhub->stop();
 
     return ret;
 }
@@ -372,7 +374,7 @@ int main(int argc, char *argv[])
 // используется в телеграм
 std::string show_statuses()
 {
-    std::string statuses = coordinator->show_device_statuses(false);
+    std::string statuses = zhub->show_device_statuses(false);
     if (statuses.empty())
         return "Нет активных устройств\n";
     else
@@ -382,7 +384,7 @@ std::string show_statuses()
 // timer 1 min - callback function
 void timer1min()
 {
-    coordinator->check_motion_activity();
+    zhub->check_motion_activity();
 }
 
 // Примечания:

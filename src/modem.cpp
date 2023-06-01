@@ -30,7 +30,7 @@ extern std::unique_ptr<Tlg32> tlg32;
 #endif
 
 #ifdef WITH_SIM800
-extern zigbee::Coordinator *coordinator;
+extern zigbee::Zhub *zhub;
 extern GsmModem *gsmmodem;
 bool balance_to_sms = false; // отправка баланса по смс, включается по запросу с тонального набора
 extern bool with_sim800;
@@ -476,11 +476,11 @@ void GsmModem::on_tone_command(std::string command)
 // Обработчик смс-комманд
 // Команда обязательно начинается с /cmnd, через один пробел код команды,
 // аналогичный тоновым командам
-// ||CMGR: "REC UNREAD","+79250109365","","22/09/03,12:42:54+12"||test 5||||OK||
+// ||CMGR: "REC UNREAD","+70250109365","","22/09/03,12:42:54+12"||test 5||||OK||
 void GsmModem::on_sms_command(std::string answer)
 {
   gsbutils::dprintf(1, "on_sms_command: %s\n", answer.c_str());
-  if (answer.find("79250109365") != std::string::npos && answer.find("/cmnd") != std::string::npos)
+  if (answer.find("70250109365") != std::string::npos && answer.find("/cmnd") != std::string::npos)
   {
     // принимаю команды пока только со своего телефона
     gsbutils::dprintf(1, "%s\n", answer.c_str());
@@ -570,7 +570,7 @@ bool GsmModem::get_balance()
 // вызов на основной номер
 bool GsmModem::master_call()
 {
-  std::string cmd = "ATD+79250109365;\r";
+  std::string cmd = "ATD+70250109365;\r";
   std::string res = send_command(cmd, "OK");
   // При ожидании звонка и при сбросе звонка приходит пустой ответ
   // При ответе абонента приходит ответ COLP сразу после ответа
@@ -578,7 +578,7 @@ bool GsmModem::master_call()
   return !(res == "");
 }
 
-// AT+CMGS="+79250109365"         >                       Отправка СМС на номер (в кавычках), после кавычек передаем LF (13)
+// AT+CMGS="+70250109365"         >                       Отправка СМС на номер (в кавычках), после кавычек передаем LF (13)
 //>Water leak 1                  +CMGS: 15               Модуль ответит >, передаем сообщение, в конце передаем символ SUB (26)
 //                                OK
 //  Если в сообщении есть кириллица, нужно сменить текстовый режим на UCS2
@@ -612,7 +612,7 @@ bool GsmModem::send_sms(std::string sms)
   // 0B - Длина номера получателя (11 цифр)
   // 91 - Тип-адреса. (91 указывает международный формат телефонного номера, 81 - местный формат).
   //
-  // 9752109063F5 - Телефонный номер получателя в международном формате. (Пары цифр переставлены местами, если номер с нечетным количеством цифр, добавляется F) 79250109365 -> 9752109063F5
+  // 9752109063F5 - Телефонный номер получателя в международном формате. (Пары цифр переставлены местами, если номер с нечетным количеством цифр, добавляется F) 70250109365 -> 9752109063F5
   // 00 - Идентификатор протокола
   // 08 - Старший полубайт означает сохранять SMS у получателя или нет (Flash SMS),  Младший полубайт - кодировка(0-латиница 8-кирилица).
   // C1 - Срок доставки сообщения. С1 - неделя
@@ -693,13 +693,13 @@ void execute_tone_command(std::string command)
   break;
   case 412: // состояние датчиков протечки
   {
-    std::string states = coordinator->get_leak_state();
+    std::string states = zhub->get_leak_state();
     gsmmodem->send_sms(states);
   }
   break;
   case 423: // состояние датчиков движения
   {
-    std::string states = coordinator->get_motion_state();
+    std::string states = zhub->get_motion_state();
     gsmmodem->send_sms(states);
   }
   break;

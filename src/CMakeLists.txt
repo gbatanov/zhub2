@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.20)
 project(zhub LANGUAGES CXX VERSION ${PROJECT_VERSION})
 
 set(PROJECT_DEFAULT_BUILD_TYPE ${PROJECT_DEFAULT_BUILD_TYPE})
@@ -33,10 +33,21 @@ list( APPEND SOURCES
   main.cpp
   zigbee/attribute.cpp
   zigbee/controller.cpp
-  zigbee/coordinator.cpp
+  zigbee/zhub.cpp
   zigbee/end_device.cpp
   zigbee/uart.cpp
   zigbee/zdo.cpp
+  zigbee/cluster/basic.cpp
+  zigbee/cluster/power_configuration.cpp
+  zigbee/cluster/onoff.cpp
+  zigbee/cluster/device_temperature_configuration.cpp
+  zigbee/cluster/analog_input.cpp
+  zigbee/cluster/multistate_input.cpp
+  zigbee/cluster/xiaomi.cpp
+  zigbee/cluster/simple_metering.cpp
+  zigbee/cluster/electrical_measurements.cpp
+  zigbee/cluster/tuya.cpp
+  zigbee/cluster/other.cpp
   comport/unix.cpp
   comport/serial.cpp
 )

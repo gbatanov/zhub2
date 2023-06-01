@@ -32,7 +32,7 @@ extern GsmModem *gsmmodem;
 #endif
 
 extern std::atomic<bool> Flag;
-// extern Coordinator *coordinator;
+// extern Zhub *zhub;
 std::unique_ptr<Tlg32> tlg32;
 
 // Здесь реализуется вся логика обработки принятых сообщений
@@ -71,7 +71,7 @@ void handle(Message msg)
         }
         else if (msg.text.starts_with("/join"))
         {
-            //            coordinator->permitJoin(60s)
+            //            zhub->permitJoin(60s)
             answer.text = "Join 60 sec.\n";
         }
         else

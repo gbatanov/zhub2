@@ -44,7 +44,7 @@ public:
     Command get_command()
     {
         std::unique_lock<std::mutex> ul(tqMtx);
-        Command cmd((uint16_t)0);
+        Command cmd((CommandId)0);
         cv_queue.wait(ul, [this]()
                       { return !taskQueue.empty() || !flag.load(); });
 

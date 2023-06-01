@@ -24,7 +24,7 @@
 
 using namespace zigbee;
 
-extern std::unique_ptr<zigbee::Coordinator> coordinator;
+extern std::unique_ptr<zigbee::Zhub> zhub;
 extern std::atomic<bool> Flag;
 std::atomic<uint8_t> transaction_sequence_number = 0;
 std::mutex trans_mutex;
@@ -38,34 +38,29 @@ Zdo::~Zdo()
 }
 
 // Сброс zigbee-адаптера, по умолчанию используем программный сброс без очистки конфига и сети
-// 0 - ошибка, 1 - аппаратный сброс, 2 - программный сброс
+// Практика показала, что даже если был аппаратный сброс, надежнее после него использовать программный.
+// В текущей прошивке координатора некорректно реализован возврат типа сброса,
+// для программного и аппаратного приходит один и тот же код
 int Zdo::reset(ResetType reset_type, bool clear_network_state, bool clear_config)
 {
     int res = 1;
     std::optional<Command> reset_response = std::nullopt;
-    if (reset_type == ResetType::HARD)
-    {
-        // сначала ждем, был ли аппаратный сброс
-        event_command_.clear(SYS_RESET_IND);                                // очистка события с идентификатором id
-        reset_response = event_command_.wait(SYS_RESET_IND, RESET_TIMEOUT); // ожидаем наступления события с заданным идентификатором
-    }
-    if (!reset_response) // аппаратного сброса не было, делаем программный
-    {
-        res = 2;
-        uint8_t startup_options = static_cast<uint8_t>(clear_network_state << 1) + static_cast<uint8_t>(clear_config);
+    // аппаратный сброс игнорируем
+    event_command_.clear(zigbee::CommandId::SYS_RESET_IND); // очистка события с идентификатором id
+    // Программный сброс делаю в любом случае (с 2.23.560)
+    res = 2;
+    uint8_t startup_options = static_cast<uint8_t>(clear_network_state << 1) + static_cast<uint8_t>(clear_config);
 
-        // writeNv вызывает синхронный запрос
-        writeNv(NvItems::STARTUP_OPTION, std::vector<uint8_t>{startup_options}); // STARTUP_OPTION = 0x0003
+    // writeNv вызывает синхронный запрос
+    writeNv(NvItems::STARTUP_OPTION, std::vector<uint8_t>{startup_options}); // STARTUP_OPTION = 0x0003
 
-        Command reset_request(SYS_RESET_REQ);
+    Command reset_request(zigbee::CommandId::SYS_RESET_REQ);
+    reset_request.payload(0) = static_cast<uint8_t>(reset_type);
+    event_command_.clear(zigbee::CommandId::SYS_RESET_IND); // очистка события с идентификатором id
 
-        reset_request.payload(0) = static_cast<uint8_t>(reset_type);
+    if (uart_.sendCommandToDevice(reset_request))
+        reset_response = event_command_.wait(zigbee::CommandId::SYS_RESET_IND, RESET_TIMEOUT); // ожидаем наступления события с заданным идентификатором
 
-        event_command_.clear(SYS_RESET_IND); // очистка события с идентификатором id
-
-        if (uart_.sendCommandToDevice(reset_request))
-            reset_response = event_command_.wait(SYS_RESET_IND, RESET_TIMEOUT); // ожидаем наступления события с заданным идентификатором
-    }
     if (reset_response)
     {
         version_[0] = reset_response->payload(3); // 0x02 // Major release number.
@@ -80,7 +75,7 @@ int Zdo::reset(ResetType reset_type, bool clear_network_state, bool clear_config
 
 bool Zdo::startup(std::chrono::duration<int, std::milli> delay)
 {
-    Command startup_request(ZDO_STARTUP_FROM_APP);
+    Command startup_request(zigbee::CommandId::ZDO_STARTUP_FROM_APP);
     startup_request.payload(0) = LOWBYTE(delay.count());
     startup_request.payload(1) = HIGHBYTE(delay.count());
 
@@ -96,17 +91,17 @@ bool Zdo::startup(std::chrono::duration<int, std::milli> delay)
     if ((!startup_response) || (static_cast<StartupStatus>(startup_response->payload(0)) == StartupStatus::NOT_STARTED))
         return false;
 
-    std::optional<Command> device_info_response = syncRequest(Command(UTIL_GET_DEVICE_INFO));
+    std::optional<Command> device_info_response = syncRequest(Command(CommandId::UTIL_GET_DEVICE_INFO));
 
     if ((device_info_response) && (static_cast<Status>(device_info_response->payload(0)) == Status::SUCCESS))
     {
-        int dbg = 4;
+        int dbg = 3;
         mac_address_ = *((zigbee::IEEEAddress *)(device_info_response->data() + 1));
-        gsbutils::dprintf_c(dbg, "Configurator info: IEEE address: 0x" PRIx64" \n", mac_address_); // 0x00124b001cdd4e4e  для CC2530
-        network_address_ = _UINT16(device_info_response->payload(9), device_info_response->payload(10));           // shortAddr 0x0000 для координатора
+        gsbutils::dprintf_c(dbg, "Configurator info: IEEE address: 0x%" PRIx64 " \n", mac_address_);     // 0x00124b001cdd4e4e  для CC2530
+        network_address_ = _UINT16(device_info_response->payload(9), device_info_response->payload(10)); // shortAddr 0x0000 для координатора
         gsbutils::dprintf_c(7, "Configurator info: shortAddr: 0x%04x \n", network_address_);
         gsbutils::dprintf_c(7, "Configurator info: Device type: 0x%02x \n", device_info_response->payload(11));    // DeviceType: COORDINATOR, ROUTER, END_DEVICE (0x7) ??? не совсем понятно, как получена расшифровка, возможно битовая комбинация
-        gsbutils::dprintf_c(dbg, "Configurator info: Device state: 0x%02x \n", device_info_response->payload(12)); // ZdoState COORDINATOR = 9  Started as ZigBee Coordinator
+        gsbutils::dprintf_c(dbg, "Configurator info: Device state: 0x%02x \n", device_info_response->payload(12)); // ZdoState COORDINATOR = 9  Started as ZigBee Zhub
         gsbutils::dprintf_c(dbg, "Configurator info: Associated device count: %d \n", device_info_response->payload(13));
 
         {
@@ -143,7 +138,7 @@ bool Zdo::registerEndpoint(zigbee::SimpleDescriptor endpoint_descriptor)
     if (endpoint_descriptor.endpoint_number > 240)
         return false;
 
-    Command register_ep_request(AF_REGISTER);
+    Command register_ep_request(zigbee::CommandId::AF_REGISTER);
 
     {
         size_t i = 0;
@@ -176,7 +171,7 @@ bool Zdo::registerEndpoint(zigbee::SimpleDescriptor endpoint_descriptor)
 // Команда разрешения спаривания координатора с устройствами
 bool Zdo::permitJoin(const std::chrono::duration<int, std::ratio<1>> duration)
 {
-    Command permit_join_request(ZDO_MGMT_PERMIT_JOIN_REQ);
+    Command permit_join_request(zigbee::CommandId::ZDO_MGMT_PERMIT_JOIN_REQ);
 
     permit_join_request.payload(0) = 0x0F;                            // Destination address type : 0x02 - Address 16 bit, 0x0F - Broadcast.
     permit_join_request.payload(1) = 0xFC;                            // Specifies the network address of the destination device whose Permit Join information is to be modified.
@@ -192,7 +187,7 @@ std::optional<std::vector<uint8_t>> Zdo::readNv(NvItems item)
 {
     std::vector<uint8_t> value;
 
-    Command read_nv_request(SYS_OSAL_NV_READ);
+    Command read_nv_request(zigbee::CommandId::SYS_OSAL_NV_READ);
 
     read_nv_request.payload(0) = LOWBYTE(item); // The Id of the NV item.
     read_nv_request.payload(1) = HIGHBYTE(item);
@@ -231,7 +226,7 @@ bool Zdo::writeNv(NvItems item, std::vector<uint8_t> item_data)
 {
     assert(item_data.size() <= 240);
 
-    Command write_nv_request(SYS_OSAL_NV_WRITE, item_data.size() + 4);
+    Command write_nv_request(zigbee::CommandId::SYS_OSAL_NV_WRITE, item_data.size() + 4);
 
     {
         write_nv_request.payload(0) = LOWBYTE(item); // The Id of the NV item.
@@ -249,7 +244,7 @@ bool Zdo::initNv(NvItems item, uint16_t length, std::vector<uint8_t> item_data)
 {
     assert(item_data.size() <= 245);
 
-    Command init_nv_request(SYS_OSAL_NV_ITEM_INIT);
+    Command init_nv_request(zigbee::CommandId::SYS_OSAL_NV_ITEM_INIT);
 
     init_nv_request.payload(0) = LOWBYTE(item); // The Id of the NV item.
     init_nv_request.payload(1) = HIGHBYTE(item);
@@ -287,14 +282,14 @@ bool Zdo::initNv(NvItems item, uint16_t length, std::vector<uint8_t> item_data)
 // Length = 0x02 Cmd0 = 0x61 Cmd1 = 0x13 ItemLen
 bool Zdo::deleteNvItem(NvItems item)
 {
-    Command len_nv_request(SYS_OSAL_NV_LENGTH);
+    Command len_nv_request(zigbee::CommandId::SYS_OSAL_NV_LENGTH);
     len_nv_request.payload(0) = LOWBYTE(item); // The Id of the NV item.
     len_nv_request.payload(1) = HIGHBYTE(item);
     std::optional<Command> len_nv_response = syncRequest(len_nv_request);
     if (len_nv_response)
     {
         uint16_t item_len = _UINT16(len_nv_response->payload(0), len_nv_response->payload(1));
-        Command del_nv_request(SYS_OSAL_NV_DELETE);
+        Command del_nv_request(zigbee::CommandId::SYS_OSAL_NV_DELETE);
         del_nv_request.payload(0) = LOWBYTE(item); // The Id of the NV item.
         del_nv_request.payload(1) = HIGHBYTE(item);
         del_nv_request.payload(2) = LOWBYTE(item_len); // Number of bytes in the NV item.
@@ -312,7 +307,7 @@ bool Zdo::deleteNvItem(NvItems item)
 std::optional<int> Zdo::setTransmitPower(int power)
 {
     // Returned actual TX power (dBm). Range: -22 ... 3 dBm.
-    Command tx_power_request(SYS_SET_TX_POWER);
+    Command tx_power_request(zigbee::CommandId::SYS_SET_TX_POWER);
 
     tx_power_request.payload(0) = LOWBYTE(power);
 
@@ -335,43 +330,43 @@ void Zdo::handle_command(Command command)
     {
         // Это входящие сообщения от устройств
         // Игнорирую до инициализации конфигуратора
-    case AF_INCOMING_MSG: // 0x4481
+    case zigbee::CommandId::AF_INCOMING_MSG: // 0x4481
     {
         gsbutils::dprintf(3, "Zdo::handle_command AF_INCOMING_MSG:%04x\n", command.id());
-        if (!coordinator->get_ready())
+        if (!zhub->get_ready())
             return;
         gsbutils::dprintf(7, "Zdo::handle_command AF_INCOMING_MSG:%04x\n", command.id());
         try
         {
-            coordinator->on_message(command);
+            zhub->on_message(command);
         }
         catch (std::exception &err)
         {
             std::stringstream sstream;
             sstream << "ZDO::handle_command: Bad Incoming Message data:" << err.what() << std::endl;
-            coordinator->OnError(sstream.str());
+            zhub->OnError(sstream.str());
         }
         return;
     }
 
     // Уведомление об изменении текущего состояния координатора
-    //  COORDINATOR = 9,   Started as ZigBee Coordinator
-    case ZDO_STATE_CHANGE_IND:
+    //  COORDINATOR = 9,   Started as ZigBee Zhub
+    case zigbee::CommandId::ZDO_STATE_CHANGE_IND:
     {
         gsbutils::dprintf(7, "Zdo::handle_command: ZDO_STATE_CHANGE_IND:%04x\n", command.id());
         current_state_ = static_cast<ZdoState>(command.payload(0));
         if (command.payload(0) == 9)
-            coordinator->set_ready();
+            zhub->set_ready();
         gsbutils::dprintf(1, "Zdo::handle_command: current state %d \n", command.payload(0));
         break;
     }
 
-    case ZDO_END_DEVICE_ANNCE_IND: //  0x45c1
+    case zigbee::CommandId::ZDO_END_DEVICE_ANNCE_IND: //  0x45c1
     {
         // Indicates reception of a ZDO Device Announce.
         // This command contains the device's SrcAddr, new 16-bit NWK address, 64-bit IEEE address and  the capabilities of the ZigBee device.
         // Capabilities 1 Биты, определяющие свойства узла
-        // bit 0: 1 - Alternate PAN Coordinator
+        // bit 0: 1 - Alternate PAN Zhub
         // bit 1: Device type
         // 0 – End Device
         // 1 – Router
@@ -409,14 +404,14 @@ void Zdo::handle_command(Command command)
         zigbee::IEEEAddress macAddress = *(reinterpret_cast<zigbee::IEEEAddress *>(&command.payload(4)));
         gsbutils::dprintf(dbg, "Zdo::ZDO_END_DEVICE_ANNCE_IND: new shortAddress: 0x%04x\n", networkAddress);
         gsbutils::dprintf(dbg, "Zdo::ZDO_END_DEVICE_ANNCE_IND: IEEEaddress: 0x%" PRIx64 " \n", macAddress);
-        coordinator->onJoin(networkAddress, macAddress);
+        zhub->onJoin(networkAddress, macAddress);
     }
     break;
     //
-    case ZDO_TC_DEV_IND: // 0x45ca This response indication message is sent whenever the Trust Center allows a device to join the network.
-                         //  This message will only occur on a coordinator/trust center device.
-                         // формат payload не совпадает с ZDO_END_DEVICE_ANNCE_IND
-                         // может приходить несколько раз для одного события
+    case zigbee::CommandId::ZDO_TC_DEV_IND: // 0x45ca This response indication message is sent whenever the Trust Center allows a device to join the network.
+                                            //  This message will only occur on a zhub/trust center device.
+                                            // формат payload не совпадает с ZDO_END_DEVICE_ANNCE_IND
+                                            // может приходить несколько раз для одного события
     {
 //        event_command_.emit(command.id(), command);
 #ifdef TEST
@@ -442,22 +437,21 @@ void Zdo::handle_command(Command command)
     }
     break;
 
-    case ZDO_LEAVE_IND:
+    case zigbee::CommandId::ZDO_LEAVE_IND:
     {
-        //        event_command_.emit(command.id(), command);
         zigbee::NetworkAddress network_address = _UINT16(command.payload(0), command.payload(1));
         zigbee::IEEEAddress mac_address = *(reinterpret_cast<zigbee::IEEEAddress *>(&command.payload(2)));
-        coordinator->onLeave(network_address, mac_address);
+        zhub->onLeave(network_address, mac_address);
     }
     break;
     //
-    case ZDO_SRC_RTG_IND: // (0x45C4) This message is an indication to inform host device of receipt of a source route to a given device.
+    case zigbee::CommandId::ZDO_SRC_RTG_IND: // (0x45C4) This message is an indication to inform host device of receipt of a source route to a given device.
         // Length = 0x04-0x44 Cmd0 = 0x45 Cmd1 = 0xC4 dstAddr Relay Count (N) Relay List
         // Если есть устройства, работающией через роутер, то первым будет адрес устройства,
         // потом количество промежуточных роутеров, потом список роутеров
         // с версии 2.22.520 больше не использую, неинформативно для меня
         break;
-    case ZDO_PERMIT_JOIN_IND: // 0x45cb
+    case zigbee::CommandId::ZDO_PERMIT_JOIN_IND: // 0x45cb
     {
         // В payload отдает оставшееся время в секундах
         int dbg = 3;
@@ -467,62 +461,7 @@ void Zdo::handle_command(Command command)
         }
     }
     break;
-
-    case SYS_RESET_IND: // 0x4180 Программный или аппаратный сброс - ответ
-    {
-        // This command is generated by coordinator automatically immediately after a reset.
-        /*
-        Reason – 1 byte – One of the following values indicating the reason for the reset.
-                Power-up 0x00
-                External 0x01
-                Watch-dog 0x02
-        TransportRev – 1 byte – Transport protocol revision. This is set to value of 2.
-        Product – 1 byte – Product ID. This is set to value of 1.
-        MajorRel – 1 byte – Major release number.
-        MinorRel – 1 byte – Minor release number.
-        HwRev – 1 byte – Hardware revision number
-*/
-#ifdef TEST
-        // программный сброс: 00 02 00 02 06 03
-        gsbutils::dprintf(1, "Zdo::handle_command SYS_RESET_IND\n");
-        size_t len = command.payload_size();
-        if (len > 0)
-        {
-            uint8_t i = 0;
-            gsbutils::dprintf(1, "zcl_frame.payload: \n");
-            while (len--)
-            {
-                gsbutils::dprintf_c(1, " %02x ", command.payload(i++));
-            }
-        }
-        gsbutils::dprintf_c(1, "\n");
-#endif
-        event_command_.emit(command.id(), command);
-    }
-    break;
-
-    // Для этой группы команд нужно фиксировать событие, иначе синхронная команда отвалится по тайм-ауту
-    case AF_DATA_CONFIRM: // 0x4480 Подтверждение, что команда принята устройством
-
-    // ответы на синхронные запросы
-    case SYS_PING_SRSP:             // 0x6101
-    case ZDO_STARTUP_FROM_APP_SRSP: // 0x6540
-    case UTIL_GET_DEVICE_INFO_SRSP: // 0x6700
-    case ZDO_MGMT_PERMIT_JOIN_SRSP: //  0x6536,
-    case SYS_OSAL_NV_WRITE_SRSP:
-    case SYS_OSAL_NV_READ_SRSP: // 0x6108
-    case SYS_OSAL_NV_DELETE_SRSP:
-    case SYS_OSAL_NV_ITEM_INIT_SRSP:
-    case AF_DATA_REQUEST_SRSP: // 0x6401
-    case AF_REGISTER_SRSP:     // 0x6400
-    case ZDO_SIMPLE_DESC_SRSP: // 0x6504
-    case ZDO_ACTIVE_EP_SRSP:   // 0x6505
-    case ZDO_BIND_SRSP:        // 0x6521
-    {
-        event_command_.emit(command.id(), command);
-    }
-    break;
-    case ZDO_BIND_RSP: // 0x45a1
+    case zigbee::CommandId::ZDO_BIND_RSP: // 0x45a1
     {
 
 #ifdef TEST
@@ -541,17 +480,17 @@ void Zdo::handle_command(Command command)
     }
     break;
 
-    case ZDO_MGMT_PERMIT_JOIN_RSP: // = 0x45b6,
+    case zigbee::CommandId::ZDO_MGMT_PERMIT_JOIN_RSP: // = 0x45b6,
     {
         // Ответ на команду включения режима спаривания
     }
     break;
-    case 0x45b8:
-    case 0x4f80:
+    case zigbee::CommandId::UNKNOWN_45B8: // 0x45b8
+    case zigbee::CommandId::UNKNOWN_4F80: // 0x4f80:
     {
     }
     break;
-    case ZDO_ACTIVE_EP_RSP: // 0x4585
+    case zigbee::CommandId::ZDO_ACTIVE_EP_RSP: // 0x4585
     {
 //        event_command_.emit(command.id(), command);
 #ifdef TEST
@@ -565,7 +504,7 @@ void Zdo::handle_command(Command command)
             for (int i = 0; i < ep_count; i++) // Number of active endpoint in the list
                 endpoints.push_back(static_cast<uint8_t>(command.payload(6 + i)));
 
-            gsbutils::dprintf(3, "Coordinator::ZDO_ACTIVE_EP_RSP: Device 0x%04x Endpoints count: %d list: ", shortAddr, ep_count);
+            gsbutils::dprintf(3, "Zhub::ZDO_ACTIVE_EP_RSP: Device 0x%04x Endpoints count: %d list: ", shortAddr, ep_count);
             for (uint8_t ep : endpoints)
             {
                 gsbutils::dprintf_c(3, "%u ", ep);
@@ -575,7 +514,7 @@ void Zdo::handle_command(Command command)
 #endif
     }
     break;
-    case ZDO_SIMPLE_DESC_RSP: // 0x4584
+    case zigbee::CommandId::ZDO_SIMPLE_DESC_RSP: // 0x4584
     {
         //       event_command_.emit(command.id(), command);
 #ifdef TEST
@@ -630,6 +569,65 @@ void Zdo::handle_command(Command command)
 #endif
     }
     break;
+
+        // Для этой группы команд (ответы на синхронные запросы) нужно фиксировать событие,
+        // иначе синхронная команда отвалится по тайм-ауту
+    case zigbee::CommandId::SYS_RESET_IND: // 0x4180
+    {
+        // Команда информирующая об аппаратном или программном сбросе
+        // This command is generated by zhub automatically immediately after a reset.
+        /*
+        Reason – 1 byte – One of the following values indicating the reason for the reset.
+                Power-up 0x00
+                External 0x01
+                Watch-dog 0x02
+        TransportRev – 1 byte – Transport protocol revision. This is set to value of 2.
+        Product – 1 byte – Product ID. This is set to value of 1.
+        MajorRel – 1 byte – Major release number.
+        MinorRel – 1 byte – Minor release number.
+        HwRev – 1 byte – Hardware revision number
+*/
+#ifdef TEST
+        // программный сброс: 00 02 00 02 06 03
+        gsbutils::dprintf(1, "Zdo::handle_command SYS_RESET_IND\n");
+        size_t len = command.payload_size();
+        if (len > 0)
+        {
+            uint8_t i = 0;
+            gsbutils::dprintf(1, "zcl_frame.payload: \n");
+            while (len--)
+            {
+                gsbutils::dprintf_c(1, " %02x ", command.payload(i++));
+            }
+        }
+        gsbutils::dprintf_c(1, "\n");
+#endif
+        event_command_.emit(command.id(), command);
+    }
+    break;
+
+    case zigbee::CommandId::AF_DATA_CONFIRM: // 0x4480 Подтверждение, что команда принята устройством
+                                             // Синхронный ответ на запрос AF_DATA_REQUEST
+
+    // ответы на синхронные запросы
+    case zigbee::CommandId::SYS_PING_SRSP:             // 0x6101
+    case zigbee::CommandId::ZDO_STARTUP_FROM_APP_SRSP: // 0x6540
+    case zigbee::CommandId::UTIL_GET_DEVICE_INFO_SRSP: // 0x6700
+    case zigbee::CommandId::ZDO_MGMT_PERMIT_JOIN_SRSP: //  0x6536,
+    case zigbee::CommandId::SYS_OSAL_NV_WRITE_SRSP:
+    case zigbee::CommandId::SYS_OSAL_NV_READ_SRSP: // 0x6108
+    case zigbee::CommandId::SYS_OSAL_NV_DELETE_SRSP:
+    case zigbee::CommandId::SYS_OSAL_NV_ITEM_INIT_SRSP:
+    case zigbee::CommandId::AF_DATA_REQUEST_SRSP: // 0x6401
+    case zigbee::CommandId::AF_REGISTER_SRSP:     // 0x6400
+    case zigbee::CommandId::ZDO_SIMPLE_DESC_SRSP: // 0x6504
+    case zigbee::CommandId::ZDO_ACTIVE_EP_SRSP:   // 0x6505
+    case zigbee::CommandId::ZDO_BIND_SRSP:        // 0x6521
+    {
+        event_command_.emit(command.id(), command);
+    }
+    break;
+
     default:
     {
 #ifdef DEBUG
@@ -678,6 +676,7 @@ zigbee::zcl::Frame Zdo::parseZclData(std::vector<uint8_t> data)
 }
 
 // Отправка сообщения конечному устройству
+// Команда AF_DATA_REQUEST
 void Zdo::sendMessage(zigbee::Endpoint endpoint, zigbee::zcl::Cluster cluster, zigbee::zcl::Frame frame, std::chrono::duration<int, std::milli> timeout)
 {
     zigbee::Message message;
@@ -692,7 +691,7 @@ void Zdo::sendMessage(zigbee::Endpoint endpoint, zigbee::zcl::Cluster cluster, z
     if ((message.zcl_frame.payload.size() + (message.zcl_frame.frame_control.manufacturer_specific * sizeof(message.zcl_frame.manufacturer_code)) + 3) > 128)
         return;
 
-    Command af_data_request(AF_DATA_REQUEST);
+    Command af_data_request(zigbee::CommandId::AF_DATA_REQUEST);
 
     {
         af_data_request.payload(0) = LOWBYTE(message.destination.address);
@@ -729,75 +728,123 @@ void Zdo::sendMessage(zigbee::Endpoint endpoint, zigbee::zcl::Cluster cluster, z
     asyncRequest(af_data_request);
 }
 
+std::vector<uint8_t> Zdo::read_rf_channels()
+{
+    int dbg = 4;
+    gsbutils::dprintf(dbg, "Zdo: Reading RF channels\n");
+    std::optional<std::vector<uint8_t>> item_data;
+    std::vector<uint8_t> rf{};
+
+    item_data = readNv(NvItems::CHANNEL_LIST); // CHANNEL_LIST = 0x0084
+    {
+        // channel bit mask. Little endian. Default is 0x00 00 08 00 for CH11; 00 00 30 00 CH12,CH13
+        uint32_t channelBitMask = *(reinterpret_cast<uint32_t *>(item_data->data())); //
+        gsbutils::dprintf(dbg, "read channelBitMask: 0x%08x\n", channelBitMask);      //  0x00 00 08 00
+        gsbutils::dprintf(dbg, "configuration.channels: ");
+        for (unsigned int i = 0; i < 32; i++)
+        {
+            if (channelBitMask & (1 << i))
+            {
+                rf.push_back(i);
+                gsbutils::dprintf_c(dbg, " %d ", i); // TEST - 11
+            }
+        }
+        gsbutils::dprintf_c(dbg, "\n");
+    }
+    return rf;
+}
+/*
 // Читает конфигурацию сети из координатора
 zigbee::NetworkConfiguration Zdo::readNetworkConfiguration()
 {
+    int dbg = 4;
+    gsbutils::dprintf(dbg, "Zdo: Reading network configuration\n");
+
     std::optional<std::vector<uint8_t>> item_data;
     zigbee::NetworkConfiguration configuration;
 
     item_data = readNv(NvItems::PAN_ID); // PAN_ID = 0x0083, идентификатор сети
     if (item_data && item_data->size() == 2)
+    {
         configuration.pan_id = _UINT16((*item_data)[0], (*item_data)[1]);
-
+        gsbutils::dprintf(dbg, "Configuration.pan_id 0x%04x\n", configuration.pan_id); // TEST -  0x1a62
+    }
     item_data = readNv(NvItems::EXTENDED_PAN_ID); // EXTENDED_PAN_ID = 0x002D MAC address
     if (item_data && item_data->size() == 8)
+    {
         configuration.extended_pan_id = *(reinterpret_cast<uint64_t *>(item_data->data()));
-
+        gsbutils::dprintf(dbg, "Configuration.extended_pan_id 0x%" PRIx64 "\n", configuration.extended_pan_id); // TEST - 0x124b001cdd4e4e
+    }
     item_data = readNv(NvItems::LOGICAL_TYPE); // LOGICAL_TYPE = 0x0087
-    if (item_data && item_data->size() == 4)
-        configuration.logical_type = static_cast<zigbee::LogicalType>((*item_data)[0]); // TODO: Logical type
-
+    if (item_data && item_data->size() == 1)
+    {
+        configuration.logical_type = static_cast<zigbee::LogicalType>((*item_data)[0]);            //  Logical type
+        gsbutils::dprintf(dbg, "Configuration.logical_type 0x%02x\n", configuration.logical_type); // TEST -0 (COORDINATOR)
+    }
     item_data = readNv(NvItems::PRECFG_KEYS_ENABLE); // PRECFG_KEYS_ENABLE = 0x0063
     if (item_data && item_data->size() == 1)
-        configuration.precfg_key_enable = (*item_data)[0];
-
-    item_data = readNv(NvItems::PRECFG_KEY); // PRECFG_KEY = 0x0062
-    if (item_data && item_data->size() == 16)
     {
-        for (uint8_t i = 0; i < 16; i++)
+        configuration.precfg_key_enable = (*item_data)[0];
+        gsbutils::dprintf(dbg, "Configuration.precfg_key_enable %d \n", configuration.precfg_key_enable); // TEST false
+    }
+
+    if (configuration.precfg_key_enable)
+    {
+        item_data = readNv(NvItems::PRECFG_KEY); // PRECFG_KEY = 0x0062
+        if (item_data && item_data->size() == 16)
         {
-            configuration.precfg_key[i] = item_data.value()[i];
+            gsbutils::dprintf(dbg, "Configuration.precfg_key: ");
+            for (uint8_t i = 0; i < 16; i++)
+            {
+                configuration.precfg_key[i] = item_data.value()[i];
+                gsbutils::dprintf_c(dbg, "Configuration.precfg_key %02x \n", configuration.precfg_key[i]); // TEST absent
+            }
+            gsbutils::dprintf_c(dbg, "\n");
         }
     }
 
-    item_data = readNv(NvItems::CHANNEL_LIST); // CHANNEL_LIST = 0x0084 //channel bit mask. Little endian. Default is 0x00000800 for CH11;  Ex: value: [ 0x00, 0x00, 0x00, 0x04 ] for CH26, [ 0x00, 0x00, 0x20, 0x00 ] for CH15.
-    if (item_data && item_data->size() == 4)
+    item_data = readNv(NvItems::CHANNEL_LIST); // CHANNEL_LIST = 0x0084
     {
-        uint32_t channelBitMask = *(reinterpret_cast<uint32_t *>(item_data->data()));
-
+        // channel bit mask. Little endian. Default is 0x00 00 08 00 for CH11; 00 00 30 00 CH12,CH13
+        uint32_t channelBitMask = *(reinterpret_cast<uint32_t *>(item_data->data())); //
+        gsbutils::dprintf(dbg, "read channelBitMask: 0x%08x\n", channelBitMask);      //  0x00 00 08 00
+        gsbutils::dprintf(dbg, "configuration.channels: ");
         for (unsigned int i = 0; i < 32; i++)
+        {
             if (channelBitMask & (1 << i))
+            {
                 configuration.channels.push_back(i);
+                gsbutils::dprintf_c(dbg, " %d ", i); // TEST - 11
+            }
+        }
+        gsbutils::dprintf_c(dbg, "\n");
     }
 
     return configuration;
 }
-
-// Записывает новую конфигурацию сети в координатор
-bool Zdo::writeNetworkConfiguration(zigbee::NetworkConfiguration configuration)
+*/
+bool Zdo::write_rf_channels(std::vector<uint8_t> rf)
 {
+    int dbg = 4;
+    gsbutils::dprintf(dbg, "Write RF channels\n");
+    uint32_t channelBitMask = 0;
+    for (uint8_t channel : rf)
+        channelBitMask |= (1 << channel);
 
-    if (!writeNv(NvItems::LOGICAL_TYPE, std::vector<uint8_t>{static_cast<uint8_t>(configuration.logical_type)}))
-        return false; // TODO: Logical type
-
-    if (!writeNv(NvItems::PRECFG_KEYS_ENABLE, std::vector<uint8_t>{static_cast<uint8_t>(configuration.precfg_key_enable)}))
-        return false;
-    std::vector<uint8_t> temp_v{};
-    for (uint8_t i = 0; i < 16; i++)
+    std::vector<uint8_t> chan{};
+    for (int i = 0; i < 4; i++)
     {
-        temp_v[i] = configuration.precfg_key[i];
+        uint8_t ch = channelBitMask >> i * 8;
+        chan.push_back(ch);
     }
-    if (!writeNv(NvItems::PRECFG_KEY, temp_v))
-        return false;
-    /*
-        {
-            uint32_t channelBitMask = 0;
-            for (auto channel : configuration.channels)
-                channelBitMask |= (1 << channel);
 
-            //        if (!writeNv(NvItems::CHANNEL_LIST, utils::to_uint8_vector<uint32_t>(channelBitMask))) return false;
-        }
-    */
+    if (!writeNv(NvItems::CHANNEL_LIST, chan)) // старший байт последний
+        return false;
+
+    return true;
+}
+bool Zdo::finish_configuration()
+{
     if (!writeNv(NvItems::ZDO_DIRECT_CB, std::vector<uint8_t>{1}))
         return false;
 
@@ -807,16 +854,81 @@ bool Zdo::writeNetworkConfiguration(zigbee::NetworkConfiguration configuration)
     if (!writeNv(NvItems::ZNP_HAS_CONFIGURED, std::vector<uint8_t>{0x55}))
         return false;
 
+    // После изменения в  конфигурации еще раз делаем программный сброс
+   int  res = reset(ResetType::SOFT, false, false);
+    if (0 == res)
+        return false;
+
     return true;
 }
+/*
+// Записывает новую конфигурацию сети в координатор
+bool Zdo::writeNetworkConfiguration(zigbee::NetworkConfiguration newConfiguration, zigbee::NetworkConfiguration current_configuration, bool &wasChange)
+{
+    int dbg = 4;
+    wasChange = false;
+    gsbutils::dprintf(dbg, "Write network configuration\n");
+    if (current_configuration.logical_type != zigbee::LogicalType::COORDINATOR)
+    {
+        if (!writeNv(NvItems::LOGICAL_TYPE, std::vector<uint8_t>{static_cast<uint8_t>(zigbee::LogicalType::COORDINATOR)}))
+            return false; //
 
+        wasChange = true;
+    }
+
+    if (newConfiguration.precfg_key_enable)
+    {
+        if (!writeNv(NvItems::PRECFG_KEYS_ENABLE, std::vector<uint8_t>{static_cast<uint8_t>(newConfiguration.precfg_key_enable)}))
+            return false;
+        std::vector<uint8_t> temp_v{};
+        for (uint8_t i = 0; i < 16; i++)
+        {
+            temp_v[i] = newConfiguration.precfg_key[i];
+        }
+        if (!writeNv(NvItems::PRECFG_KEY, temp_v))
+            return false;
+
+        wasChange = true;
+    }
+    if (newConfiguration.channels != current_configuration.channels)
+    {
+        uint32_t channelBitMask = 0;
+        for (auto channel : newConfiguration.channels)
+            channelBitMask |= (1 << channel);
+
+        std::vector<uint8_t> chan{};
+        for (int i = 0; i < 4; i++)
+        {
+            uint8_t ch = channelBitMask >> i * 8;
+            chan.push_back(ch);
+        }
+
+        if (!writeNv(NvItems::CHANNEL_LIST, chan)) // старший байт последний
+            return false;
+
+        wasChange = true;
+    }
+    if (wasChange)
+    {
+        if (!writeNv(NvItems::ZDO_DIRECT_CB, std::vector<uint8_t>{1}))
+            return false;
+
+        if (!initNv(NvItems::ZNP_HAS_CONFIGURED, 1, std::vector<uint8_t>{0}))
+            return false;
+
+        if (!writeNv(NvItems::ZNP_HAS_CONFIGURED, std::vector<uint8_t>{0x55}))
+            return false;
+    }
+    return true;
+}
+*/
 // результат выполнения синхронной команды ожидается с определенным идентификатором, который формируется из исходного
 std::optional<Command> Zdo::syncRequest(Command request, std::chrono::duration<int, std::milli> timeout)
 {
     assert(request.type() == Command::Type::SREQ); // убеждаемся, что команда синхронная
 
-    uint16_t id = (request.id() | 0b0100000000000000); // идентификатор синхронного ответа
-    event_command_.clear(id);                          // очистка события с идентификатором id
+    CommandId id = (CommandId)((uint16_t)request.id() | 0b0100000000000000); // идентификатор синхронного ответа
+    event_command_.clear(id);                                                // очистка события с идентификатором id
 
     if (uart_.sendCommandToDevice(request))
     {
@@ -862,7 +974,7 @@ void Zdo::on_disconnect()
 void Zdo::activeEndpoints(zigbee::NetworkAddress address)
 {
 
-    Command active_endpoints_request(ZDO_ACTIVE_EP_REQ);
+    Command active_endpoints_request(zigbee::CommandId::ZDO_ACTIVE_EP_REQ);
 
     active_endpoints_request.payload(0) = LOWBYTE(address); // Specifies NWK address of the device generating the inquiry.
     active_endpoints_request.payload(1) = HIGHBYTE(address);
@@ -878,7 +990,7 @@ void Zdo::simpleDescriptor(zigbee::NetworkAddress address, unsigned int endpoint
 {
     assert(endpoint_number <= 242);
 
-    Command simple_descriptor_request(ZDO_SIMPLE_DESC_REQ);
+    Command simple_descriptor_request(zigbee::CommandId::ZDO_SIMPLE_DESC_REQ);
 
     simple_descriptor_request.payload(0) = LOWBYTE(address); // Specifies NWK address of the device generating the inquiry.
     simple_descriptor_request.payload(1) = HIGHBYTE(address);
@@ -893,7 +1005,7 @@ void Zdo::simpleDescriptor(zigbee::NetworkAddress address, unsigned int endpoint
 
 bool Zdo::ping()
 {
-    return (syncRequest(Command(SYS_PING)).has_value());
+    return (syncRequest(Command(CommandId::SYS_PING)).has_value());
 }
 
 // TODO: MAC-адреса надо передавать в обратном порядке
@@ -906,7 +1018,7 @@ bool Zdo::bind(zigbee::NetworkAddress dst_network_address, zigbee::IEEEAddress s
     uint64_t dst_mac_address = (uint64_t)mac_address_;
     uint8_t dst_endpoint = 0x01;
 
-    Command bind_request(ZDO_BIND_REQ);
+    Command bind_request(zigbee::CommandId::ZDO_BIND_REQ);
     {
         size_t i = 0;
 
@@ -966,7 +1078,7 @@ void Zdo::on_command()
     while (Flag.load())
     {
         Command cmd = get_command();
-        if (cmd.id() != 0 && Flag.load())
+        if ((uint16_t)cmd.id() != 0 && Flag.load())
             handle_command(cmd);
     }
 }
@@ -1013,165 +1125,302 @@ std::string Zdo::getCommandStr(Command &command)
 
     switch (command.id())
     {
-    case Zdo::SYS_RESET_REQ:
+    case zigbee::CommandId::SYS_RESET_REQ:
         cmd_str = "SYS_RESET_REQ";
         break; //       0x4100,
-    case Zdo::SYS_RESET_IND:
+    case zigbee::CommandId::SYS_RESET_IND:
         cmd_str = "SYS_RESET_IND";
         break; //        0x4180,
-    case Zdo::ZDO_STARTUP_FROM_APP:
+    case zigbee::CommandId::ZDO_STARTUP_FROM_APP:
         cmd_str = "ZDO_STARTUP_FROM_APP";
         break; //    0x2540,
-    case Zdo::ZDO_STARTUP_FROM_APP_SRSP:
+    case zigbee::CommandId::ZDO_STARTUP_FROM_APP_SRSP:
         cmd_str = "ZDO_STARTUP_FROM_APP_SRSP";
         break; //  0x6540,
-    case Zdo::ZDO_STATE_CHANGE_IND:
+    case zigbee::CommandId::ZDO_STATE_CHANGE_IND:
         cmd_str = "ZDO_STATE_CHANGE_IND";
         break; //     0x45c0,
-    case Zdo::AF_REGISTER:
+    case zigbee::CommandId::AF_REGISTER:
         cmd_str = "AF_REGISTER";
         break; //       0x2400,
-    case Zdo::AF_REGISTER_SRSP:
+    case zigbee::CommandId::AF_REGISTER_SRSP:
         cmd_str = "AF_REGISTER_SRSP";
         break; //      0x6400,
-    case Zdo::AF_INCOMING_MSG:
+    case zigbee::CommandId::AF_INCOMING_MSG:
         cmd_str = "AF_INCOMING_MSG";
         break; //        0x4481,
-    case Zdo::ZDO_MGMT_PERMIT_JOIN_REQ:
+    case zigbee::CommandId::ZDO_MGMT_PERMIT_JOIN_REQ:
         cmd_str = "ZDO_MGMT_PERMIT_JOIN_REQ";
         break; //  0x2536,
-    case Zdo::ZDO_MGMT_PERMIT_JOIN_SRSP:
+    case zigbee::CommandId::ZDO_MGMT_PERMIT_JOIN_SRSP:
         cmd_str = "ZDO_MGMT_PERMIT_JOIN_SRSP";
         break; //  0x6536,
-    case Zdo::ZDO_MGMT_PERMIT_JOIN_RSP:
+    case zigbee::CommandId::ZDO_MGMT_PERMIT_JOIN_RSP:
         cmd_str = "ZDO_MGMT_PERMIT_JOIN_RSP";
         break; //  0x45b6,
-    case Zdo::ZDO_PERMIT_JOIN_IND:
+    case zigbee::CommandId::ZDO_PERMIT_JOIN_IND:
         cmd_str = "ZDO_PERMIT_JOIN_IND";
         break; //     0x45cb,
-    case Zdo::ZDO_TC_DEV_IND:
+    case zigbee::CommandId::ZDO_TC_DEV_IND:
         cmd_str = "ZDO_TC_DEV_IND";
         break; //      0x45ca,
-    case Zdo::ZDO_LEAVE_IND:
+    case zigbee::CommandId::ZDO_LEAVE_IND:
         cmd_str = "ZDO_LEAVE_IND";
         break; //      0x45c9,
-    case Zdo::ZDO_END_DEVICE_ANNCE_IND:
+    case zigbee::CommandId::ZDO_END_DEVICE_ANNCE_IND:
         cmd_str = "ZDO_END_DEVICE_ANNCE_IND";
         break; //  0x45c1,
-    case Zdo::ZDO_ACTIVE_EP_REQ:
+    case zigbee::CommandId::ZDO_ACTIVE_EP_REQ:
         cmd_str = "ZDO_ACTIVE_EP_REQ";
         break; //     0x2505,
-    case Zdo::ZDO_ACTIVE_EP_SRSP:
+    case zigbee::CommandId::ZDO_ACTIVE_EP_SRSP:
         cmd_str = "ZDO_ACTIVE_EP_SRSP";
         break; //      0x6505,
-    case Zdo::ZDO_ACTIVE_EP_RSP:
+    case zigbee::CommandId::ZDO_ACTIVE_EP_RSP:
         cmd_str = "ZDO_ACTIVE_EP_RSP";
         break; //      0x4585,
-    case Zdo::ZDO_SIMPLE_DESC_REQ:
+    case zigbee::CommandId::ZDO_SIMPLE_DESC_REQ:
         cmd_str = "ZDO_SIMPLE_DESC_REQ";
         break; //      0x2504,
-    case Zdo::ZDO_SIMPLE_DESC_SRSP:
+    case zigbee::CommandId::ZDO_SIMPLE_DESC_SRSP:
         cmd_str = "ZDO_SIMPLE_DESC_SRSP";
         break; //    0x6504,
-    case Zdo::ZDO_SIMPLE_DESC_RSP:
+    case zigbee::CommandId::ZDO_SIMPLE_DESC_RSP:
         cmd_str = "ZDO_SIMPLE_DESC_RSP";
         break; //     0x4584,
-    case Zdo::ZDO_POWER_DESC_REQ:
+    case zigbee::CommandId::ZDO_POWER_DESC_REQ:
         cmd_str = "ZDO_POWER_DESC_REQ";
         break; //      0x2503,
-    case Zdo::ZDO_POWER_DESC_SRSP:
+    case zigbee::CommandId::ZDO_POWER_DESC_SRSP:
         cmd_str = "ZDO_POWER_DESC_SRSP";
         break; //    0x6503,
-    case Zdo::ZDO_POWER_DESC_RSP:
+    case zigbee::CommandId::ZDO_POWER_DESC_RSP:
         cmd_str = "ZDO_POWER_DESC_RSP";
-        break;                 //     0x4583,
-    case Zdo::ZDO_SRC_RTG_IND: // 0x45c4
+        break;                               //     0x4583,
+    case zigbee::CommandId::ZDO_SRC_RTG_IND: // 0x45c4
         cmd_str = "ZDO_SRC_RTG_IND";
         break;
-    case Zdo::SYS_PING:
+    case zigbee::CommandId::SYS_PING:
         cmd_str = "SYS_PING";
         break; //      0x2101,
-    case Zdo::SYS_PING_SRSP:
+    case zigbee::CommandId::SYS_PING_SRSP:
         cmd_str = "SYS_PING_SRSP";
         break; //      0x6101,
-    case Zdo::SYS_OSAL_NV_READ:
+    case zigbee::CommandId::SYS_OSAL_NV_READ:
         cmd_str = "SYS_OSAL_NV_READ";
         break; // 0x2108,
-    case Zdo::SYS_OSAL_NV_READ_SRSP:
+    case zigbee::CommandId::SYS_OSAL_NV_READ_SRSP:
         cmd_str = "SYS_OSAL_NV_READ_SRSP";
         break; //    0x6108,
-    case Zdo::SYS_OSAL_NV_WRITE:
+    case zigbee::CommandId::SYS_OSAL_NV_WRITE:
         cmd_str = "SYS_OSAL_NV_WRITE";
         break; //    0x2109,
-    case Zdo::SYS_OSAL_NV_WRITE_SRSP:
+    case zigbee::CommandId::SYS_OSAL_NV_WRITE_SRSP:
         cmd_str = "SYS_OSAL_NV_WRITE_SRSP";
         break; //   0x6109,
-    case Zdo::SYS_OSAL_NV_ITEM_INIT:
+    case zigbee::CommandId::SYS_OSAL_NV_ITEM_INIT:
         cmd_str = "SYS_OSAL_NV_ITEM_INIT";
         break; //    0x2107,
-    case Zdo::SYS_OSAL_NV_ITEM_INIT_SRSP:
+    case zigbee::CommandId::SYS_OSAL_NV_ITEM_INIT_SRSP:
         cmd_str = "SYS_OSAL_NV_ITEM_INIT_SRSP";
-        break;                    //  0x6107,
-    case Zdo::SYS_OSAL_NV_LENGTH: //   0x2113:
+        break;                                  //  0x6107,
+    case zigbee::CommandId::SYS_OSAL_NV_LENGTH: //   0x2113:
         cmd_str = "SYS_OSAL_NV_LENGTH";
         break; //
-    case Zdo::SYS_OSAL_NV_LENGTH_SRSP:
+    case zigbee::CommandId::SYS_OSAL_NV_LENGTH_SRSP:
         cmd_str = "SYS_OSAL_NV_LENGTH_SRSP";
-        break;                    //  0x6113,
-    case Zdo::SYS_OSAL_NV_DELETE: //   0x2112:
+        break;                                  //  0x6113,
+    case zigbee::CommandId::SYS_OSAL_NV_DELETE: //   0x2112:
         cmd_str = "SYS_OSAL_NV_DELETE";
         break; //
-    case Zdo::SYS_OSAL_NV_DELETE_SRSP:
+    case zigbee::CommandId::SYS_OSAL_NV_DELETE_SRSP:
         cmd_str = "SYS_OSAL_NV_DELETE_SRSP";
         break; //  0x6112,
-    case Zdo::UTIL_GET_DEVICE_INFO:
+    case zigbee::CommandId::UTIL_GET_DEVICE_INFO:
         cmd_str = "UTIL_GET_DEVICE_INFO";
         break; //    0x2700,
-    case Zdo::UTIL_GET_DEVICE_INFO_SRSP:
+    case zigbee::CommandId::UTIL_GET_DEVICE_INFO_SRSP:
         cmd_str = "UTIL_GET_DEVICE_INFO_SRSP";
         break; //  0x6700,
-    case Zdo::SYS_SET_TX_POWER:
+    case zigbee::CommandId::SYS_SET_TX_POWER:
         cmd_str = "SYS_SET_TX_POWER";
         break; //      0x2114,
-    case Zdo::SYS_SET_TX_POWER_SRSP:
+    case zigbee::CommandId::SYS_SET_TX_POWER_SRSP:
         cmd_str = "SYS_SET_TX_POWER_SRSP";
         break; //     0x6114,
-    case Zdo::SYS_VERSION:
+    case zigbee::CommandId::SYS_VERSION:
         cmd_str = "SYS_VERSION";
         break; //           0x2102,
-    case Zdo::SYS_VERSION_SRSP:
+    case zigbee::CommandId::SYS_VERSION_SRSP:
         cmd_str = "SYS_VERSION_SRSP";
         break; //       0x6102,
-    case Zdo::AF_DATA_REQUEST:
+    case zigbee::CommandId::AF_DATA_REQUEST:
         cmd_str = "AF_DATA_REQUEST";
         break; //      0x2401,
-    case Zdo::AF_DATA_REQUEST_SRSP:
+    case zigbee::CommandId::AF_DATA_REQUEST_SRSP:
         cmd_str = "AF_DATA_REQUEST_SRSP";
         break; //     0x6401,
-    case Zdo::AF_DATA_CONFIRM:
+    case zigbee::CommandId::AF_DATA_CONFIRM:
         cmd_str = "AF_DATA_CONFIRM";
         break; //       0x4480,
-    case Zdo::ZDO_BIND_REQ:
+    case zigbee::CommandId::ZDO_BIND_REQ:
         cmd_str = "ZDO_BIND_REQ";
         break; //      0x2521,
-    case Zdo::ZDO_UNBIND_REQ:
+    case zigbee::CommandId::ZDO_UNBIND_REQ:
         cmd_str = "ZDO_UNBIND_REQ";
         break; // 0x2522,
-    case Zdo::ZDO_BIND_RSP:
+    case zigbee::CommandId::ZDO_BIND_RSP:
         cmd_str = "ZDO_BIND_RSP";
         break; //  0x45a1,
-    case Zdo::ZDO_UNBIND_RSP:
+    case zigbee::CommandId::ZDO_UNBIND_RSP:
         cmd_str = "ZDO_UNBIND_RSP";
         break; //         0x45a2
-    case Zdo::ZDO_IEEE_ADDR_REQ:
+    case zigbee::CommandId::ZDO_IEEE_ADDR_REQ:
         cmd_str = "ZDO_IEEE_ADDR_REQ";
         break; // 0x2501,
-    case Zdo::ZDO_IEEE_ADDR_REQ_SRSP:
+    case zigbee::CommandId::ZDO_IEEE_ADDR_REQ_SRSP:
         cmd_str = "ZDO_IEEE_ADDR_REQ_SRSP";
         break; // 0x6501,
 
     default:
-        cmd_str = "Unknown command " + std::to_string(command.id());
+        cmd_str = "Unknown command " + std::to_string((uint16_t)command.id());
     }
     return cmd_str;
+}
+
+std::string Zdo::get_cluster_string(zcl::Cluster cl)
+{
+    std::string result;
+
+    switch (cl)
+    {
+    case zcl::Cluster::BASIC: // 0x0000
+        return "BASIC";
+        break;
+    case zcl::Cluster::POWER_CONFIGURATION: // 0x0001
+        return "POWER_CONFIGURATION";
+        break;
+    case zcl::Cluster::DEVICE_TEMPERATURE_CONFIGURATION: // 0x0002
+        return "DEVICE_TEMPERATURE_CONFIGURATION";
+        break;
+    case zcl::Cluster::IDENTIFY: // 0x0003
+        return "IDENTIFY";
+        break;
+    case zcl::Cluster::GROUPS: // 0x0004
+        return "GROUPS";
+    case zcl::Cluster::SCENES: // 0x0005
+        return "SCENES";
+        break;
+    case zcl::Cluster::ON_OFF: // 0x0006
+        return "ON_OFF";
+        break;
+    case zcl::Cluster::ON_OFF_SWITCH_CONFIGURATION: // 0x0007
+        return "ON_OFF_SWITCH_CONFIGURATION";
+        break;
+    case zcl::Cluster::LEVEL_CONTROL: // 0x0008
+        return "LEVEL_CONTROL";
+        break;
+    case zcl::Cluster::ALARMS: // 0x0009
+        return "ALARMS";
+        break;
+    case zcl::Cluster::TIME: // 0x000a
+        return "TIME";
+        break;
+    case zcl::Cluster::RSSI: // 0x000b
+        return "RSSI";
+        break;
+    case zcl::Cluster::ANALOG_INPUT: // 0x000c
+        return "ANALOG_INPUT";
+        break;
+    case zcl::Cluster::ANALOG_OUTPUT: // 0x000d
+        return "ANALOG_OUTPUT";
+        break;
+    case zcl::Cluster::ANALOG_VALUE: // 0x000e
+        return "ANALOG_VALUE";
+        break;
+    case zcl::Cluster::BINARY_INPUT: // 0x000f
+        return "BINARY_INPUT";
+        break;
+    case zcl::Cluster::BINARY_OUTPUT: // 0x0010
+        return "BINARY_OUTPUT";
+        break;
+    case zcl::Cluster::BINARY_VALUE: // 0x0011
+        return "BINARY_VALUE";
+        break;
+    case zcl::Cluster::MULTISTATE_INPUT: // 0x0012
+        return "MULTISTATE_INPUT";
+        break;
+    case zcl::Cluster::MULTISTATE_OUTPUT: // 0x0013
+        return "MULTISTATE_OUTPUT";
+        break;
+    case zcl::Cluster::MULTISTATE_VALUE: // 0x0014
+        return "MULTISTATE_VALUE";
+        break;
+    case zcl::Cluster::OTA: // 0x0019
+        return "OTA";
+        break;
+    case zcl::Cluster::POWER_PROFILE: // 0x001a //
+        return "POWER_PROFILE";
+        break;
+    case zcl::Cluster::PULSE_WIDTH_MODULATION: // 0x001c
+        return "PULSE_WIDTH_MODULATION";
+        break;
+    case zcl::Cluster::POLL_CONTROL: // 0x0020 //
+        return "POLL_CONTROL";
+        break;
+    case zcl::Cluster::XIAOMI_SWITCH_OUTPUT: // 0x0021
+        return "XIAOMI_SWITCH_OUTPUT";
+        break;
+    case zcl::Cluster::KEEP_ALIVE: // 0x0025
+        return "KEEP_ALIVE";
+        break;
+    case zcl::Cluster::WINDOW_COVERING: // 0x0102
+        return "WINDOW_COVERING";
+        break;
+    case zcl::Cluster::TEMPERATURE_MEASUREMENT: // 0x0402
+        return "TEMPERATURE_MEASUREMENT";
+        break;
+    case zcl::Cluster::HUMIDITY_MEASUREMENT: // 0x0405
+        return "HUMIDITY_MEASUREMENT";
+        break;
+    case zcl::Cluster::ILLUMINANCE_MEASUREMENT: // 0x0400
+        return "ILLUMINANCE_MEASUREMENT";
+        break;
+    case zcl::Cluster::IAS_ZONE: // 0x0500
+        return "IAS_ZONE";
+        break;
+    case zcl::Cluster::SIMPLE_METERING: // 0x0702
+        return "SIMPLE_METERING";
+        break;
+    case zcl::Cluster::METER_IDENTIFICATION: // 0x0b01
+        return "METER_IDENTIFICATION";
+        break;
+    case zcl::Cluster::ELECTRICAL_MEASUREMENTS: // 0x0b04
+        return "ELECTRICAL_MEASUREMENTS";
+        break;
+    case zcl::Cluster::DIAGNOSTICS: // 0x0b05
+        return "DIAGNOSTICS";
+        break;
+    case zcl::Cluster::TOUCHLINK_COMISSIONING: // 0x1000
+        return "TOUCHLINK_COMISSIONING";
+        break;
+    case zcl::Cluster::TUYA_SWITCH_MODE_0: // 0xe000
+        return "TUYA_SWITCH_MODE_0";
+        break;
+    case zcl::Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER: // 0xe001
+        return "TUYA_ELECTRICIAN_PRIVATE_CLUSTER";
+        break;
+    case zcl::Cluster::IKEA_BUTTON_ATTR_UNKNOWN2: // 0xfc7c
+        return "IKEA_BUTTON_ATTR_UNKNOWN2";
+        break;
+    case zcl::Cluster::XIAOMI_SWITCH: // 0xfcc0
+        return "XIAOMI_SWITCH";
+        break;
+    case zcl::Cluster::SMOKE_SENSOR: // 0xfe00
+        return "SMOKE_SENSOR";
+        break;
+    default:
+        return "UNKNOWN_CLUSTER";
+        break;
+    }
 }
