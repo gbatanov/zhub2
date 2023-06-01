@@ -192,10 +192,10 @@ void Controller::on_message(zigbee::Command command)
     // ZCL Frame часть сообщения
     message.zcl_frame = parseZclData(std::vector<uint8_t>(&command.payload(17), &command.payload(17 + length)));
 
-    std::shared_ptr<zigbee::EndDevice> ed = getDeviceByShortAddr(message.source.address);
+    std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(message.source.address);
     if (!ed)
     {
-        gsbutils::dprintf(3, "Сообщение от устройства, незарегистрированного в моей рабочей системе\n");
+        gsbutils::dprintf(1, "Сообщение от устройства, незарегистрированного в моей рабочей системе\n");
         return;
     }
     uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
@@ -290,12 +290,12 @@ void Controller::on_message(zigbee::Command command)
             if (ed->get_device_type() == 2) // датчики движения Sonoff
             {
                 handle_motion(ed, message.zcl_frame.payload[0]);
-                getPower(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+                get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
             }
             else if (ed->get_device_type() == 3) // датчики открытия дверей Sonoff
             {
                 handle_sonoff_door(ed, message.zcl_frame.payload[0]);
-                getPower(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+                get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
             }
             else if (ed->get_device_type() == 5) // датчики протечек Aqara
             {
@@ -596,7 +596,7 @@ std::string Controller::show_sim800_battery()
 }
 
 // получить устройство по сетевому адресу
-std::shared_ptr<zigbee::EndDevice> Controller::getDeviceByShortAddr(zigbee::NetworkAddress network_address)
+std::shared_ptr<zigbee::EndDevice> Controller::get_device_by_short_addr(zigbee::NetworkAddress network_address)
 {
     std::string result = "";
 
@@ -644,7 +644,7 @@ zigbee::NetworkAddress Controller::getShortAddrByMacAddr(zigbee::IEEEAddress mac
 // вызывается для набора аттрибутов в одном ответе от одного устройства
 void Controller::on_attribute_report(zigbee::Endpoint endpoint, Cluster cluster, std::vector<zcl::Attribute> attributes)
 {
-    std::shared_ptr<zigbee::EndDevice> ed = getDeviceByShortAddr(endpoint.address);
+    std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(endpoint.address);
     if (!ed)
         return;
     uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
@@ -782,18 +782,7 @@ bool Controller::configureReporting(zigbee::NetworkAddress address,
     uint16_t max_interval = 3600; // 1 hours
 #endif
 
-    std::shared_ptr<zigbee::EndDevice> ed = getDeviceByShortAddr(address);
-    if (ed)
-    {
-        switch (ed->get_device_type())
-        {
-
-        case 7:                      // IKEA button
-            min_interval = 3600;     // 1 hour
-            max_interval = 3600 * 8; // 8 hours
-            break;
-        }
-    }
+    std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(address);
 
     frame.payload.push_back(LOWBYTE(attributeId));
     frame.payload.push_back(HIGHBYTE(attributeId));
@@ -864,7 +853,7 @@ bool Controller::getDevicesMapFromFile(bool with_reg)
     for (auto b : item_data)
     {
         gsbutils::dprintf_c(dbg, "0x%04x 0x%" PRIx64 "\n", b.first, b.second);
-        joinDevice(b.first, b.second); // тут запись в файл не требуется
+        join_device(b.first, b.second); // тут запись в файл не требуется
     }
     gsbutils::dprintf(3, "Zhub::getDevicesMap: FINISH\n");
 
@@ -908,7 +897,7 @@ std::map<uint16_t, uint64_t> Controller::readMapFromFile()
 /// Сохраняем ссылку на него в мапе
 /// Перед добавлением старое устройство (если есть в списках) удаляем
 /// @param norec писать или нет в файл, по умолчанию - нет
-void Controller::joinDevice(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address, bool norec)
+void Controller::join_device(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address, bool norec)
 {
     if (!norec)
         std::lock_guard<std::mutex> lg(mtxJoin);
@@ -960,15 +949,15 @@ void Controller::joinDevice(zigbee::NetworkAddress network_address, zigbee::IEEE
     }
     catch (std::exception &e)
     {
-        gsbutils::dprintf(1, "Zhub::joinDevice error %s \n", e.what());
+        gsbutils::dprintf(1, "Zhub::join_device error %s \n", e.what());
     }
 }
 
 // Функция вызывается периодически  для устройств, не передающих эти параметры самостоятельно.
 // Ответ разбираем  в OnMessage
-void Controller::getPower(zigbee::NetworkAddress address, Cluster cluster)
+void Controller::get_power(zigbee::NetworkAddress address, Cluster cluster)
 {
-    gsbutils::dprintf(7, "Controller::getPower\n");
+    gsbutils::dprintf(7, "Controller::get_power\n");
 
     Cluster cl = cluster;
     std::vector<uint16_t> pwr_attr_ids{};
@@ -1008,89 +997,91 @@ void Controller::getPower(zigbee::NetworkAddress address, Cluster cluster)
 
 // Предполагаем, что мы физически не можем одновременно спаривать два устройства
 // На самом деле, может быть и сразу кучей!!!
-void Controller::onJoin(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address)
+void Controller::on_join(zigbee::NetworkAddress networkAddress, zigbee::IEEEAddress macAddress)
 {
     int dbg = 1;
 
-    gsbutils::dprintf(dbg, "Controllerb::onJoin mac_address 0x%" PRIx64 "\n", mac_address);
-    joinDevice(network_address, mac_address, true);
+    gsbutils::dprintf(dbg, "Controllerb::on_join mac_address 0x%" PRIx64 "\n", macAddress);
+    join_device(networkAddress, macAddress, true);
 
-    std::shared_ptr<zigbee::EndDevice> ed = get_device_by_mac(mac_address);
-    if (!ed)
+    std::shared_ptr<zigbee::EndDevice> ed = get_device_by_mac(macAddress);
+    if (!ed){
+        gsbutils::dprintf(1, "Device 0x%" PRIx64 " not found\n", macAddress);
         return;
+
+    }
 
     // bind срабатывает только при спаривании/переспаривании устройства, повторный биндинг дает ошибку
     // ON_OFF попробуем конфигурить всегда
     // для кастомных устройств репортинг не надо конфигурить!!!
-    bind(network_address, mac_address, 1, zigbee::zcl::Cluster::ON_OFF);
+    bind(networkAddress, macAddress, 1, zigbee::zcl::Cluster::ON_OFF);
     if (ed->get_device_type() != 4)
-        configureReporting(network_address, zigbee::zcl::Cluster::ON_OFF); //
+        configureReporting(networkAddress, zigbee::zcl::Cluster::ON_OFF); //
 
-#ifdef TEST
-    // smart plug  - репортинга нет, данные получаем только по запросу аттрибутов
-    if (ed->get_device_type() == 10)
-    {
-        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS);
-        configureReporting(network_address, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, 0x0505, zcl::Attribute::DataType::UINT16, 0x00);
-        configureReporting(network_address, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, 0x0508, zcl::Attribute::DataType::UINT16, 0x00);
-    }
-/*
-    // краны репортинг отключил, после настройки кран перестал репортить
-    if ((uint64_t)mac_address == 0xa4c138373e89d731 || (uint64_t)mac_address == 0xa4c138d9758e1dcd)
-    {
-        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER);
-        configureReporting(network_address, zigbee::zcl::Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER);
-        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::TUYA_SWITCH_MODE_0);
-        configureReporting(network_address, zigbee::zcl::Cluster::TUYA_SWITCH_MODE_0);
-    }
-    */
-#endif
+    /*
+        // smart plug  - репортинга нет, данные получаем только по запросу аттрибутов
+        if (ed->get_device_type() == 10)
+        {
+            bind(network_address, mac_address, 1, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS);
+            configureReporting(network_address, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, 0x0505, zcl::Attribute::DataType::UINT16, 0x00);
+            configureReporting(network_address, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, 0x0508, zcl::Attribute::DataType::UINT16, 0x00);
+        }
+
+        // краны репортинг отключил, после настройки кран перестал репортить
+        if ((uint64_t)mac_address == 0xa4c138373e89d731 || (uint64_t)mac_address == 0xa4c138d9758e1dcd)
+        {
+            bind(network_address, mac_address, 1, zigbee::zcl::Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER);
+            configureReporting(network_address, zigbee::zcl::Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER);
+            bind(network_address, mac_address, 1, zigbee::zcl::Cluster::TUYA_SWITCH_MODE_0);
+            configureReporting(network_address, zigbee::zcl::Cluster::TUYA_SWITCH_MODE_0);
+        }
+        */
 
     // Датчики движения и открытия дверей Sonoff
     if (ed->get_device_type() == 2 || ed->get_device_type() == 3)
     {
-        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::IAS_ZONE);
-        configureReporting(network_address, zigbee::zcl::Cluster::IAS_ZONE); //
+        bind(networkAddress, macAddress, 1, zigbee::zcl::Cluster::IAS_ZONE);
+        configureReporting(networkAddress, zigbee::zcl::Cluster::IAS_ZONE); //
     }
     // датчики движения IKEA
     if (ed->get_device_type() == 8)
     {
-        bind(network_address, mac_address, 1, zigbee::zcl::Cluster::IAS_ZONE);
-        configureReporting(network_address, zigbee::zcl::Cluster::IAS_ZONE); //
+        bind(networkAddress, macAddress, 1, zigbee::zcl::Cluster::IAS_ZONE);
+        configureReporting(networkAddress, zigbee::zcl::Cluster::IAS_ZONE); //
     }
 
     // для икеевских устройств необходимо запрашивать питание, когда от них приходит сообщение
     // у них есть POLL INTERVAL во время которого они могут принять комманду на исполнение
     if (ed->get_device_type() == 7 || ed->get_device_type() == 8)
     {
-        getPower(network_address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+        get_power(networkAddress, zigbee::zcl::Cluster::POWER_CONFIGURATION);
     }
     // у остальных устройств надо сделать привязку, чтобы получить параметры питания (оставшийся заряд батареи)
-    bind(network_address, mac_address, 1, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+    bind(networkAddress, macAddress, 1, zigbee::zcl::Cluster::POWER_CONFIGURATION);
     if (ed->get_device_type() != 4)
-        configureReporting(network_address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+        configureReporting(networkAddress, zigbee::zcl::Cluster::POWER_CONFIGURATION);
 
-#ifdef TEST
+
     // пока спящий датчик не проявится сам, инфу об эндпойнтах не получить, только при спаривании
-    activeEndpoints(network_address);
-    simpleDescriptor(network_address, 1); // TODO: получить со всех эндпойнотов, полученных на предыдущем этапе
-#endif
-    getIdentifier(network_address); // Для многих устройств этот запрос обязателен!!!! Без него не работатет устройство, только регистрация в сети
-    gsbutils::dprintf(1, showDeviceInfo(network_address));
+    activeEndpoints(networkAddress);
+    simpleDescriptor(networkAddress, 1); // TODO: получить со всех эндпойнотов, полученных на предыдущем этапе
+
+    get_identifier(networkAddress); // Для многих устройств этот запрос обязателен!!!! Без него не работатет устройство, только регистрация в сети
+    gsbutils::dprintf(1, showDeviceInfo(networkAddress));
 }
 
 // Ничего не делаем, список поддерживается вручную
 // из координатора запись удаляется самим координатором
-void Controller::onLeave(NetworkAddress network_address, IEEEAddress mac_address)
+void Controller::on_leave(NetworkAddress network_address, IEEEAddress mac_address)
 {
     int dbg = 4;
-    gsbutils::dprintf(dbg, "Controller::onLeave 0x%04x 0x%" PRIx64 " \n", (uint16_t)network_address, (uint64_t)mac_address);
+    gsbutils::dprintf(dbg, "Controller::on_leave 0x%04x 0x%" PRIx64 " \n", (uint16_t)network_address, (uint64_t)mac_address);
 }
 
 /// Идентификаторы возвращаются очень редко ( но возвращаются)
 /// их не надо ждать сразу, ответ будет в OnMessage
 /// реальная польза только в тестировании нового устройства, в штатном режиме можно отключить
-void Controller::getIdentifier(zigbee::NetworkAddress address)
+void Controller::get_identifier(zigbee::NetworkAddress address)
 {
     //   zigbee::Message message;
     Cluster cl = Cluster::BASIC;

@@ -30,7 +30,7 @@ void MultistateInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attr
 #ifdef TEST
     int dbg = 1;
 #else
-    int dbg = 3;
+    int dbg = 4;
 #endif
 
     double value = -100.0;

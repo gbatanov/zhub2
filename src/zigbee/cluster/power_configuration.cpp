@@ -47,14 +47,15 @@ void PowerConfiguration::attribute_handler(std::vector<zigbee::zcl::Attribute> a
         {
             double val = static_cast<double>(any_cast<uint8_t>(attribute.value));
             gsbutils::dprintf(dbg, "Device 0x%04x BATTERY_VOLTAGE: %2.3f \n", endpoint.address, val / 10);
-            ed->setBatteryParams(0.0, val / 10);
+            ed->set_battery_params(0.0, val / 10);
         }
         break;
         case zigbee::zcl::Attributes::PowerConfiguration::BATTERY_REMAIN:
         {
+            int dbg =1;
             uint8_t val = any_cast<uint8_t>(attribute.value); // 0x00-0x30 0x30-0x60 0x60-0x90 0x90-0xc8
             gsbutils::dprintf(dbg, "Device 0x%04x BATTERY_REMAIN: 0x%02x \n", endpoint.address, val);
-            ed->setBatteryParams(val, 0.0);
+            ed->set_battery_params(val, 0.0);
             break;
         }
             // Кнопка ИКЕА не поддерживает этот аттрибут

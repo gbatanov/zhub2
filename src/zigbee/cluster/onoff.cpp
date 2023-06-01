@@ -30,7 +30,7 @@ void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
 #ifdef TEST
         int dbg = 1;
 #else
-        int dbg = 3;
+        int dbg = 4;
 #endif
     std::set<uint16_t> usedAttributes{};
     for (auto attribute : attributes)

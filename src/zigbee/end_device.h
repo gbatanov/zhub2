@@ -48,9 +48,9 @@ public:
     bool isACPowered() { return deviceInfo.powerSource == zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE; };
     void setPowerSource(uint8_t powerSource);
     std::string showPowerSource();
-    void setBatteryParams(uint8_t battery_remain_percent, double battery_voltage);
-    std::string showBatteryRemain();
-    std::string showBatteryVoltage();
+    void set_battery_params(uint8_t battery_remain_percent, double battery_voltage);
+    std::string show_battery_remain();
+    std::string show_battery_voltage();
     virtual void actionHandle(){};
     void init();
     std::string get_current_state(uint8_t channel=1);
@@ -62,7 +62,7 @@ public:
     double get_humidity() { return humidity_; }
     void set_pressure(double pressure) { pressure_ = pressure * 0.00750063755419211; }
     double get_pressure() { return pressure_; }
-    void set_linkquality(uint8_t lq) { linkquality_ = lq; }
+    void set_linkquality(uint8_t lq);
     uint8_t get_linkquality() { return linkquality_; }
     void set_mains_voltage(double voltage) { mains_voltage_ = voltage; }
     double get_mains_voltage() { return mains_voltage_; }

@@ -23,10 +23,10 @@ public:
     std::string show_sim800_battery();
     void read_attribute(zigbee::NetworkAddress address, zigbee::zcl::Cluster cl, std::vector<uint16_t> ids);
     std::map<uint16_t, uint64_t> readMapFromFile();
-    void joinDevice(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address, bool norec = true);
+    void join_device(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address, bool norec = true);
 
     bool init_adapter();
-    std::shared_ptr<zigbee::EndDevice> getDeviceByShortAddr(zigbee::NetworkAddress network_address);
+    std::shared_ptr<zigbee::EndDevice> get_device_by_short_addr(zigbee::NetworkAddress network_address);
     std::shared_ptr<zigbee::EndDevice> get_device_by_mac(zigbee::IEEEAddress di);
     virtual bool setDevicesMapToFile();
     virtual bool getDevicesMapFromFile(bool with_reg = true);
@@ -41,7 +41,7 @@ public:
     void switch_off_with_timeout();
     void switch_relay(uint64_t mac_addr, uint8_t cmd, uint8_t ep = 1);
     void sendCommandToOnOffDevice(zigbee::NetworkAddress address, uint8_t cmd, uint8_t ep = 1);
-    void getIdentifier(zigbee::NetworkAddress address);
+    void get_identifier(zigbee::NetworkAddress address);
     virtual void on_attribute_report(zigbee::Endpoint endpoint, zigbee::zcl::Cluster cluster, std::vector<zigbee::zcl::Attribute> attributes);
     virtual bool configureReporting(zigbee::NetworkAddress address);
     virtual bool configureReporting(zigbee::NetworkAddress address,
@@ -51,9 +51,9 @@ public:
                                     uint16_t reportable_change = 0x0000);
     bool get_ready() { return isReady_; };
     void set_ready() { isReady_ = true; }
-    virtual void getPower(zigbee::NetworkAddress address, Cluster cluster = Cluster::BASIC);
-    void onJoin(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address);
-    void onLeave(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address);
+    virtual void get_power(zigbee::NetworkAddress address, Cluster cluster = Cluster::BASIC);
+    void on_join(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address);
+    void on_leave(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address);
     std::string showDeviceInfo(zigbee::NetworkAddress network_address);
     //   static const zigbee::NetworkConfiguration default_configuration_;
     //    static const zigbee::NetworkConfiguration test_configuration_;

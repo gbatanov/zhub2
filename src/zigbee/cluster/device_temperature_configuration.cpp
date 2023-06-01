@@ -30,7 +30,7 @@ void DeviceTemperatureConfiguration::attribute_handler(std::vector<zigbee::zcl::
 #ifdef TEST
     int dbg = 1;
 #else
-    int dbg = 3;
+    int dbg = 4;
 #endif
 
     // Есть в реле Aqara

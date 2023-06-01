@@ -30,7 +30,7 @@ void ElectricalMeasurements::attribute_handler(std::vector<zigbee::zcl::Attribut
 #ifdef TEST
     int dbg = 1;
 #else
-    int dbg = 3;
+    int dbg = 4;
 #endif
 
     // здесь отображаются данные с умной розетки

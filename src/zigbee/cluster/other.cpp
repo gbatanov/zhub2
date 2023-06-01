@@ -31,7 +31,7 @@ void Other::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
 #ifdef TEST
     int dbg = 1;
 #else
-    int dbg = 3;
+    int dbg = 7;
 #endif
     gsbutils::dprintf(dbg, "Cluster:: 0x%04x Device 0x%04x\n",cluster, endpoint.address);
 

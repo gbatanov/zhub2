@@ -412,9 +412,12 @@ void Zhub::onoff_command(zigbee::Message message)
     gsbutils::dprintf(1, "Zhub::onoff_command address 0x%04x command 0x%02x \n", message.source.address, (uint8_t)message.zcl_frame.command);
 #endif
     //  message.source.address - источник
-    std::shared_ptr<zigbee::EndDevice> ed = getDeviceByShortAddr(message.source.address);
+    std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(message.source.address);
     if (!ed)
+    {
+        gsbutils::dprintf(1, "Незарегистрированное устройство\n");
         return;
+    }
     uint64_t mac_address = (uint64_t)ed->getIEEEAddress();
     uint8_t cmd = (uint8_t)message.zcl_frame.command;
     ed->set_current_state(cmd ? "On" : "Off");
@@ -424,12 +427,12 @@ void Zhub::onoff_command(zigbee::Message message)
     if (mac_address == 0x8cf681fffe0656ef)
     {
         // Кнопка ИКЕА
-        getPower(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+        get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
         ikea_button_action(cmd);
     }
     else if (mac_address == 0x0c4314fffe17d8a8)
     {
-        getPower(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+        get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
         // Датчик движения IKEA. У этих датчиков нет команды выключения. Само устройство должно выключиться по таймеру.
         // Время в payload(1),payload(2) в десятых долях секунды
         handle_motion(ed, 1);
@@ -487,11 +490,12 @@ void Zhub::onoff_command(zigbee::Message message)
 void Zhub::level_command(zigbee::Message message)
 {
     //  message.source.address - источник
-    std::shared_ptr<zigbee::EndDevice> ed = getDeviceByShortAddr(message.source.address); // кнопка IKEA - 0x8cf681fffe0656ef
-                                                                                          //   EndDevice *ed = get_device_by_mac(0x8cf681fffe0656ef);
+    std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(message.source.address); // кнопка IKEA - 0x8cf681fffe0656ef
     if (!ed)
+    {
+        gsbutils::dprintf(1, "Незарегистрированное устройство\n");
         return;
-
+    }
     std::time_t ts = std::time(0); // get time now
     ed->set_last_action((uint64_t)ts);
 
@@ -623,7 +627,7 @@ std::string Zhub::show_device_statuses(bool as_html)
     const std::vector<uint64_t> MotionSensors = {0x00124b0007246963, 0x00124b0014db2724, 0x00124b0025137475, 0x00124b0024455048, 0x00124b002444d159, 0x00124b0009451438, 0x0c4314fffe17d8a8};
     const std::vector<uint64_t> DoorSensors = {0x00124b0025485ee6, 0x00124b002512a60b, 0x00124b00250bba63};
     const std::vector<uint64_t> Relays = {0x54ef44100019335b, 0x54ef441000193352, 0x54ef4410001933d3, 0x54ef44100018b523, 0x54ef4410005b2639, 0x54ef441000609dcc, 0x00158d0009414d7e};
-    const std::vector<uint64_t> SmartPlugs = {/*0x70b3d52b6001b4a4,*/ 0x70b3d52b6001b5d9, 0x70b3d52b60022ac9, 0x70b3d52b60022cfd};
+    const std::vector<uint64_t> SmartPlugs = {0x70b3d52b6001b4a4, 0x70b3d52b6001b5d9, 0x70b3d52b60022ac9, 0x70b3d52b60022cfd};
     const std::vector<uint64_t> Buttons = {0x00124b0028928e8a, 0x00124b00253ba75f, 0x8cf681fffe0656ef};
 
     std::vector<const std::vector<uint64_t> *> allDevices{&ClimatSensors, &MotionSensors, &WaterSensors, &DoorSensors, &Relays, &SmartPlugs, &WaterValves, &Buttons};
@@ -761,8 +765,8 @@ std::string Zhub::show_one_type(std::shared_ptr<zigbee::EndDevice> ed, bool as_h
     std::string power_src = "";
     if (ed->deviceInfo.powerSource == zigbee::zcl::Attributes::PowerSource::BATTERY)
     {
-        std::string bat = ed->showBatteryVoltage();
-        std::string batRm = ed->showBatteryRemain();
+        std::string bat = ed->show_battery_voltage();
+        std::string batRm = ed->show_battery_remain();
         power_src = bat;
         if (batRm.size() > 0)
         {
@@ -772,18 +776,24 @@ std::string Zhub::show_one_type(std::shared_ptr<zigbee::EndDevice> ed, bool as_h
             }
             power_src += batRm;
         }
+        if (power_src.size() == 0)
+            power_src = "Battery";
     }
     else
     {
         std::string voltage = ed->show_mains_voltage();
         std::string curr = ed->show_current();
         power_src = voltage;
-        if (curr.size() >0){
-            if (voltage.size() > 0){
+        if (curr.size() > 0)
+        {
+            if (voltage.size() > 0)
+            {
                 power_src += " / ";
             }
             power_src += curr;
         }
+        if (power_src.size() == 0)
+            power_src = "SinglePhase";
     }
 
     if (as_html)

@@ -27,7 +27,7 @@ extern zigbee::Zhub *zhub;
 
 void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-    int dbg = 1;
+    int dbg = 4;
     for (auto attribute : attributes)
     {
         if (attribute.id != 0x0001)
@@ -184,7 +184,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                     {
                         float bat = (float)_UINT16(input.at(i + 2), input.at(i + 3));
                         i = i + 3;
-                        ed->setBatteryParams(0, bat / 1000);
+                        ed->set_battery_params(0, bat / 1000);
                     }
                     break;
                     case 0x03: // температура

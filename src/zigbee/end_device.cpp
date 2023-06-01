@@ -43,7 +43,7 @@ const std::map<const uint64_t, const DeviceInfo> EndDevice::KNOWN_DEVICES = {
     {0x54ef441000609dcc, {9, "Aqara", "SSM-U01", "Реле6", "Реле 6", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 1}},
     {0x00158d0009414d7e, {11, "Aqara", "Double", "КухняСвет/КухняВент", "Реле 7(Свет/Вентилятор кухня)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     // Умные розетки
-    //   {0x70b3d52b6001b4a4, {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 0, 0}},
+    {0x70b3d52b6001b4a4, {10, "Girier", "TS011F", "Розетка1", "Розетка 1", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 1}},
     {0x70b3d52b6001b5d9, {10, "Girier", "TS011F", "Розетка2", "Розетка 2(Зарядники)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     {0x70b3d52b60022ac9, {10, "Girier", "TS011F", "Розетка3", "Розетка 3(Лампы в детской)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     {0x70b3d52b60022cfd, {10, "Girier", "TS011F", "Розетка3", "Розетка 4(Паяльник)", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
@@ -63,11 +63,11 @@ const std::map<const uint64_t, const DeviceInfo> EndDevice::KNOWN_DEVICES = {
     {0x00124b002512a60b, {3, "Sonoff", "SNZB-04", "ШкафДатчик", "Датчик открытия 2 (шкаф, подсветка)", zigbee::zcl::Cluster::IAS_ZONE, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     {0x00124b00250bba63, {3, "Sonoff", "SNZB-04", "ЯщикДатчик", "Датчик открытия 3 (ящик)", zigbee::zcl::Cluster::IAS_ZONE, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     // Кнопки
-    {0x8cf681fffe0656ef, {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::BATTERY, 0, 1}},
+    {0x8cf681fffe0656ef, {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 1}},
     {0x00124b0028928e8a, {1, "Sonoff", "SNZB-01", "Кнопка1", "Кнопка Sonoff 1", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     {0x00124b00253ba75f, {1, "Sonoff", "SNZB-01", "Кнопка2", "Кнопка Sonoff 2", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     // Датчики климата
-    {0x00124b000b1bb401, {4, "GSB", "CC2530", "КлиматБалкон", "Датчик климата (балкон)", zigbee::zcl::Cluster::ANALOG_INPUT, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}}};
+    {0x00124b000b1bb401, {4, "GSB", "CC2530", "КлиматБалкон", "Датчик климата (балкон)", zigbee::zcl::Cluster::ANALOG_INPUT, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}}};
 
 // Типы устройств в моей классификации
 // 0x0003 - Identify, 0x0004 - GROUPS, 0x0005 - SCENES, 0x0006 - ON_OFF, 0x0007 - ON_OFF_SWITCH_CONFIGURATION, 0x0008 - LEVEL_CONTROL,0x0009 - ALARMS,
@@ -98,7 +98,7 @@ const std::vector<uint64_t> EndDevice::OFF_LIST = {
     0x00158d0009414d7e, // свет и вентилятор в кухне
     0x54ef44100018b523, // шкаф(подсветка)
     0x54ef4410005b2639, // туалет занят
-                        //    0x70b3d52b6001b4a4, // Умная розетка 1
+    0x70b3d52b6001b4a4, // Умная розетка 1
     0x70b3d52b60022ac9, // Умная розетка 3
     0x70b3d52b60022cfd  // Умная розетка 4
 };
@@ -150,7 +150,7 @@ void EndDevice::init()
     }
 }
 
-void EndDevice::setBatteryParams(uint8_t battery_remain_percent, double battery_voltage)
+void EndDevice::set_battery_params(uint8_t battery_remain_percent, double battery_voltage)
 {
     if (battery_remain_percent > 0)
         battery_remain_percent_ = battery_remain_percent;
@@ -198,20 +198,23 @@ std::string EndDevice::showPowerSource()
 
     return result;
 }
-std::string EndDevice::showBatteryRemain()
+std::string EndDevice::show_battery_remain()
 {
     std::string result = "";
     uint8_t val = battery_remain_percent_ / 2;
-    char buf[16]{0};
-    int len = snprintf(buf, 16, "%d%%", val);
-    if (len > 0)
+    if (val > 0)
     {
-        buf[len] = 0;
-        result = std::string(buf);
+        char buf[16]{0};
+        int len = snprintf(buf, 16, "%0d%%", val);
+        if (len > 0)
+        {
+            buf[len] = 0;
+            result = std::string(buf);
+        }
     }
     return result;
 }
-std::string EndDevice::showBatteryVoltage()
+std::string EndDevice::show_battery_voltage()
 {
     if (battery_voltage_ > 0)
     {
@@ -380,4 +383,12 @@ std::string EndDevice::get_prom_pressure()
         return "zhub2_metrics{device=\"" + deviceInfo.engName + "\",type=\"pressure\"} " + std::to_string(pressure) + "\n";
     else
         return "";
+}
+
+void EndDevice::set_linkquality(uint8_t lq)
+{
+    linkquality_ = lq;
+    // датчик климата не отдает никакой статус, принудительно ставлю, что он живой
+    if ((uint64_t)IEEEAddress_ == 0x124b000b1bb401)
+        state_ = "On";
 }

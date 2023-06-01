@@ -30,7 +30,7 @@ void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attribut
 #ifdef TEST
     int dbg = 1;
 #else
-    int dbg = 3;
+    int dbg = 4;
 #endif
 
     double value = -100.0;
@@ -71,12 +71,17 @@ void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attribut
         if (unit == "%")
         {
             ed->set_humidity(value);
-            ed->set_current_state("On");
+//            ed->set_current_state("On");
         }
         else if (unit == "C")
             ed->set_temperature(value);
         else if (unit == "V")
-            ed->setBatteryParams(0, value);
+        {
+            if (ed->deviceInfo.powerSource == zigbee::zcl::Attributes::PowerSource::BATTERY)
+                ed->set_battery_params(0, value);
+            else
+                ed->set_mains_voltage(value);
+        }
         else if (unit == "Pa")
             ed->set_pressure(value);
         else

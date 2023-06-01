@@ -404,7 +404,7 @@ void Zdo::handle_command(Command command)
         zigbee::IEEEAddress macAddress = *(reinterpret_cast<zigbee::IEEEAddress *>(&command.payload(4)));
         gsbutils::dprintf(dbg, "Zdo::ZDO_END_DEVICE_ANNCE_IND: new shortAddress: 0x%04x\n", networkAddress);
         gsbutils::dprintf(dbg, "Zdo::ZDO_END_DEVICE_ANNCE_IND: IEEEaddress: 0x%" PRIx64 " \n", macAddress);
-        zhub->onJoin(networkAddress, macAddress);
+        zhub->on_join(networkAddress, macAddress);
     }
     break;
     //
@@ -441,7 +441,7 @@ void Zdo::handle_command(Command command)
     {
         zigbee::NetworkAddress network_address = _UINT16(command.payload(0), command.payload(1));
         zigbee::IEEEAddress mac_address = *(reinterpret_cast<zigbee::IEEEAddress *>(&command.payload(2)));
-        zhub->onLeave(network_address, mac_address);
+        zhub->on_leave(network_address, mac_address);
     }
     break;
     //
