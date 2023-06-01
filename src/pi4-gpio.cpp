@@ -34,7 +34,7 @@
 
 extern std::atomic<bool> Flag;
 using namespace zigbee;
-extern std::unique_ptr<zigbee::Coordinator> coordinator;
+extern std::unique_ptr<zigbee::Zhub> zhub;
 
 struct gpiod_chip *chip = nullptr;
 
@@ -109,20 +109,20 @@ void get_main_temperature()
 	while (Flag.load())
 	{
 
-		float temp_f = coordinator->get_board_temperature();
+		float temp_f = zhub->get_board_temperature();
 		if (temp_f > 0.0)
 		{
 			if (temp_f > 70.0 && !notify_high_send)
 			{
 				// посылаем уведомление о высокой температуре и включаем вентилятор
 				notify_high_send = true;
-				coordinator->handle_board_temperature(temp_f);
+				zhub->handle_board_temperature(temp_f);
 			}
 			else if (temp_f < 50.0 && notify_high_send)
 			{
 				// посылаем уведомление о нормальной температуре и выключаем вентилятор
 				notify_high_send = false;
-				coordinator->handle_board_temperature(temp_f);
+				zhub->handle_board_temperature(temp_f);
 			}
 		}
 		using namespace std::chrono_literals;
@@ -148,13 +148,13 @@ void power_detect()
 		{
 			notify_off = true;
 			notify_on = false;
-			coordinator->handle_power_off(value);
+			zhub->handle_power_off(value);
 		}
 		else if (value == 1 && !notify_on)
 		{
 			notify_on = true;
 			notify_off = false;
-			coordinator->handle_power_off(value);
+			zhub->handle_power_off(value);
 		}
 
 		using namespace std::chrono_literals;

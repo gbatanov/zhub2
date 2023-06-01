@@ -37,7 +37,7 @@
 #include "http.h"
 
 extern char *Program_Version;
-extern std::unique_ptr<zigbee::Coordinator> coordinator;
+extern std::unique_ptr<zigbee::Zhub> zhub;
 extern std::string startTime;
 
 #ifdef WITH_TELEGA
@@ -181,7 +181,7 @@ std::string create_device_list()
     std::string result = "";
 
 #if !defined __MACH__
-    float board_temperature = coordinator->get_board_temperature();
+    float board_temperature = zhub->get_board_temperature();
     if (board_temperature > -100.0)
     {
         char buff[128]{0};
@@ -192,14 +192,14 @@ std::string create_device_list()
     }
 #endif
 #ifdef WITH_SIM800
-    result = result + "<p>" + coordinator->show_sim800_battery() + "</p>";
+    result = result + "<p>" + zhub->show_sim800_battery() + "</p>";
 #endif
 
-    std::time_t lastMotionSensorAction = coordinator->getLastMotionSensorActivity();
+    std::time_t lastMotionSensorAction = zhub->getLastMotionSensorActivity();
     result = result + "<p>Время последнего срабатывания датчиков движения: " + gsbutils::DDate::timestamp_to_string(lastMotionSensorAction) + "</p>";
     result = result + "<p>Старт программы: " + startTime + "</p>";
 
-    std::string list = coordinator->show_device_statuses(true);
+    std::string list = zhub->show_device_statuses(true);
     result = result + "<h3>Список устройств:</h3>";
     if (list.empty())
         result = result + "<p>(устройства отсутствуют)</p>";
@@ -223,7 +223,7 @@ std::string command_list()
     result += "<p>Кран ГВ&nbsp;<a href=\"/water?on=0xa4c138d9758e1dcd\">Включить</a>&nbsp;<a href=\"/water?off=0xa4c138d9758e1dcd\">Выключить</a></p>";
     result += "<p>Реле СМ&nbsp;<a href=\"/water?on=0x54ef441000193352\">Включить</a>&nbsp;<a href=\"/water?off=0x54ef441000193352\">Выключить</a></p>";
     result += "<p>----------- Умные розетки ---------------</p>";
-    result += "<p>Розетка 1&nbsp;<a href=\"/command?on=0x70b3d52b6001b4a4\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b4a4\">Выключить</a></p>";
+//    result += "<p>Розетка 1&nbsp;<a href=\"/command?on=0x70b3d52b6001b4a4\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b4a4\">Выключить</a></p>";
     result += "<p>Розетка 2&nbsp;<a href=\"/command?on=0x70b3d52b6001b5d9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b5d9\">Выключить</a></p>";
     result += "<p>Розетка 3&nbsp;<a href=\"/command?on=0x70b3d52b60022ac9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022ac9\">Выключить</a></p>";
     result += "<p>Розетка 4&nbsp;<a href=\"/command?on=0x70b3d52b60022cfd\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022cfd\">Выключить</a></p>";
@@ -271,12 +271,12 @@ std::string send_cmd_to_onoff(std::string url)
     }
     if (cmd == "on")
     {
-        coordinator->switch_relay(mac_addr, 0x01, (uint8_t)ep);
+        zhub->switch_relay(mac_addr, 0x01, (uint8_t)ep);
         res_cmd = "Команда \"Включить\" " + param  + " исполнена";
     }
     else if (cmd == "off")
     {
-        coordinator->switch_relay(mac_addr, 0, (uint8_t)ep);
+        zhub->switch_relay(mac_addr, 0, (uint8_t)ep);
         res_cmd = "Команда \"Выключить\" " +  param  + " исполнена";
     }
     else
@@ -327,12 +327,12 @@ std::string send_cmd_to_device(char *url)
 
     if (cmd == "on")
     {
-        coordinator->ias_zone_command(0x01, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
+        zhub->ias_zone_command(0x01, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
         res_cmd = "Команда \"Включить\" " + (mac_addr ? param : "all") + " исполнена";
     }
     else if (cmd == "off")
     {
-        coordinator->ias_zone_command(0x00, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
+        zhub->ias_zone_command(0x00, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
         res_cmd = "Команда \"Выключить\" " + (mac_addr ? param : "all") + " исполнена";
     }
     else
@@ -356,7 +356,7 @@ std::string http_get_balance()
 
 std::string http_join()
 {
-    coordinator->permitJoin(std::chrono::seconds(60));
+    zhub->permitJoin(std::chrono::seconds(60));
     std::string result = command_list();
     return result;
 }

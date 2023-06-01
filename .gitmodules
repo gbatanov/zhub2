@@ -1,0 +1,6 @@
+[submodule "gsb_utils"]
+	path = gsb_utils
+	url = https://github.com/gbatanov/gsb_utils.git
+[submodule "telebot32"]
+	path = telebot32
+	url = https://github.com/gbatanov/telebot32.git

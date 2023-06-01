@@ -90,7 +90,7 @@
                 "BOT_NAME": "TestGsbBot",
                 "GPIO": "OFF",
                 "HTTP":"ON",
-                "PROMETHEUS":"ON",
+                "PROMETHEUS":"OFF",
                 "TEST":"ON"
             }
         },

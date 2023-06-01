@@ -29,6 +29,10 @@ std::vector<zcl::Attribute> zcl::Attribute::parseAttributesPayload(std::vector<u
         bool valid = true;
         size_t maxI = payload.size();
 
+        // Минимальная длина - 4 байта: 2 - attribute id, 1 -тип, 1 значение
+        if (maxI < 4)
+            return attributes;
+
         while (i < maxI)
         {
             zcl::Attribute attribute;
@@ -111,7 +115,7 @@ std::vector<zcl::Attribute> zcl::Attribute::parseAttributesPayload(std::vector<u
                 size = _UINT16(lo, hi);
                 if (i + size >= maxI)
                     return attributes;
-                attribute.value = std::string(reinterpret_cast<char *>(payload.data() + i), size); 
+                attribute.value = std::string(reinterpret_cast<char *>(payload.data() + i), size);
             }
             break;
 

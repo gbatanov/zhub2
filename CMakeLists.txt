@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(zhub2 LANGUAGES CXX VERSION 2.22.533)
+project(zhub2 LANGUAGES CXX VERSION 2.23.567)
 
 message(STATUS "${PROJECT_NAME} version ${PROJECT_VERSION}")
 
