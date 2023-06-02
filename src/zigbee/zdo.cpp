@@ -1272,6 +1272,9 @@ std::string Zdo::getCommandStr(Command &command)
     case zigbee::CommandId::ZDO_BIND_RSP:
         cmd_str = "ZDO_BIND_RSP";
         break; //  0x45a1,
+    case zigbee::CommandId::ZDO_BIND_SRSP:
+        cmd_str = "ZDO_BIND_SRSP";
+        break; //  0x65a1,
     case zigbee::CommandId::ZDO_UNBIND_RSP:
         cmd_str = "ZDO_UNBIND_RSP";
         break; //         0x45a2
