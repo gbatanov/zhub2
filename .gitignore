@@ -1,0 +1,11 @@
+build
+.token*
+misc/i2c*
+gsbutils/version.h
+gsb_utils/version.h
+src/version.h
+serial2/version.h
+src/zigbee/version.h
+telebot32/src/version.h
+.DS_Store
+src/.token*
