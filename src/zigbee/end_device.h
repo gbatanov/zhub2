@@ -125,7 +125,7 @@ protected:
     int8_t motion_ = -1;             // -1 - нет инфы, 0 - нет движения, 1 - есть движение
 
 private:
-    uint64_t lastPowerQuery = 0;
+    time_t lastPowerQuery = 0;
     std::atomic<bool> flag;
     uint64_t last_seen_ = 0;   // время последнего ответа устройства
     uint64_t last_action_ = 0; // время последней активности устройства (может не совпадать со временем последнего ответа)

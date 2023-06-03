@@ -16,10 +16,6 @@
 #include <sstream>
 #include <termios.h>
 
-#ifdef WITH_SIM800
-#include "../modem.h"
-extern GsmModem *gsmmodem;
-#endif
 
 #ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
@@ -33,6 +29,11 @@ extern std::unique_ptr<Tlg32> tlg32;
 #include "command.h"
 #include "zigbee.h"
 #include "../main.h"
+
+#ifdef WITH_SIM800
+#include "../modem.h"
+extern GsmModem *gsmmodem;
+#endif
 
 using zigbee::IEEEAddress;
 using zigbee::NetworkAddress;

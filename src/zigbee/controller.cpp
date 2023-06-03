@@ -26,9 +26,6 @@
 #include <termios.h>
 
 #include "../version.h"
-#ifdef WITH_SIM800
-extern GsmModem *gsmmodem;
-#endif
 #ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
 extern std::unique_ptr<Tlg32> tlg32;
@@ -41,6 +38,10 @@ extern std::unique_ptr<Tlg32> tlg32;
 #include "../main.h"
 #include "zigbee.h"
 #include "../modem.h"
+
+#ifdef WITH_SIM800
+extern GsmModem *gsmmodem;
+#endif
 
 #ifdef __MACH__
 // На маке зависит от гнезда, в которое воткнут координатор
