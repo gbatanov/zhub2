@@ -32,7 +32,7 @@ std::mutex trans_mutex;
 Zdo::Zdo()
 {
     chan_out = std::make_shared<gsbutils::Channel<Command>>(8); // канал вывода емкостью 8 команд
-    chan_in = std::make_shared<gsbutils::Channel<Command>>(16);  // канал ввода емкостью 16 команд
+    chan_in = std::make_shared<gsbutils::Channel<Command>>(16); // канал ввода емкостью 16 команд
     uart_ = std::make_shared<Uart>(chan_out, chan_in);
 }
 
@@ -746,7 +746,6 @@ void Zdo::sendMessage(zigbee::Endpoint endpoint, zigbee::zcl::Cluster cluster, z
 
         af_data_request.payload(9) = i; // data length.
     }
-
     asyncRequest(af_data_request);
 }
 

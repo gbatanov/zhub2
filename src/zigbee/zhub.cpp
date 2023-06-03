@@ -396,7 +396,7 @@ void Zhub::handle_motion(std::shared_ptr<zigbee::EndDevice> ed, uint8_t cmd)
         // выключится таймером
         if (cmd == 1)
         {
-            std::this_thread::sleep_for(std::chrono::seconds(60));
+            std::this_thread::sleep_for(std::chrono::seconds(120));
             handle_motion(ed, 0);
             // ikeaMotionTimer.run(180);
         }
@@ -440,12 +440,14 @@ void Zhub::onoff_command(zigbee::Message message)
     if (mac_address == 0x8cf681fffe0656ef)
     {
         // Кнопка ИКЕА
-        get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+        if (ed->check_last_power_query())
+            get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
         ikea_button_action(cmd);
     }
     else if (mac_address == 0x0c4314fffe17d8a8)
     {
-        get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+        if (ed->check_last_power_query())
+            get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
         // Датчик движения IKEA. У этих датчиков нет команды выключения. Само устройство должно выключиться по таймеру.
         // Время в payload(1),payload(2) в десятых долях секунды
         handle_motion(ed, 1);

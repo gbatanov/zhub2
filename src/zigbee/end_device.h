@@ -53,8 +53,8 @@ public:
     std::string show_battery_voltage();
     virtual void actionHandle(){};
     void init();
-    std::string get_current_state(uint8_t channel=1);
-    void set_current_state(std::string state, uint8_t channel=1);
+    std::string get_current_state(uint8_t channel = 1);
+    void set_current_state(std::string state, uint8_t channel = 1);
     std::string get_human_name() { return deviceInfo.humanName.empty() ? "Unknown" : deviceInfo.humanName; }
     void set_temperature(double temperature) { temperature_ = temperature; }
     double get_temperature() { return temperature_; }
@@ -100,35 +100,35 @@ public:
     std::string get_prom_relay_string();
     std::string get_prom_door_string();
     std::string get_prom_pressure();
-
+    bool check_last_power_query();
     DeviceInfo deviceInfo;
 
 protected:
     zigbee::NetworkAddress shortAddr_{}; // сетевой (короткий) адрес может меняться
-    zigbee::IEEEAddress IEEEAddress_{}; // постоянная величина для одного устройства
+    zigbee::IEEEAddress IEEEAddress_{};  // постоянная величина для одного устройства
     std::string modelIdentifier_{};
     zigbee::zcl::Cluster cluster_{zigbee::zcl::Cluster::UNKNOWN_CLUSTER};
 
     uint8_t linkquality_ = 0; // из сообщения
-    uint8_t lqi_ = 0; // из параметров в ответах
-    int16_t rssi_ = 0; // из параметров в ответах
+    uint8_t lqi_ = 0;         // из параметров в ответах
+    int16_t rssi_ = 0;        // из параметров в ответах
     uint8_t battery_remain_percent_ = 0;
     double battery_voltage_ = 0.0;
-    std::string state_ = "Unknown"; // текстовое описание состояния, зависящее от типа датчика
+    std::string state_ = "Unknown";  // текстовое описание состояния, зависящее от типа датчика
     std::string state2_ = "Unknown"; // текстовое описание состояния канала 2, зависящее от типа датчика
-    double temperature_{-100.0};    // -100.0 - признак отсутствия датчика температуры у данного устройства
-    double humidity_{-100.0};       // -100.0 - признак отсутствия датчика влажности у данного устройства
-    double mains_voltage_ = 0.0;    // напряжение питания сети
-    double current_ = -1.0;         // потребляемый ток, меньше нуля - данных нет
-    double pressure_{-100.0};       // -100.0 - признак отсутствия датчика давления у данного устройства
-    int8_t luminocity_ = -1;        // -1 - нет инфы, 0 - темно, 1 - светло
-    int8_t motion_ = -1;            // -1 - нет инфы, 0 - нет движения, 1 - есть движение
+    double temperature_{-100.0};     // -100.0 - признак отсутствия датчика температуры у данного устройства
+    double humidity_{-100.0};        // -100.0 - признак отсутствия датчика влажности у данного устройства
+    double mains_voltage_ = 0.0;     // напряжение питания сети
+    double current_ = -1.0;          // потребляемый ток, меньше нуля - данных нет
+    double pressure_{-100.0};        // -100.0 - признак отсутствия датчика давления у данного устройства
+    int8_t luminocity_ = -1;         // -1 - нет инфы, 0 - темно, 1 - светло
+    int8_t motion_ = -1;             // -1 - нет инфы, 0 - нет движения, 1 - есть движение
 
 private:
-
+    uint64_t lastPowerQuery = 0;
     std::atomic<bool> flag;
-     uint64_t last_seen_ = 0;                                   // время последнего ответа устройства
-    uint64_t last_action_ = 0;                                 // время последней активности устройства (может не совпадать со временем последнего ответа)
+    uint64_t last_seen_ = 0;   // время последнего ответа устройства
+    uint64_t last_action_ = 0; // время последней активности устройства (может не совпадать со временем последнего ответа)
     // только для TEST конфигурации
     std::vector<uint8_t> ep_{};                                // endpoints TODO: прописывать в каждом типе устройств как константу
     std::map<uint8_t, std::vector<uint8_t>> inputClusters_{};  // input clusters for endpoints TODO: прописывать в каждом типе устройств как константу

@@ -392,3 +392,20 @@ void EndDevice::set_linkquality(uint8_t lq)
     if ((uint64_t)IEEEAddress_ == 0x124b000b1bb401)
         state_ = "On";
 }
+
+bool EndDevice::check_last_power_query()
+{
+     std::time_t ts = std::time(0); // get time now
+    if (lastPowerQuery == 0)
+    {
+        lastPowerQuery = ts;
+        return true;
+    }
+
+    if (ts - 3600 > lastPowerQuery)
+    {
+        lastPowerQuery = ts;
+        return true;
+    }
+    return false;
+}
