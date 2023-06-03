@@ -63,7 +63,7 @@ const std::map<const uint64_t, const DeviceInfo> EndDevice::KNOWN_DEVICES = {
     {0x00124b002512a60b, {3, "Sonoff", "SNZB-04", "ШкафДатчик", "Датчик открытия 2 (шкаф, подсветка)", zigbee::zcl::Cluster::IAS_ZONE, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     {0x00124b00250bba63, {3, "Sonoff", "SNZB-04", "ЯщикДатчик", "Датчик открытия 3 (ящик)", zigbee::zcl::Cluster::IAS_ZONE, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     // Кнопки
-    {0x8cf681fffe0656ef, {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 1}},
+    {0x8cf681fffe0656ef, {7, "IKEA", "E1743", "КнопкаИкеа", "Кнопка ИКЕА", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::BATTERY, 0, 1}},
     {0x00124b0028928e8a, {1, "Sonoff", "SNZB-01", "Кнопка1", "Кнопка Sonoff 1", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     {0x00124b00253ba75f, {1, "Sonoff", "SNZB-01", "Кнопка2", "Кнопка Sonoff 2", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     // Датчики климата
