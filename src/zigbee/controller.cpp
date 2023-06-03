@@ -34,7 +34,6 @@ extern GsmModem *gsmmodem;
 extern std::unique_ptr<Tlg32> tlg32;
 #endif
 
-
 #include "../comport/unix.h"
 #include "../comport/serial.h"
 #include "../../gsb_utils/gsbutils.h"
@@ -85,7 +84,6 @@ Controller::Controller()
 
 Controller::~Controller()
 {
-
 }
 
 bool Controller::init_adapter()
@@ -276,12 +274,14 @@ void Controller::on_message(zigbee::Command command)
             if (ed->get_device_type() == 2) // датчики движения Sonoff
             {
                 handle_motion(ed, message.zcl_frame.payload[0]);
-                get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+                if (ed->check_last_power_query())
+                    get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
             }
             else if (ed->get_device_type() == 3) // датчики открытия дверей Sonoff
             {
                 handle_sonoff_door(ed, message.zcl_frame.payload[0]);
-                get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+                if (ed->check_last_power_query())
+                    get_power(message.source.address, zigbee::zcl::Cluster::POWER_CONFIGURATION);
             }
             else if (ed->get_device_type() == 5) // датчики протечек Aqara
             {
@@ -314,7 +314,7 @@ void Controller::on_message(zigbee::Command command)
         default:
         {
             // неизвестный кластер
-            gsbutils::dprintf(7, "Controller::on_message:  other command 0x%02x in cluster 0x%04x \n\n", message.zcl_frame.command, static_cast<uint16_t>(message.cluster));
+            gsbutils::dprintf(1, "Controller::on_message:  other command 0x%02x in cluster 0x%04x \n\n", message.zcl_frame.command, static_cast<uint16_t>(message.cluster));
         }
         }
     }
@@ -941,6 +941,7 @@ void Controller::join_device(zigbee::NetworkAddress network_address, zigbee::IEE
 
 // Функция вызывается периодически  для устройств, не передающих эти параметры самостоятельно.
 // Ответ разбираем  в OnMessage
+// Надо запускать в потоке
 void Controller::get_power(zigbee::NetworkAddress address, Cluster cluster)
 {
     gsbutils::dprintf(7, "Controller::get_power\n");
@@ -1040,7 +1041,8 @@ void Controller::on_join(zigbee::NetworkAddress networkAddress, zigbee::IEEEAddr
     // у них есть POLL INTERVAL во время которого они могут принять комманду на исполнение
     if (ed->get_device_type() == 7 || ed->get_device_type() == 8)
     {
-        get_power(networkAddress, zigbee::zcl::Cluster::POWER_CONFIGURATION);
+        if (ed->check_last_power_query())
+            get_power(networkAddress, zigbee::zcl::Cluster::POWER_CONFIGURATION);
     }
     // у остальных устройств надо сделать привязку, чтобы получить параметры питания (оставшийся заряд батареи)
     bind(networkAddress, macAddress, 1, zigbee::zcl::Cluster::POWER_CONFIGURATION);

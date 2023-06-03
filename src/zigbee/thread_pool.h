@@ -7,7 +7,6 @@
 class ThreadPool
 {
 public:
-
     ThreadPool()
     {
         init();
@@ -28,7 +27,6 @@ public:
     }
 
     // добавление команды в очередь
-    // если очередь начинает заполняться, добавляем новый поток
     void add_command(Command cmd)
     {
         if (!flag.load())
@@ -36,15 +34,23 @@ public:
         {
             std::lock_guard<std::mutex> lg(tqMtx);
             taskQueue.push(cmd);
-            cv_queue.notify_one();
+            cv_queue.notify_all();
         }
     }
 
     // получение команды из очереди
     Command get_command()
     {
-        std::unique_lock<std::mutex> ul(tqMtx);
         Command cmd((CommandId)0);
+
+        if (flag.load() && !taskQueue.empty())
+        {
+            std::lock_guard<std::mutex> lg(tqMtx);
+            cmd = taskQueue.front();
+            taskQueue.pop();
+            return cmd;
+        }
+        std::unique_lock<std::mutex> ul(tqMtx);
         cv_queue.wait(ul, [this]()
                       { return !taskQueue.empty() || !flag.load(); });
 
@@ -65,7 +71,7 @@ private:
     {
         threadMap.reserve(MAX_THREADS_GSB);
         uint8_t hc = std::thread::hardware_concurrency();
-        uint8_t tc = std::max(hc, (uint8_t)10);
+        uint8_t tc = std::min(hc, (uint8_t)6);
         while (tc--)
         {
             std::thread *t = new std::thread(&ThreadPool::on_command, this);
@@ -78,7 +84,6 @@ protected:
     virtual void on_command(){};
     uint8_t threadCount_ = 0;               // текущее количество открытых потоков
     std::vector<std::thread *> threadMap{}; // вектор указателей на поток
-                                            //   th_function cmd_function_;              // функция-обработчик
     std::queue<Command> taskQueue{};        // очередь команд
     std::mutex tqMtx{};                     // мьютех на запись/чтение очереди комманд
     std::condition_variable cv_queue;       // cv на очередь команд
