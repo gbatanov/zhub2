@@ -100,7 +100,9 @@ const std::vector<uint64_t> EndDevice::OFF_LIST = {
     0x54ef4410005b2639, // туалет занят
     0x70b3d52b6001b4a4, // Умная розетка 1
     0x70b3d52b60022ac9, // Умная розетка 3
-    0x70b3d52b60022cfd  // Умная розетка 4
+    0x70b3d52b60022cfd, // Умная розетка 4
+    0x54ef44100019335b, // Реле1
+    0x54ef441000609dcc  // Реле6
 };
 
 // Список устройств для отображения в Графане
@@ -395,7 +397,7 @@ void EndDevice::set_linkquality(uint8_t lq)
 
 bool EndDevice::check_last_power_query()
 {
-     std::time_t ts = std::time(0); // get time now
+    std::time_t ts = std::time(0); // get time now
     if (lastPowerQuery == 0)
     {
         lastPowerQuery = ts;
