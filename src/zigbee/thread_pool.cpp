@@ -31,7 +31,6 @@ using namespace zigbee;
 
 ThreadPool::ThreadPool()
 {
-   
 }
 ThreadPool::~ThreadPool()
 {
@@ -93,6 +92,7 @@ Command ThreadPool::get_command()
 // по умолчанию на старте сразу запускаем несколько потоков
 void ThreadPool::initThreads()
 {
+
     threadMap.reserve(MAX_THREADS_GSB);
     uint8_t hc = std::thread::hardware_concurrency();
     uint8_t tc = std::max(hc, (uint8_t)6);

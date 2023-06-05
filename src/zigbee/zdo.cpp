@@ -31,7 +31,6 @@ std::mutex trans_mutex;
 
 Zdo::Zdo()
 {
-     initThreads();
     chan_out = std::make_shared<gsbutils::Channel<Command>>(16); // канал вывода емкостью 8 команд
     chan_in = std::make_shared<gsbutils::Channel<Command>>(24);  // канал ввода емкостью 16 команд
     uart_ = std::make_shared<Uart>(chan_out, chan_in);
@@ -48,6 +47,9 @@ Zdo::~Zdo()
 // Инициализация потока приема команд с последовательного порта
 void Zdo::init()
 {
+
+    initThreads();
+
     thr_cmdin = new std::thread([this]()
                                 {
     while (Flag.load())
