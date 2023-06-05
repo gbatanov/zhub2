@@ -97,7 +97,7 @@ class Zdo : public virtual Device, public ThreadPool
 public:
     Zdo();
     ~Zdo();
-void init();
+    void init();
     int reset(ResetType resetType, bool clearNetworkState, bool clearConfig);
     int reset() { return reset(ResetType::SOFT, false, false); }
     bool startup(std::chrono::duration<int, std::milli> delay);
@@ -141,11 +141,11 @@ void init();
     zigbee::NetworkAddress network_address_ = 0;
     zigbee::IEEEAddress mac_address_ = 0;
     zigbee::EventCommand event_command_;
-   void on_command();
+    void on_command();
     void get_attribute_RSSI_Power(zigbee::NetworkAddress address);
     std::string getCommandStr(Command &command);
     std::string get_cluster_string(zcl::Cluster cl);
-    std::shared_ptr<gsbutils::Channel<Command>> chan_out,chan_in;
+    std::shared_ptr<gsbutils::Channel<Command>> chan_out, chan_in;
     std::shared_ptr<Uart> uart_;
 
 protected:

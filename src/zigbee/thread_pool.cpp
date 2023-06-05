@@ -1,5 +1,3 @@
-
-
 #include "../version.h"
 #include <algorithm>
 #include <mutex>
@@ -26,31 +24,36 @@
 
 using namespace zigbee;
 
-#define MAX_THREADS_GSB 20
-#define MAX_QUEUE_SIZE_GSB 2
-
 ThreadPool::ThreadPool()
 {
 }
 ThreadPool::~ThreadPool()
 {
+    if (flag.load())
+        stop();
+}
+
+void ThreadPool::init_threads()
+{
+    uint8_t tc = std::max((uint8_t)std::thread::hardware_concurrency(), (uint8_t)6);
+    threadVec.reserve(tc);
+    while (tc--)
+        threadVec.push_back(new std::thread(&ThreadPool::on_command, this));
 }
 
 void ThreadPool::stop()
 {
     flag.store(false);
     cv_queue.notify_all();
-    for (auto t : threadMap)
-    {
+    for (std::thread *t : threadVec)
         if (t->joinable())
             t->join();
-    }
 }
 
 // добавление команды в очередь
 void ThreadPool::add_command(Command cmd)
 {
-    if (flag.load())
+    if (cmd.uid() != 0)
     {
         std::lock_guard<std::mutex> lg(tqMtx);
         taskQueue.push(cmd);
@@ -63,43 +66,26 @@ Command ThreadPool::get_command()
 {
     Command cmd((CommandId)0);
 
-    if (flag.load())
     {
-        {
-            std::lock_guard<std::mutex> lg(tqMtx);
-            if (!taskQueue.empty())
-            {
-                cmd = taskQueue.front();
-                taskQueue.pop();
-                return cmd;
-            }
-        }
-
-        std::unique_lock<std::mutex> ul(tqMtx);
-        cv_queue.wait(ul, [this]()
-                      { return !taskQueue.empty() || !flag.load(); });
-
-        if (flag.load() && !taskQueue.empty())
+        std::lock_guard<std::mutex> lg(tqMtx);
+        if (!taskQueue.empty())
         {
             cmd = taskQueue.front();
             taskQueue.pop();
+            return cmd;
         }
-        ul.unlock();
     }
-    return cmd;
-}
 
-// по умолчанию на старте сразу запускаем несколько потоков
-void ThreadPool::initThreads()
-{
+    std::unique_lock<std::mutex> ul(tqMtx);
+    cv_queue.wait(ul, [this]()
+                  { return !taskQueue.empty() || !flag.load(); });
 
-    threadMap.reserve(MAX_THREADS_GSB);
-    uint8_t hc = std::thread::hardware_concurrency();
-    uint8_t tc = std::max(hc, (uint8_t)6);
-    while (tc--)
+    if (flag.load() && !taskQueue.empty())
     {
-        std::thread *t = new std::thread(&ThreadPool::on_command, this);
-        threadMap.push_back(t);
-        threadCount_++;
+        cmd = taskQueue.front();
+        taskQueue.pop();
     }
+    ul.unlock();
+
+    return cmd;
 }

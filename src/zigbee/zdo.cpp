@@ -48,16 +48,14 @@ Zdo::~Zdo()
 void Zdo::init()
 {
 
-    initThreads();
+    init_threads();
 
     thr_cmdin = new std::thread([this]()
                                 {
     while (Flag.load())
     {
         Command cmd = chan_in->read();
-        if (Flag.load()){
-            add_command(cmd);
-        }
+        add_command(cmd);
     } });
 }
 
