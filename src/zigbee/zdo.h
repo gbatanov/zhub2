@@ -141,7 +141,7 @@ void init();
     zigbee::NetworkAddress network_address_ = 0;
     zigbee::IEEEAddress mac_address_ = 0;
     zigbee::EventCommand event_command_;
-    void on_command();
+   void on_command();
     void get_attribute_RSSI_Power(zigbee::NetworkAddress address);
     std::string getCommandStr(Command &command);
     std::string get_cluster_string(zcl::Cluster cl);
