@@ -72,7 +72,7 @@ extern std::atomic<uint8_t> transaction_sequence_number;
 const std::vector<uint8_t> Controller::DEFAULT_RF_CHANNELS = {11};
 const std::vector<uint8_t> Controller::TEST_RF_CHANNELS = {15};
 
-const std::vector<zigbee::SimpleDescriptor> Controller::default_endpoints_ = {{1,      // Enpoint number.
+const std::vector<zigbee::SimpleDescriptor> Controller::DEFAULT_ENDPOINTS_ = {{1,      // Enpoint number.
                                                                                0x0104, // Profile ID.
                                                                                0x05,   // Device ID.
                                                                                0,      // Device version.
@@ -136,7 +136,7 @@ bool Controller::start_network(std::vector<uint8_t> rfChannels)
 
         // Регистрация ендпойнтов самого координатора
         gsbutils::dprintf(1, "Zhub::start Endpoints registration:\n");
-        for (auto &endpoint_descriptor : default_endpoints_)
+        for (auto &endpoint_descriptor : DEFAULT_ENDPOINTS_)
         {
             if (!registerEndpoint(endpoint_descriptor))
             {

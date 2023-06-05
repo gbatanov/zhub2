@@ -43,23 +43,30 @@ public:
     {
         Command cmd((CommandId)0);
 
-        if (flag.load() && !taskQueue.empty())
+        if (flag.load())
         {
-            std::lock_guard<std::mutex> lg(tqMtx);
-            cmd = taskQueue.front();
-            taskQueue.pop();
-            return cmd;
-        }
-        std::unique_lock<std::mutex> ul(tqMtx);
-        cv_queue.wait(ul, [this]()
-                      { return !taskQueue.empty() || !flag.load(); });
+            //            {
+            //               std::lock_guard<std::mutex> lg(tqMtx);
+            std::unique_lock<std::mutex> ul(tqMtx);
+            if (!taskQueue.empty())
+            {
+                cmd = taskQueue.front();
+                taskQueue.pop();
+                ul.unlock();
+                return cmd;
+            }
+            //           }
+            //           std::unique_lock<std::mutex> ul(tqMtx);
+            cv_queue.wait(ul, [this]()
+                          { return !taskQueue.empty() || !flag.load(); });
 
-        if (flag.load() && !taskQueue.empty())
-        {
-            cmd = taskQueue.front();
-            taskQueue.pop();
+            if (flag.load() && !taskQueue.empty())
+            {
+                cmd = taskQueue.front();
+                taskQueue.pop();
+            }
+            ul.unlock();
         }
-        ul.unlock();
         return cmd;
     }
 

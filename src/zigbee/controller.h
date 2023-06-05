@@ -64,8 +64,8 @@ protected:
     std::map<zigbee::IEEEAddress, std::shared_ptr<zigbee::EndDevice>> devices_{};     // пары IEEEAddress<=>EndDevice
     std::map<zigbee::NetworkAddress, zigbee::IEEEAddress> end_devices_address_map_{}; // пары shortAddr<=>IEEEAddress
     std::time_t smartPlugTime = 0;
-    std::time_t lastMotionSensorActivity = 0;
-    static const std::vector<zigbee::SimpleDescriptor> default_endpoints_;
+    std::time_t lastMotionSensorActivity = std::time(0);
+    static const std::vector<zigbee::SimpleDescriptor> DEFAULT_ENDPOINTS_;
     std::mutex mtxJoin;
     bool isReady_ = false;
 };
