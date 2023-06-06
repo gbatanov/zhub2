@@ -92,12 +92,13 @@ enum class ResetType
     SOFT = 1
 };
 
-class Zdo : public virtual Device, public ThreadPool
+class Zdo : public virtual Device
 {
 public:
     Zdo();
     ~Zdo();
     void init();
+    void stop();
     int reset(ResetType resetType, bool clearNetworkState, bool clearConfig);
     int reset() { return reset(ResetType::SOFT, false, false); }
     bool startup(std::chrono::duration<int, std::milli> delay);
@@ -141,7 +142,7 @@ public:
     zigbee::NetworkAddress network_address_ = 0;
     zigbee::IEEEAddress mac_address_ = 0;
     zigbee::EventCommand event_command_;
-    void on_command();
+    static void on_command();
     void get_attribute_RSSI_Power(zigbee::NetworkAddress address);
     std::string getCommandStr(Command &command);
     std::string get_cluster_string(zcl::Cluster cl);
@@ -151,6 +152,7 @@ public:
 protected:
     uint8_t generateTransactionSequenceNumber();
     std::thread *thr_cmdin;
+    std::shared_ptr<ThreadPool> tp;
 };
 
 #endif
