@@ -1,9 +1,7 @@
 #ifndef THREAD_POOL_GSB
 #define THREAD_POOL_GSB
 
-#define MAX_THREADS_GSB 20
-
-typedef void (*thread_func)();
+typedef void (*thread_func)(Command);
 
 class ThreadPool
 {
@@ -24,6 +22,7 @@ protected:
     std::condition_variable cv_queue;       // cv на очередь команд
 private:
     thread_func handle_;
+    void on_command();
 #ifdef TEST
     unsigned long long get_thread_id();
 #endif

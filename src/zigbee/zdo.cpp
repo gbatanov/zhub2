@@ -62,6 +62,11 @@ void Zdo::init()
 // Статическая функция для обработки входящих команд в потоке
 // В качестве объекта берется глобальный объект zhub,
 // который является наследником Zdo
+void Zdo::on_command(Command cmd)
+{
+    if (cmd.uid() != 0 && Flag.load())
+        zhub->handle_command(cmd);
+}
 void Zdo::on_command()
 {
     while (Flag.load())

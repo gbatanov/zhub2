@@ -23,8 +23,6 @@
 #include "zigbee.h"
 #include "../main.h"
 
-extern std::unique_ptr<zigbee::Zhub> zhub;
-
 using namespace zigbee;
 
 ThreadPool::ThreadPool()
@@ -42,7 +40,7 @@ void ThreadPool::init_threads(thread_func handle)
     uint8_t tc = std::max((uint8_t)std::thread::hardware_concurrency(), (uint8_t)8);
     threadVec.reserve(tc);
     while (tc--)
-        threadVec.push_back(new std::thread(handle_));
+        threadVec.push_back(new std::thread(&ThreadPool::on_command, this));
 }
 
 void ThreadPool::stop_threads()
@@ -65,10 +63,19 @@ void ThreadPool::add_command(Command cmd)
     }
 }
 
+void ThreadPool::on_command()
+{
+    while (flag.load())
+    {
+        Command cmd = get_command();
+        if (cmd.uid() != 0 && flag.load())
+            handle_(cmd);
+    }
+}
 // получение команды из очереди
 Command ThreadPool::get_command()
 {
-    Command cmd((CommandId)0);
+    Command cmd;
 #ifdef TEST
 //    std::cout << "In get command " << get_thread_id() << std::endl;
 #endif
