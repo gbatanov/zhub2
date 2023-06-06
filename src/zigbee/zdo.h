@@ -149,12 +149,12 @@ public:
     std::shared_ptr<gsbutils::Channel<Command>> chan_out, chan_in;
     std::shared_ptr<Uart> uart_;
     void on_command();
-    static void on_command(Command);
+    static void on_command(void*);
 
 protected:
     uint8_t generateTransactionSequenceNumber();
     std::thread *thr_cmdin;
-    std::shared_ptr<ThreadPool> tp;
+    std::shared_ptr<gsbutils::ThreadPool<Command>> tp;
 };
 
 #endif

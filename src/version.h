@@ -2,8 +2,8 @@
 #define VERSION_H_IN
 
 #define Project_VERSION_MAJOR "2"
-#define Project_VERSION_MINOR "24"
-#define Project_VERSION_PATCH "583"
+#define Project_VERSION_MINOR "25"
+#define Project_VERSION_PATCH "584"
 #define DEBUG 1
 
 

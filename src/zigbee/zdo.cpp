@@ -47,7 +47,7 @@ Zdo::~Zdo()
 // Инициализация потока приема команд с последовательного порта
 void Zdo::init()
 {
-    tp = std::make_shared<ThreadPool>();
+    tp = std::make_shared<gsbutils::ThreadPool<Command>>();
     tp->init_threads(&Zdo::on_command);
 
     thr_cmdin = new std::thread([this]()
@@ -62,8 +62,9 @@ void Zdo::init()
 // Статическая функция для обработки входящих команд в потоке
 // В качестве объекта берется глобальный объект zhub,
 // который является наследником Zdo
-void Zdo::on_command(Command cmd)
+void Zdo::on_command(void* cmd_)
 {
+    Command cmd = *(static_cast<Command*>(cmd_));
     if (cmd.uid() != 0 && Flag.load())
         zhub->handle_command(cmd);
 }

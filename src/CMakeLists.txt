@@ -37,7 +37,6 @@ list( APPEND SOURCES
   zigbee/end_device.cpp
   zigbee/uart.cpp
   zigbee/zdo.cpp
-  zigbee/thread_pool.cpp
   zigbee/cluster/basic.cpp
   zigbee/cluster/power_configuration.cpp
   zigbee/cluster/onoff.cpp
