@@ -47,16 +47,34 @@ Zdo::~Zdo()
 // Инициализация потока приема команд с последовательного порта
 void Zdo::init()
 {
-
-    init_threads();
+    tp = std::make_shared<ThreadPool>();
+    tp->init_threads(&Zdo::on_command);
 
     thr_cmdin = new std::thread([this]()
                                 {
     while (Flag.load())
     {
         Command cmd = chan_in->read();
-        add_command(cmd);
+        tp->add_command(cmd);
     } });
+}
+
+// Статическая функция для обработки входящих команд в потоке
+// В качестве объекта берется глобальный объект zhub,
+// который является наследником Zdo
+void Zdo::on_command()
+{
+    while (Flag.load())
+    {
+        Command cmd = zhub->tp->get_command();
+        if ((uint16_t)cmd.id() != 0 && Flag.load())
+            zhub->handle_command(cmd);
+    }
+}
+// Остановка пула потоков
+void Zdo::stop()
+{
+    tp->stop_threads();
 }
 
 // Сброс zigbee-адаптера, по умолчанию используем программный сброс без очистки конфига и сети
@@ -959,16 +977,6 @@ bool Zdo::bind(zigbee::NetworkAddress dst_network_address, zigbee::IEEEAddress s
     }
 
     return asyncRequest(bind_request);
-}
-
-void Zdo::on_command()
-{
-    while (Flag.load())
-    {
-        Command cmd = get_command();
-        if ((uint16_t)cmd.id() != 0 && Flag.load())
-            handle_command(cmd);
-    }
 }
 
 // то, что передается в ZCL Frame

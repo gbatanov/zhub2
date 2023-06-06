@@ -13,6 +13,7 @@
 #include <memory>
 #include <any>
 #include <termios.h>
+#include <functional>
 
 #include "../version.h"
 #include "../comport/unix.h"
@@ -22,6 +23,8 @@
 #include "zigbee.h"
 #include "../main.h"
 
+extern std::unique_ptr<zigbee::Zhub> zhub;
+
 using namespace zigbee;
 
 ThreadPool::ThreadPool()
@@ -30,18 +33,19 @@ ThreadPool::ThreadPool()
 ThreadPool::~ThreadPool()
 {
     if (flag.load())
-        stop();
+        stop_threads();
 }
 
-void ThreadPool::init_threads()
+void ThreadPool::init_threads(thread_func handle)
 {
+    handle_ = handle;
     uint8_t tc = std::max((uint8_t)std::thread::hardware_concurrency(), (uint8_t)8);
     threadVec.reserve(tc);
     while (tc--)
-        threadVec.push_back(new std::thread(&ThreadPool::on_command, this));
+        threadVec.push_back(new std::thread(handle_));
 }
 
-void ThreadPool::stop()
+void ThreadPool::stop_threads()
 {
     flag.store(false);
     cv_queue.notify_all();
@@ -75,7 +79,7 @@ Command ThreadPool::get_command()
             cmd = taskQueue.front();
             taskQueue.pop();
 #ifdef TEST
- //           std::cout << "Without wait get command " << get_thread_id() << std::endl;
+            //           std::cout << "Without wait get command " << get_thread_id() << std::endl;
 #endif
 
             return cmd;
@@ -93,7 +97,7 @@ Command ThreadPool::get_command()
     }
     ul.unlock();
 #ifdef TEST
- //   std::cout << "After wait get command " << get_thread_id() << std::endl;
+    //   std::cout << "After wait get command " << get_thread_id() << std::endl;
 #endif
 
     return cmd;

@@ -3,7 +3,6 @@
 
 namespace zigbee
 {
-
 #include "zcl.h"
 #include "types.h"
 #include "command.h"
@@ -16,6 +15,7 @@ namespace zigbee
 #include "controller.h"
 #include "zhub.h"
 #include "cluster/cluster.h"
+
 }
 
 #endif
