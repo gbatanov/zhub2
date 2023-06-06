@@ -35,7 +35,7 @@ ThreadPool::~ThreadPool()
 
 void ThreadPool::init_threads()
 {
-    uint8_t tc = std::max((uint8_t)std::thread::hardware_concurrency(), (uint8_t)6);
+    uint8_t tc = std::max((uint8_t)std::thread::hardware_concurrency(), (uint8_t)8);
     threadVec.reserve(tc);
     while (tc--)
         threadVec.push_back(new std::thread(&ThreadPool::on_command, this));
@@ -65,13 +65,19 @@ void ThreadPool::add_command(Command cmd)
 Command ThreadPool::get_command()
 {
     Command cmd((CommandId)0);
-
+#ifdef TEST
+//    std::cout << "In get command " << get_thread_id() << std::endl;
+#endif
     {
         std::lock_guard<std::mutex> lg(tqMtx);
         if (!taskQueue.empty())
         {
             cmd = taskQueue.front();
             taskQueue.pop();
+#ifdef TEST
+ //           std::cout << "Without wait get command " << get_thread_id() << std::endl;
+#endif
+
             return cmd;
         }
     }
@@ -86,6 +92,23 @@ Command ThreadPool::get_command()
         taskQueue.pop();
     }
     ul.unlock();
+#ifdef TEST
+ //   std::cout << "After wait get command " << get_thread_id() << std::endl;
+#endif
 
     return cmd;
 }
+#ifdef TEST
+// Возвращаю 4 последних цифры ID потока
+unsigned long long ThreadPool::get_thread_id()
+{
+#ifdef __MACH__
+    return (unsigned long long)1;
+#else
+    std::stringstream ss;
+    ss << std::this_thread::get_id();
+    std::string id_str = ss.str();
+    return std::stoull(id_str.substr(id_str.size() - 4));
+#endif
+}
+#endif

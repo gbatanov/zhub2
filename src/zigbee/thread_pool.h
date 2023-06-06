@@ -21,6 +21,10 @@ protected:
     std::queue<Command> taskQueue{};        // очередь команд
     std::mutex tqMtx{};                     // мьютех на запись/чтение очереди комманд
     std::condition_variable cv_queue;       // cv на очередь команд
+private:
+#ifdef TEST
+    unsigned long long get_thread_id();
+#endif
 };
 
 #endif
