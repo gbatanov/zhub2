@@ -22,7 +22,6 @@ enum class Subsystem
     GREENPOWER = 21
 };
 
-
 enum class CommandId
 {
     // SYS
@@ -157,12 +156,13 @@ public:
     inline Type type() { return static_cast<Type>(HIGHBYTE(id_) >> 5); }
     inline Subsystem subsystem() { return static_cast<Subsystem>(HIGHBYTE(id_) & 0b00011111); }
     inline CommandId id() { return id_; }
+    inline uint16_t uid() { return (uint16_t)id_; }
     inline size_t payload_size() { return payload_->size(); }
     inline uint8_t *data() { return payload_->data(); }
 
 private:
     std::shared_ptr<std::vector<uint8_t>> payload_; // дополнительная информация в команде, может отсутствовать
-    CommandId id_;                                   // идентификатор команды состоит из старшего и младшего байтов команды (CMD1 CMD0)
+    CommandId id_;                                  // идентификатор команды состоит из старшего и младшего байтов команды (CMD1 CMD0)
                                                     // 3 старших бита в cmd1 - это тип команды, 5 младших - подсистема команд
 };
 

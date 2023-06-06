@@ -31,8 +31,8 @@ std::mutex trans_mutex;
 
 Zdo::Zdo()
 {
-    chan_out = std::make_shared<gsbutils::Channel<Command>>(8); // канал вывода емкостью 8 команд
-    chan_in = std::make_shared<gsbutils::Channel<Command>>(16); // канал ввода емкостью 16 команд
+    chan_out = std::make_shared<gsbutils::Channel<Command>>(16); // канал вывода емкостью 8 команд
+    chan_in = std::make_shared<gsbutils::Channel<Command>>(24);  // канал ввода емкостью 16 команд
     uart_ = std::make_shared<Uart>(chan_out, chan_in);
 }
 
@@ -47,15 +47,40 @@ Zdo::~Zdo()
 // Инициализация потока приема команд с последовательного порта
 void Zdo::init()
 {
+    tp = std::make_shared<gsbutils::ThreadPool<Command>>();
+    tp->init_threads(&Zdo::on_command);
+
     thr_cmdin = new std::thread([this]()
                                 {
     while (Flag.load())
     {
-        Command cmd = this->chan_in->read();
-        if (Flag.load()){
-            this->add_command(cmd);
-        }
+        Command cmd = chan_in->read();
+        tp->add_command(cmd);
     } });
+}
+
+// Статическая функция для обработки входящих команд в потоке
+// В качестве объекта берется глобальный объект zhub,
+// который является наследником Zdo
+void Zdo::on_command(void* cmd_)
+{
+    Command cmd = *(static_cast<Command*>(cmd_));
+    if (cmd.uid() != 0 && Flag.load())
+        zhub->handle_command(cmd);
+}
+void Zdo::on_command()
+{
+    while (Flag.load())
+    {
+        Command cmd = zhub->tp->get_command();
+        if ((uint16_t)cmd.id() != 0 && Flag.load())
+            zhub->handle_command(cmd);
+    }
+}
+// Остановка пула потоков
+void Zdo::stop()
+{
+    tp->stop_threads();
 }
 
 // Сброс zigbee-адаптера, по умолчанию используем программный сброс без очистки конфига и сети
@@ -958,16 +983,6 @@ bool Zdo::bind(zigbee::NetworkAddress dst_network_address, zigbee::IEEEAddress s
     }
 
     return asyncRequest(bind_request);
-}
-
-void Zdo::on_command()
-{
-    while (Flag.load())
-    {
-        Command cmd = get_command();
-        if ((uint16_t)cmd.id() != 0 && Flag.load())
-            handle_command(cmd);
-    }
 }
 
 // то, что передается в ZCL Frame

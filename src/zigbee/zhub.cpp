@@ -16,11 +16,6 @@
 #include <sstream>
 #include <termios.h>
 
-#ifdef WITH_SIM800
-#include "../modem.h"
-extern GsmModem *gsmmodem;
-#endif
-
 #ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
 extern std::unique_ptr<Tlg32> tlg32;
@@ -33,6 +28,11 @@ extern std::unique_ptr<Tlg32> tlg32;
 #include "command.h"
 #include "zigbee.h"
 #include "../main.h"
+
+#ifdef WITH_SIM800
+#include "../modem.h"
+extern GsmModem *gsmmodem;
+#endif
 
 using zigbee::IEEEAddress;
 using zigbee::NetworkAddress;
@@ -91,6 +91,7 @@ void Zhub::start(std::vector<uint8_t> rfChannels)
     std::vector<uint16_t> idsOnoff{0x0000};
     uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0x0c4314fffe17d8a8);
     read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsOnoff);
+    // Кнопка ИКЕА статус не отдает
 #else
     switch_relay(0x54ef4410005b2639, 0); // выключаем при старте реле "Туалет занят"
     // Получим состояние кранов (v2.21.506 - отдается только статус, напряжение/ток не отдается )
@@ -550,12 +551,10 @@ void Zhub::height_temperature(uint16_t short_addr)
 }
 
 // Обработка кратковременных нажатий (Вкл/Выкл) кнопки ИКЕА
-// Включаем/выключаем подсветку шкафа в комнате
+// Сейчас используется только в тестовом стенде
 void Zhub::ikea_button_action(uint8_t cmd)
 {
     gsbutils::dprintf(1, "Кнопка ИКЕА: " + std::string(cmd == 1 ? "Включить\n" : "Выключить\n"));
-    // управляем реле 3, включаем подсветку в большой комнате в шкафу
-    switch_relay(0x54ef44100018b523, cmd);
 }
 
 // Отдает состояние датчиков протечки для СМС-сообщения

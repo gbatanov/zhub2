@@ -14,6 +14,11 @@
 #include <any>
 #include <termios.h>
 
+#ifdef WITH_TELEGA
+#include "../telebot32/src/tlg32.h"
+extern std::unique_ptr<Tlg32> tlg32;
+#endif
+
 #include "main.h"
 #include "../gsb_utils/gsbutils.h"
 #include "comport/unix.h"
@@ -23,11 +28,6 @@
 #include "modem.h"
 
 extern std::atomic<bool> Flag;
-
-#ifdef WITH_TELEGA
-#include "../telebot32/src/tlg32.h"
-extern std::unique_ptr<Tlg32> tlg32;
-#endif
 
 #ifdef WITH_SIM800
 extern zigbee::Zhub *zhub;

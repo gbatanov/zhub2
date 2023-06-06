@@ -26,9 +26,6 @@
 #include <termios.h>
 
 #include "../version.h"
-#ifdef WITH_SIM800
-extern GsmModem *gsmmodem;
-#endif
 #ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
 extern std::unique_ptr<Tlg32> tlg32;
@@ -41,6 +38,10 @@ extern std::unique_ptr<Tlg32> tlg32;
 #include "../main.h"
 #include "zigbee.h"
 #include "../modem.h"
+
+#ifdef WITH_SIM800
+extern GsmModem *gsmmodem;
+#endif
 
 #ifdef __MACH__
 // На маке зависит от гнезда, в которое воткнут координатор
@@ -71,7 +72,7 @@ extern std::atomic<uint8_t> transaction_sequence_number;
 const std::vector<uint8_t> Controller::DEFAULT_RF_CHANNELS = {11};
 const std::vector<uint8_t> Controller::TEST_RF_CHANNELS = {15};
 
-const std::vector<zigbee::SimpleDescriptor> Controller::default_endpoints_ = {{1,      // Enpoint number.
+const std::vector<zigbee::SimpleDescriptor> Controller::DEFAULT_ENDPOINTS_ = {{1,      // Enpoint number.
                                                                                0x0104, // Profile ID.
                                                                                0x05,   // Device ID.
                                                                                0,      // Device version.
@@ -135,7 +136,7 @@ bool Controller::start_network(std::vector<uint8_t> rfChannels)
 
         // Регистрация ендпойнтов самого координатора
         gsbutils::dprintf(1, "Zhub::start Endpoints registration:\n");
-        for (auto &endpoint_descriptor : default_endpoints_)
+        for (auto &endpoint_descriptor : DEFAULT_ENDPOINTS_)
         {
             if (!registerEndpoint(endpoint_descriptor))
             {

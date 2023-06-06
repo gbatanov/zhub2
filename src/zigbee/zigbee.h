@@ -3,11 +3,9 @@
 
 namespace zigbee
 {
-
 #include "zcl.h"
 #include "types.h"
 #include "command.h"
-#include "thread_pool.h"
 #include "uart.h"
 #include "event_emitter.h"
 #include "zdo.h"
@@ -16,6 +14,7 @@ namespace zigbee
 #include "controller.h"
 #include "zhub.h"
 #include "cluster/cluster.h"
+
 }
 
 #endif

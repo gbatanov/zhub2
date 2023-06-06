@@ -38,7 +38,6 @@
 #include "version.h"
 #ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
-//#include "telega32.h"
 std::unique_ptr<Tlg32> tlg32;
 #endif
 

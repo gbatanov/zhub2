@@ -206,7 +206,6 @@ void Uart::loop()
 
                 for (Command command : parseReceivedData(rx_buff_))
                 {
-                    //                   OnCommand(command);
                     chan_in->write(command);
                 }
             }
