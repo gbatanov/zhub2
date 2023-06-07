@@ -94,10 +94,7 @@ message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
 add_executable (${PROJECT_NAME} ${SOURCES})
 
 target_link_libraries(${PROJECT_NAME} PUBLIC gsbutils)
-
-if(TELEGA)
-  target_link_libraries(${PROJECT_NAME} PUBLIC telebot32)
-endif()
+target_link_libraries(${PROJECT_NAME} PUBLIC telebot32)
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
   find_library(IOKIT_LIBRARY IOKit)

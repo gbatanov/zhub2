@@ -16,10 +16,7 @@
 #include <sstream>
 #include <termios.h>
 
-#ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
-extern std::unique_ptr<Tlg32> tlg32;
-#endif
 
 #include "../../gsb_utils/gsbutils.h"
 #include "../comport/unix.h"
@@ -56,20 +53,20 @@ using namespace zigbee;
 
 Zhub::Zhub() : Controller()
 {
-#ifdef WITH_TELEGA
     tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
     tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+    tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
     tlgInThread = new std::thread(&Zhub::handle, this);
-#endif
+
 }
 Zhub::~Zhub()
 {
-#ifdef WITH_TELEGA
+
     tlg_in->stop();
     tlg_out->stop();
     if (tlgInThread->joinable())
         tlgInThread->join();
-#endif
+
     disconnect();
 }
 

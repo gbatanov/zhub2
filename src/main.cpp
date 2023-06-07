@@ -36,10 +36,8 @@
 #include <termios.h>
 
 #include "version.h"
-#ifdef WITH_TELEGA
+
 #include "../telebot32/src/tlg32.h"
-std::unique_ptr<Tlg32> tlg32;
-#endif
 
 #include "../gsb_utils/gsbutils.h"
 #include "comport/unix.h"
@@ -254,16 +252,12 @@ int main(int argc, char *argv[])
         try
         {
             zhub = std::make_unique<zigbee::Zhub>();
-#ifdef WITH_TELEGA
-            tlg32 = std::make_unique<Tlg32>(BOT_NAME, zhub->tlg_in, zhub->tlg_out);
-            tlg32->add_id(836487770);
+            zhub->tlg32->add_id(836487770);
 
-
-            if (tlg32->run())
+            if (zhub->tlg32->run())
             { // Здесь будет выброшено исключение при отсутствии корректного токена
-                tlg32->send_message("Программа перезапущена.\n");
+                zhub->tlg32->send_message("Программа перезапущена.\n");
             }
-#endif
 
             noAdapter = zhub->init_adapter();
         }
@@ -288,23 +282,21 @@ int main(int argc, char *argv[])
         {
             gsmmodem = new GsmModem();
 #ifdef __MACH__
-            with_sim800 = gsmmodem->connect("/dev/cu.usbserial-0001", 9600); // 115200  19200 9600 7200
+            with_sim800 = gsmmodem->connect("/dev/cu.usbserial-A50285BI", 9600); // 115200  19200 9600 7200
 #else
             with_sim800 = gsmmodem->connect("/dev/ttyUSB0");
 #endif
             if (!with_sim800)
             {
-#ifdef WITH_TELEGA
-                tlg32->send_message("Модем SIM800 не обнаружен.\n");
-#endif
+
+                zhub->tlg32->send_message("Модем SIM800 не обнаружен.\n");
                 if (gsmmodem)
                     delete gsmmodem;
             }
             else
             {
-#ifdef WITH_TELEGA
-                tlg32->send_message("Модем SIM800 активирован.\n");
-#endif
+
+                zhub->tlg32->send_message("Модем SIM800 активирован.\n");
                 gsmmodem->init();
                 gsmmodem->get_battery_level(true);
             }
@@ -312,9 +304,9 @@ int main(int argc, char *argv[])
         catch (std::exception &e)
         {
             with_sim800 = false;
-#ifdef WITH_TELEGA
-            tlg32->send_message("Модем SIM800 не обнаружен.\n");
-#endif
+
+            zhub->tlg32->send_message("Модем SIM800 не обнаружен.\n");
+
             if (gsmmodem)
                 delete gsmmodem;
         }
@@ -364,11 +356,10 @@ int main(int argc, char *argv[])
 #ifdef IS_PI
     close_gpio();
 #endif
-#ifdef WITH_TELEGA
-    tlg32->stop();
-#endif
-    gsbutils::stop(); // остановка вывода сообщений
+
+    zhub->tlg32->stop();
     zhub->stop();     // остановка пулла потоков
+    gsbutils::stop(); // остановка вывода сообщений
 
     return ret;
 }

@@ -14,10 +14,10 @@
 #include <any>
 #include <termios.h>
 
-#ifdef WITH_TELEGA
+//#ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
-extern std::unique_ptr<Tlg32> tlg32;
-#endif
+//extern std::unique_ptr<Tlg32> tlg32;
+//#endif
 
 #include "main.h"
 #include "../gsb_utils/gsbutils.h"
@@ -74,10 +74,7 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
   //  serial_->setTimeout(timeout);
 
   if (serial_->isOpen())
-  {
-    gsbutils::dprintf(7, "GsmModem::connect:Port open \n");
     return false;
-  }
 
   try
   {
@@ -85,28 +82,13 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
     execute_flag_.store(true);
 
     receiver_thread_ = std::thread(&GsmModem::loop, this);
-    gsbutils::dprintf(7, "GsmModem::connect:Port open success\n");
+
     return true;
   }
   catch (std::exception &error)
   {
     gsbutils::dprintf(1, "GsmModem::connect: %s \n", error.what());
-    //    throw std::runtime_error("Comport SIM800 open error \n");
   }
-
-  execute_flag_.store(false);
-
-  if (serial_->isOpen())
-  {
-    try
-    {
-      serial_->close();
-    }
-    catch (std::exception &error)
-    {
-    }
-  }
-
   return false;
 }
 
@@ -310,10 +292,11 @@ void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
       gsb_utils::replace_all(res, "002E", ".");
       gsbutils::dprintf(1, "Balance: %s\n", res.c_str());
       balance_ = res;
-#ifdef WITH_TELEGA
+
       // отправляем баланс в телеграм
-      tlg32->send_message("Баланс: " + res + " руб.");
-#endif
+      zhub->tlg32->send_message("Баланс: " + res + " руб.");
+//      tlg32->send_message("Баланс: " + res + " руб.");
+
       // если была команда запроса баланса с тонового набора
       if (balance_to_sms)
       {
@@ -512,9 +495,7 @@ void GsmModem::OnDisconnect()
   if (Flag.load())
   {
     with_sim800 = false;
-#ifdef WITH_TELEGA
-    tlg32->send_message("Модем отключился.");
-#endif
+    zhub->tlg32->send_message("Модем отключился.");
   }
 }
 

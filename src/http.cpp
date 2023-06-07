@@ -24,11 +24,6 @@
 
 #include "version.h"
 
-#ifdef WITH_TELEGA
-#include "../telebot32/src/tlg32.h"
-extern std::unique_ptr<Tlg32> tlg32;
-#endif
-
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "../gsb_utils/gsbutils.h"

@@ -26,10 +26,8 @@
 #include <termios.h>
 
 #include "../version.h"
-#ifdef WITH_TELEGA
+
 #include "../telebot32/src/tlg32.h"
-extern std::unique_ptr<Tlg32> tlg32;
-#endif
 
 #include "../comport/unix.h"
 #include "../comport/serial.h"
@@ -106,11 +104,7 @@ bool Controller::init_adapter()
         noAdapter = true;
     }
     if (noAdapter)
-    {
-#ifdef WITH_TELEGA
-        tlg32->send_message("Zigbee adapter не обнаружен.\n");
-#endif
-    }
+        send_tlg_message("Zigbee adapter не обнаружен.\n");
 
     return noAdapter;
 }
@@ -295,9 +289,9 @@ void Controller::on_message(zigbee::Command command)
                     ed->set_last_action((uint64_t)ts);
                     std::string alarm_msg = "Сработал датчик протечки: ";
                     alarm_msg = alarm_msg + ed->get_human_name();
-#ifdef WITH_TELEGA
-                    tlg32->send_message(alarm_msg);
-#endif
+
+                    send_tlg_message(alarm_msg);
+
 #ifdef WITH_SIM800
                     gsbutils::dprintf(1, "Phone number call \n");
                     gsmmodem->master_call();
@@ -354,14 +348,14 @@ void Controller::after_message_action()
             {
                 // Получим состояние кранов, если не было получено при старте
                 std::shared_ptr<EndDevice> ed1 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
-                if (ed1->get_current_state(1) != "On" && ed1->get_current_state(1) != "Off")
+                if (ed1 && ed1->get_current_state(1) != "On" && ed1->get_current_state(1) != "Off")
                 {
                     uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
                     std::vector<uint16_t> idsAV{0x0000};
                     read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
                 }
                 std::shared_ptr<EndDevice> ed2 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138373e89d731);
-                if (ed2->get_current_state(1) != "On" && ed2->get_current_state(1) != "Off")
+                if (ed2 && ed2->get_current_state(1) != "On" && ed2->get_current_state(1) != "Off")
                 {
                     std::vector<uint16_t> idsAV{0x0000};
                     uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
@@ -387,7 +381,7 @@ void Controller::switch_off_with_timeout()
                 off = true;
                 gsbutils::dprintf(1, "Принудительное выключение реле  при отсутствии людей дома \n");
 
-                tlg32->send_message("Никого нет дома.\n");
+                send_tlg_message("Никого нет дома.\n");
 
                 for (const uint64_t &macAddress : EndDevice::OFF_LIST)
                 {
@@ -500,9 +494,9 @@ void Controller::handle_power_off(int value)
     else
         return;
     gsbutils::dprintf(1, alarm_msg);
-#ifdef WITH_TELEGA
-    tlg32->send_message(alarm_msg);
-#endif
+
+   send_tlg_message(alarm_msg);
+
 }
 
 // Обработчик показаний температуры корпуса
@@ -522,9 +516,9 @@ void Controller::handle_board_temperature(float temp)
     buff[len] = 0;
     std::string temp_msg = std::string(buff);
     gsbutils::dprintf(1, temp_msg);
-#ifdef WITH_TELEGA
-    tlg32->send_message(temp_msg);
-#endif
+
+   send_tlg_message(temp_msg);
+
 }
 
 // Включение звонка
