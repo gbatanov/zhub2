@@ -214,9 +214,8 @@ bool GsmModem::set_aon()
 }
 
 //
-std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
+void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
 {
-
   std::string res{};
   for (size_t i = 0; i < data.size(); i++)
   {
@@ -237,7 +236,6 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
   // Удалить ответ из одних пробелов
   if (res.size())
   {
-
     gsbutils::dprintf(1, "Принята команда %s \n", res.c_str());
 
     // та сторона положила трубку, надо прекратить обработку тоновых сигналов и сбросить команду
@@ -254,7 +252,7 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
         if (res.find("9250109365") != std::string::npos)
         {
           // Мой номер, продолжаем дальше
-          send_command("ATA\r", "OK");
+          send_command("ATA\r", "OK"); // отправка команды (синхронная, макс. 3сек.)
           is_call_ = true;
         }
         else
@@ -264,7 +262,7 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
           is_call_ = false;
         }
       }
-      return ""; // На RING не реагируем
+      // На RING не реагируем
     }
     else if (res.find("CMTI") != std::string::npos)
     {
@@ -272,13 +270,11 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
       //                            Второй параметр - номер пришедшего сообщения
       // ||CMTI: "SM",1||
       on_sms(res);
-      return "";
     }
     else if (res.find("CMGR") != std::string::npos)
     {
       // В ответе от модема передается группа сообщений, номер телефона отправителя, дата и время отправки, текст сообщения
       on_sms_command(res);
-      return "";
     }
     else if (res.find("CLIP") != std::string::npos)
     {
@@ -293,7 +289,7 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
         send_command("ATH0\r", "OK");
         is_call_ = false;
       }
-      return ""; // Далее реагируем только на DTMF-команды
+      // Далее реагируем только на DTMF-команды
     }
     else if (res.find("CUSD") != std::string::npos)
     {
@@ -325,30 +321,24 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
         send_sms("Balance " + res + " rub");
         balance_to_sms = false;
       }
-
-      return ""; // Вся обработка уже произошла
     }
     else if (res.find("DTMF") != std::string::npos)
     {
       // Прием тональных команд
       on_tone_command(res);
-      return "";
     }
     else if (res.find("CMTE") != std::string::npos)
     {
       // Перегрев модуля, пока не обрабатываю
-      return "";
     }
     else if (res.find("VOLTAGE") != std::string::npos)
     {
       // Проблемы с питанием, пока не обрабатываю
-      return "";
     }
     else if (res.find(">") != std::string::npos)
     {
       gsbutils::dprintf(7, "Есть > \n");
       sim800_event_emitter_.emit(">", ">");
-      return "";
     }
     else if (res.find("CBC") != std::string::npos)
     {
@@ -367,8 +357,6 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
       charge_ = charge == -1 ? charge_ : charge;
       level_ = level == -1 ? level_ : level;
       voltage_ = voltage == -1 ? voltage_ : voltage;
-
-      return "";
     }
     else
     {
@@ -383,12 +371,9 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
       {
         // Ответ будет распарсен в вызывающей функции
         sim800_event_emitter_.emit("OK", res);
-        return "";
       }
     }
   }
-
-  return "";
 }
 
 // TODO: организовать потоки
@@ -404,7 +389,7 @@ void GsmModem::loop()
         rx_buff_.clear();
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
 
-        std::string answer = parseReceivedData(rx_buff_);
+        parseReceivedData(rx_buff_);
       }
       else
       {
@@ -518,9 +503,6 @@ void GsmModem::on_sms(std::string answer)
     std::string rd_sms = std::string(buf);
     send_command(rd_sms, "OK");
     gsbutils::dprintf(1, "%s\n", buf);
-    //   std::thread smss_thread([this, rd_sms]()
-    //                          { this->send_command(rd_sms, "OK"); });
-    //   smss_thread.detach();
   }
 }
 

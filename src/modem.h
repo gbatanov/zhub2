@@ -40,7 +40,7 @@ public:
 private:
     std::unique_ptr<serial::Serial> serial_ = std::make_unique<serial::Serial>();
 
-    std::string parseReceivedData(std::vector<uint8_t> &data);
+    void parseReceivedData(std::vector<uint8_t> &data);
     void loop();
     void OnDisconnect();
     void on_tone_command(std::string answer);

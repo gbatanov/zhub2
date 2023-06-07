@@ -3,11 +3,11 @@
 
 #define Project_VERSION_MAJOR "2"
 #define Project_VERSION_MINOR "25"
-#define Project_VERSION_PATCH "585"
+#define Project_VERSION_PATCH "586"
 
 
 
-#define WITH_SIM800 1
+
 #define WITH_TELEGA 1 
 
 
