@@ -237,9 +237,9 @@ std::string GsmModem::parseReceivedData(std::vector<uint8_t> &data)
   // Удалить ответ из одних пробелов
   if (res.size())
   {
-#ifdef TEST
+
     gsbutils::dprintf(1, "Принята команда %s \n", res.c_str());
-#endif
+
     // та сторона положила трубку, надо прекратить обработку тоновых сигналов и сбросить команду
     if (res.find("NO_CARRIER") != std::string::npos)
     {
