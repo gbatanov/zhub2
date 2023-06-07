@@ -350,6 +350,24 @@ void Controller::after_message_action()
                     }
                 }
             }
+            // краны
+            {
+                // Получим состояние кранов, если не было получено при старте
+                std::shared_ptr<EndDevice> ed1 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
+                if (ed1->get_current_state(1) != "On" && ed1->get_current_state(1) != "Off")
+                {
+                    uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
+                    std::vector<uint16_t> idsAV{0x0000};
+                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
+                }
+                std::shared_ptr<EndDevice> ed2 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138373e89d731);
+                if (ed2->get_current_state(1) != "On" && ed2->get_current_state(1) != "Off")
+                {
+                    std::vector<uint16_t> idsAV{0x0000};
+                    uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
+                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
+                }
+            }
         }
     }
 
