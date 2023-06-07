@@ -1,25 +1,13 @@
-// pi4.h
-#ifndef PI4_GPIO_H
-#define PI4_GPIO_H
-
-#include <thread>
-#include <string>
-
-#include "main.h"
-#include "comport/serial.h"
-#include "zigbee/zigbee.h"
-
-int initialize_gpio();
-int close_gpio();
-int read_pin(int pin);
-int write_pin(int pin, int value);
-
-void execute_tone_command(std::string command);
+// modem.h
+#ifndef GSB_MODEM_H
+#define GSB_MODEM_H
 
 #ifdef WITH_SIM800
 
 #define PI_RX_BUFFER_SIZE 1024
 #define PI_TX_BUFFER_SIZE 256
+
+void execute_tone_command(std::string command);
 
 class GsmModem
 {
@@ -39,7 +27,7 @@ public:
 
 private:
     std::unique_ptr<serial::Serial> serial_ = std::make_unique<serial::Serial>();
-
+    static void on_command(void *cmd);
     void parseReceivedData(std::vector<uint8_t> &data);
     void loop();
     void OnDisconnect();

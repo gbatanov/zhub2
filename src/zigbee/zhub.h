@@ -6,6 +6,7 @@
 #endif
 
 class Zdo;
+class GsmModem;
 
 class Zhub : public Controller
 {
@@ -36,7 +37,8 @@ public:
     void check_motion_activity();
     std::string show_one_type(std::shared_ptr<zigbee::EndDevice> d, bool as_html);
     inline void switch_off_with_list();
-
+    std::shared_ptr<::GsmModem> gsmModem;
+    std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> tpm;
     std::shared_ptr<Tlg32> tlg32;
     std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, tlg_out;
     std::thread *tlgInThread;

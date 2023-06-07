@@ -14,11 +14,6 @@
 #include <any>
 #include <termios.h>
 
-//#ifdef WITH_TELEGA
-#include "../telebot32/src/tlg32.h"
-//extern std::unique_ptr<Tlg32> tlg32;
-//#endif
-
 #include "main.h"
 #include "../gsb_utils/gsbutils.h"
 #include "comport/unix.h"
@@ -27,11 +22,9 @@
 #include "zigbee/zigbee.h"
 #include "modem.h"
 
-extern std::atomic<bool> Flag;
-
 #ifdef WITH_SIM800
+extern std::atomic<bool> Flag;
 extern zigbee::Zhub *zhub;
-extern GsmModem *gsmmodem;
 bool balance_to_sms = false; // отправка баланса по смс, включается по запросу с тонального набора
 extern bool with_sim800;
 
@@ -49,6 +42,14 @@ GsmModem::GsmModem()
   is_call_ = false;
   tone_cmd = "";
   tone_cmd_started = false;
+}
+
+void GsmModem::on_command(void *cmd_)
+{
+   std::vector<uint8_t> command = *(static_cast<std::vector<uint8_t> *>(cmd_));
+
+   zhub->gsmModem->parseReceivedData(command);
+
 }
 
 GsmModem::~GsmModem()
@@ -129,7 +130,7 @@ void GsmModem::disconnect()
   OnDisconnect(); // Посылаем сигнал, что порт отвалился
 }
 
-// фактическая отправка команды
+// фактическая отправка команды (синхронное выполнение)
 bool GsmModem::send_command_(std::string command)
 {
   if (!serial_->isOpen())
@@ -163,7 +164,7 @@ bool GsmModem::send_command_(std::string command)
   return false;
 }
 
-// Отправка команды с ожиданием ответа
+// Отправка команды с ожиданием ответа (синхронный запрос)
 // Если команда не отправилась или не получен ответ, возвращается пустая строка
 std::string GsmModem::send_command(std::string command, std::string id)
 {
@@ -294,8 +295,7 @@ void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
       balance_ = res;
 
       // отправляем баланс в телеграм
-      zhub->tlg32->send_message("Баланс: " + res + " руб.");
-//      tlg32->send_message("Баланс: " + res + " руб.");
+      zhub->send_tlg_message("Баланс: " + res + " руб.");
 
       // если была команда запроса баланса с тонового набора
       if (balance_to_sms)
@@ -372,7 +372,8 @@ void GsmModem::loop()
         rx_buff_.clear();
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
 
-        parseReceivedData(rx_buff_);
+        //        parseReceivedData(rx_buff_);
+        tpm->add_command(rx_buff_);
       }
       else
       {
@@ -495,7 +496,7 @@ void GsmModem::OnDisconnect()
   if (Flag.load())
   {
     with_sim800 = false;
-    zhub->tlg32->send_message("Модем отключился.");
+    zhub->send_tlg_message("Модем отключился.");
   }
 }
 

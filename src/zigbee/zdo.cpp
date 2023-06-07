@@ -48,7 +48,8 @@ Zdo::~Zdo()
 void Zdo::init()
 {
     tp = std::make_shared<gsbutils::ThreadPool<Command>>();
-    tp->init_threads(&Zdo::on_command);
+    uint8_t max_threads = std::max((uint8_t)std::thread::hardware_concurrency(), (uint8_t)8);
+    tp->init_threads(&Zdo::on_command,  max_threads);
 
     thr_cmdin = new std::thread([this]()
                                 {
@@ -81,7 +82,6 @@ void Zdo::on_command()
 void Zdo::stop()
 {
     tp->stop_threads();
-
 }
 
 // Сброс zigbee-адаптера, по умолчанию используем программный сброс без очистки конфига и сети

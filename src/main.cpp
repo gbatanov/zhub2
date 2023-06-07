@@ -38,14 +38,13 @@
 #include "version.h"
 
 #include "../telebot32/src/tlg32.h"
-
 #include "../gsb_utils/gsbutils.h"
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "common.h"
 #include "zigbee/zigbee.h"
 #include "exposer.h"
-
+#include "modem.h"
 #ifdef WITH_HTTP
 #include "httpserver.h"
 #include "http.h"
@@ -65,14 +64,6 @@ char *program_version = nullptr;
 std::unique_ptr<zigbee::Zhub> zhub;
 // gsbutils::TTimer ikeaMotionTimer(180, ikeaMotionTimerCallback);
 gsbutils::CycleTimer timer1Min(60, timer1min);
-
-#ifdef WITH_SIM800
-#include "modem.h"
-GsmModem *gsmmodem;
-#endif
-#ifdef IS_PI
-#include "modem.h"
-#endif
 
 bool with_sim800 = false;
 bool noAdapter = true;
@@ -182,32 +173,6 @@ static int cmdFunc()
             case 'j': // команда разрешения привязки
                 zhub->permitJoin(std::chrono::seconds(60));
                 break;
-
-#ifdef WITH_SIM800
-            case 'b': // баланс
-            {
-                if (gsmmodem->get_balance())
-                {
-                    gsbutils::dprintf(1, "Запрос баланса отправлен\n");
-                }
-            }
-            break;
-            case 'u': // данные по батарее SIM800
-            {
-                char answer[256]{};
-                std::array<int, 3> battery = gsmmodem->get_battery_level();
-                std::string charge = battery[0] == 1 ? "Заряжается" : "Не заряжается";
-                std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
-                std::string volt = battery[2] == -1 ? "" : std::to_string((float)(battery[2] / 1000)) + "V";
-                int res = std::snprintf(answer, 256, "SIM800l battery: %s, %s, %0.2f V\n", charge.c_str(), level.c_str(), battery[2] == -1 ? 0.0 : (float)battery[2] / 1000);
-                if (res > 0 && res < 256)
-                    answer[res] = 0;
-                else
-                    strcat(answer, (char *)"Ошибка получения инфо о батарее");
-                gsbutils::dprintf(1, "%s\n", answer);
-            }
-            break;
-#endif
             } // switch
         }
         std::this_thread::sleep_for(std::chrono::seconds(2));
@@ -280,25 +245,25 @@ int main(int argc, char *argv[])
 #ifdef WITH_SIM800
         try
         {
-            gsmmodem = new GsmModem();
+            zhub->gsmModem = std::make_shared<GsmModem>();
 #ifdef __MACH__
-            with_sim800 = gsmmodem->connect("/dev/cu.usbserial-A50285BI", 9600); // 115200  19200 9600 7200
+            with_sim800 = zhub->gsmModem->connect("/dev/cu.usbserial-A50285BI", 9600); // 115200  19200 9600 7200
 #else
-            with_sim800 = gsmmodem->connect("/dev/ttyUSB0");
+            with_sim800 = zhub->gsmModem->connect("/dev/ttyUSB0");
 #endif
             if (!with_sim800)
             {
 
                 zhub->tlg32->send_message("Модем SIM800 не обнаружен.\n");
-                if (gsmmodem)
-                    delete gsmmodem;
+                //               if (zhub->gsmModem)
+                //                   delete zhub->gsmModem;
             }
             else
             {
 
                 zhub->tlg32->send_message("Модем SIM800 активирован.\n");
-                gsmmodem->init();
-                gsmmodem->get_battery_level(true);
+                zhub->gsmModem->init();
+                zhub->gsmModem->get_battery_level(true);
             }
         }
         catch (std::exception &e)

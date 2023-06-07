@@ -28,7 +28,6 @@
 
 #ifdef WITH_SIM800
 #include "../modem.h"
-extern GsmModem *gsmmodem;
 #endif
 
 using zigbee::IEEEAddress;
@@ -57,7 +56,6 @@ Zhub::Zhub() : Controller()
     tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
     tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
     tlgInThread = new std::thread(&Zhub::handle, this);
-
 }
 Zhub::~Zhub()
 {
@@ -70,10 +68,15 @@ Zhub::~Zhub()
     disconnect();
 }
 
+
 // Старт приложения
 void Zhub::start(std::vector<uint8_t> rfChannels)
 {
     init();
+    tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
+    uint8_t max_threads = 2;
+    tpm->init_threads(&GsmModem::on_command, max_threads);
+
     // Старт Zigbee-сети
     gsbutils::dprintf(1, "Zhub::start_network \n");
     while (!start_network(rfChannels) && Flag.load())
