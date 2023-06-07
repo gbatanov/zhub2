@@ -48,7 +48,7 @@ Zdo::~Zdo()
 void Zdo::init()
 {
     tp = std::make_shared<gsbutils::ThreadPool<Command>>();
-    tp->init_threads(&Zdo::on_command);
+    tp->init_threads(&Zdo::on_command, 8);
 
     thr_cmdin = new std::thread([this]()
                                 {
