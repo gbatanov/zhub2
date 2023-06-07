@@ -7,7 +7,7 @@
 #define DEBUG 1
 
 
-#define WITH_SIM800 1
+
 #define WITH_TELEGA 1 
 #define TEST 1
 

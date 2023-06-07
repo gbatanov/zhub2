@@ -50,13 +50,9 @@ list( APPEND SOURCES
   zigbee/cluster/other.cpp
   comport/unix.cpp
   comport/serial.cpp
+  exposer.cpp
+  modem.cpp
 )
-
-if(SIM800)
-  list( APPEND SOURCES 
-    modem.cpp
-  )
-endif()
 
 if(HTTP)
   list( APPEND SOURCES 
@@ -69,12 +65,6 @@ if (GPIO)
   list( APPEND SOURCES 
     pi4-gpio.cpp
   )
-endif()
-
-if(PROMETHEUS)
-list( APPEND SOURCES 
-exposer.cpp
-)
 endif()
 
 set(DEPENDENTS "libcurl")

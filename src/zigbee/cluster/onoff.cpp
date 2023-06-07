@@ -17,13 +17,15 @@
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
-#include "../../main.h"
+
 #include "../zigbee.h"
 #include "cluster.h"
+#include "../../modem.h"
+#include "../../main.h"
 
 using OnOff = zigbee::clusters::OnOff;
 
-extern zigbee::Zhub *zhub;
+extern App app;
 
 void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
@@ -63,7 +65,7 @@ void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                     if (endpoint.number == 6) // датчик движения (1 - нет движения, 0 - есть движение)
                     {
                         gsbutils::dprintf(dbg, "Прихожая: Движение %s \n", b_val ? "нет" : "есть");
-                        zhub->handle_motion(ed, b_val ? 0 : 1);
+                        app.zhub->handle_motion(ed, b_val ? 0 : 1);
                     }
                 }
                 else if (macAddress == 0x00124b0009451438)
@@ -72,14 +74,14 @@ void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                     if (endpoint.number == 2) // датчик присутствия
                     {
                         gsbutils::dprintf(dbg, "Zhub::on_attribute_report: Присутствие %s \n", b_val ? "нет" : "есть");
-                        zhub->handle_motion(ed, b_val ? 0 : 1);
+                        app.zhub->handle_motion(ed, b_val ? 0 : 1);
                     }
                 }
                 else if (macAddress == 0x0c4314fffe17d8a8)
                 {
                     // датчик движения IKEA
                     gsbutils::dprintf(1, "Zhub::on_attribute_report:датчик движения IKEA %s \n", b_val ? "есть" : "нет");
-                    zhub->handle_motion(ed, b_val ? 1 : 0);
+                    app.zhub->handle_motion(ed, b_val ? 1 : 0);
                 }
                 else if (macAddress == 0x00124b0007246963)
                 {
@@ -93,7 +95,7 @@ void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                     if (endpoint.number == 4) // датчик движения (с датчика приходит 1 - нет движения, 0 - есть движение)
                     {
                         gsbutils::dprintf(dbg, "Custom3: Движение %s \n", b_val ? "нет" : "есть");
-                        zhub->handle_motion(ed, b_val ? 0 : 1);
+                        app.zhub->handle_motion(ed, b_val ? 0 : 1);
                     }
                 }
                 else if (ed->get_device_type() == 10) // умные розетки

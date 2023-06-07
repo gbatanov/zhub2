@@ -17,13 +17,14 @@
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
-#include "../../main.h"
+
 #include "../zigbee.h"
 #include "cluster.h"
-
+#include "../../modem.h"
+#include "../../main.h"
 using Basic =  zigbee::clusters::Basic;
 
-extern zigbee::Zhub *zhub;
+extern App app;
 
 void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
@@ -103,12 +104,12 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                     zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
                     // запрос тока и напряжения, работает!
                     std::vector<uint16_t> idsAV{0x0505, 0x508};
-                    zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
+                    app.zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
 
                     if (ed->get_current_state(1) != "On" && ed->get_current_state(1) != "Off")
                     {
                         std::vector<uint16_t> idsAV{0x0000};
-                        zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
+                        app.zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
                     }
                 }
 

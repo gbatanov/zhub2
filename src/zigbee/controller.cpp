@@ -33,13 +33,9 @@
 #include "../comport/serial.h"
 #include "../../gsb_utils/gsbutils.h"
 #include "../common.h"
-#include "../main.h"
 #include "zigbee.h"
 #include "../modem.h"
-
-#ifdef WITH_SIM800
-extern GsmModem *gsmmodem;
-#endif
+#include "../main.h"
 
 #ifdef __MACH__
 // На маке зависит от гнезда, в которое воткнут координатор
@@ -64,6 +60,7 @@ using zigbee::NetworkConfiguration;
 using zigbee::zcl::Cluster;
 using zigbee::zcl::Frame;
 
+extern App app;
 extern std::mutex trans_mutex;
 extern std::atomic<uint8_t> transaction_sequence_number;
 
@@ -294,7 +291,7 @@ void Controller::on_message(zigbee::Command command)
 
 #ifdef WITH_SIM800
                     gsbutils::dprintf(1, "Phone number call \n");
-                    gsmmodem->master_call();
+                    app.gsmModem->master_call();
 #endif
                 }
                 gsbutils::dprintf(1, "Device 0x%02x Water Leak: %s \n ", message.source.address, message.zcl_frame.payload[0] ? "ALARM" : "NORMAL");
@@ -570,7 +567,7 @@ std::string Controller::show_sim800_battery()
 #ifdef WITH_SIM800
     static uint8_t counter = 0;
     char answer[256]{};
-    std::array<int, 3> battery = gsmmodem->get_battery_level(false);
+    std::array<int, 3> battery = app.gsmModem->get_battery_level(false);
     //    std::string charge = battery[0] == 1 ? "Заряжается" : "Не заряжается";
     std::string charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
     std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
@@ -585,7 +582,7 @@ std::string Controller::show_sim800_battery()
     if (counter > 5)
     {
         counter = 0;
-        gsmmodem->get_battery_level(true);
+        app.gsmModem->get_battery_level(true);
     }
     return std::string(answer);
 

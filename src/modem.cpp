@@ -14,19 +14,16 @@
 #include <any>
 #include <termios.h>
 
-#include "main.h"
 #include "../gsb_utils/gsbutils.h"
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "common.h"
 #include "zigbee/zigbee.h"
 #include "modem.h"
+#include "main.h"
 
-#ifdef WITH_SIM800
-extern std::atomic<bool> Flag;
-extern zigbee::Zhub *zhub;
+extern App app;
 bool balance_to_sms = false; // отправка баланса по смс, включается по запросу с тонального набора
-extern bool with_sim800;
 
 using gsb_utils = gsbutils::SString;
 
@@ -46,16 +43,15 @@ GsmModem::GsmModem()
 
 void GsmModem::on_command(void *cmd_)
 {
-   std::vector<uint8_t> command = *(static_cast<std::vector<uint8_t> *>(cmd_));
+  std::vector<uint8_t> command = *(static_cast<std::vector<uint8_t> *>(cmd_));
 
-   zhub->gsmModem->parseReceivedData(command);
-
+  app.gsmModem->parseReceivedData(command);
 }
 
 GsmModem::~GsmModem()
 {
   execute_flag_.store(false);
-  with_sim800 = false;
+  app.with_sim800 = false;
   if (receiver_thread_.joinable())
     receiver_thread_.join();
   try
@@ -172,7 +168,8 @@ std::string GsmModem::send_command(std::string command, std::string id)
 
   if (send_command_(command))
   {
-    return sim800_event_emitter_.wait(id, std::chrono::duration(std::chrono::seconds(3)));
+//    return sim800_event_emitter_.wait(id, std::chrono::duration(std::chrono::seconds(3)));
+    return "OK";
   }
   else
   {
@@ -295,7 +292,7 @@ void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
       balance_ = res;
 
       // отправляем баланс в телеграм
-      zhub->send_tlg_message("Баланс: " + res + " руб.");
+      app.zhub->send_tlg_message("Баланс: " + res + " руб.");
 
       // если была команда запроса баланса с тонового набора
       if (balance_to_sms)
@@ -373,7 +370,7 @@ void GsmModem::loop()
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
 
         //        parseReceivedData(rx_buff_);
-        tpm->add_command(rx_buff_);
+        app.tpm->add_command(rx_buff_);
       }
       else
       {
@@ -493,10 +490,10 @@ void GsmModem::on_sms(std::string answer)
 void GsmModem::OnDisconnect()
 {
   gsbutils::dprintf(1, "GsmModem::OnDisconnect.\n");
-  if (Flag.load())
+  if (app.Flag.load())
   {
-    with_sim800 = false;
-    zhub->send_tlg_message("Модем отключился.");
+    app.with_sim800 = false;
+    app.zhub->send_tlg_message("Модем отключился.");
   }
 }
 
@@ -639,7 +636,7 @@ std::string GsmModem::convert_sms(std::string msg)
 }
 
 // Выполнение тоновых команд
-void execute_tone_command(std::string command)
+void GsmModem::execute_tone_command(std::string command)
 {
   int code = 0;
   int num = std::sscanf(command.c_str(), "%d", &code);
@@ -652,23 +649,22 @@ void execute_tone_command(std::string command)
   case 401: // запрос баланса
   {
     balance_to_sms = true;
-    gsmmodem->get_balance();
+    get_balance();
   }
   break;
   case 412: // состояние датчиков протечки
   {
-    std::string states = zhub->get_leak_state();
-    gsmmodem->send_sms(states);
+    std::string states = app.zhub->get_leak_state();
+    send_sms(states);
   }
   break;
   case 423: // состояние датчиков движения
   {
-    std::string states = zhub->get_motion_state();
-    gsmmodem->send_sms(states);
+    std::string states = app.zhub->get_motion_state();
+    send_sms(states);
   }
   break;
   default:
     break;
   }
 }
-#endif

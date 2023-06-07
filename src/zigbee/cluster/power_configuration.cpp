@@ -17,13 +17,15 @@
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
-#include "../../main.h"
+
 #include "../zigbee.h"
 #include "cluster.h"
+#include "../../modem.h"
+#include "../../main.h"
 
 using PowerConfiguration = zigbee::clusters::PowerConfiguration;
 
-extern zigbee::Zhub *zhub;
+extern App app;
 
 void PowerConfiguration::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {

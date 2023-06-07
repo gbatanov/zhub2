@@ -17,13 +17,12 @@
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
-#include "../../main.h"
 #include "../zigbee.h"
 #include "cluster.h"
+#include "../../modem.h"
+#include "../../main.h"
 
 using AnalogInput = zigbee::clusters::AnalogInput;
-
-extern zigbee::Zhub *zhub;
 
 void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {

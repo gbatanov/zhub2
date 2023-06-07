@@ -45,29 +45,18 @@
 #include "zigbee/zigbee.h"
 #include "exposer.h"
 #include "modem.h"
-#ifdef WITH_HTTP
+
 #include "httpserver.h"
 #include "http.h"
 extern std::unique_ptr<HttpServer> http;
-#endif
 
-#ifdef WITH_PROMETHEUS
+
 #include "exposer.h"
-#endif
+
 
 #include "main.h"
 
-std::string startTime{};
-std::atomic<bool> Flag{true};
-char *program_version = nullptr;
-
-std::unique_ptr<zigbee::Zhub> zhub;
-// gsbutils::TTimer ikeaMotionTimer(180, ikeaMotionTimerCallback);
-gsbutils::CycleTimer timer1Min(60, timer1min);
-
-bool with_sim800 = false;
-bool noAdapter = true;
-int ret = 0;
+App app;
 
 using gsb_utils = gsbutils::SString;
 
@@ -75,15 +64,15 @@ using gsb_utils = gsbutils::SString;
 // Callback функция таймера для датчика движения ИКЕА
 void ikeaMotionTimerCallback()
 {
-    std::shared_ptr<zigbee::EndDevice> ed = zhub->get_device_by_mac(0x0c4314fffe17d8a8);
+    std::shared_ptr<zigbee::EndDevice> ed = app.zhub->get_device_by_mac(0x0c4314fffe17d8a8);
     if (ed)
-        zhub->handle_motion(ed, 0);
+        app.zhub->handle_motion(ed, 0);
 }
 
 static void sig_int(int signo)
 {
     syslog(LOG_ERR, (char *)"sig_int: %d .Shutting down...", signo);
-    Flag.store(false);
+    app.Flag.store(false);
 
     return; // тут сработает closeAll
 }
@@ -101,8 +90,69 @@ static void closeAll()
 {
 }
 
+/// ------- App -----------
+bool App::object_create()
+{
+    Flag.store(true);
+#ifdef DEBUG
+    gsbutils::init(0, (const char *)"zhub2");
+    gsbutils::set_debug_level(3); // 0 - Отключение любого дебагового вывода
+#else
+    gsbutils::init(1, (const char *)"zhub2");
+    gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
+#endif
+
+    try
+    {
+#ifdef IS_PI
+        initialize_gpio();
+#endif
+
+        cmd_thread = std::thread(&App::cmdFunc, this);
+        zhub = std::make_shared<zigbee::Zhub>();
+        zhub->tlg32->add_id(836487770);
+
+        if (zhub->tlg32->run())
+        { // Здесь будет выброшено исключение при отсутствии корректного токена
+            zhub->tlg32->send_message("Программа перезапущена.\n");
+        }
+        noAdapter = zhub->init_adapter();
+
+        if (init_modem())
+        {
+            tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
+            uint8_t max_threads = 2;
+            tpm->init_threads(&GsmModem::on_command, max_threads);
+        }
+//        std::thread exposer_thread = std::thread(&App::exposer_handler, this);
+    }
+    catch (std::exception &e)
+    {
+        noAdapter = true;
+        return false;
+    }
+
+    return true;
+}
+bool App::startApp()
+{
+    startTime = gsbutils::DDate::current_time();
+    if (!noAdapter)
+    {
+        zhub->start(
+#ifdef TEST
+            zigbee::Controller::TEST_RF_CHANNELS
+#else
+            zigbee::Controller::DEFAULT_RF_CHANNELS
+#endif
+        );
+
+        //       timer1Min.run();
+    }
+    return true;
+}
 // Функция потока ожидания команд с клавиатуры
-static int cmdFunc()
+int App::cmdFunc()
 {
     time_t waitTime = 1;
     struct timeval tv;
@@ -181,107 +231,90 @@ static int cmdFunc()
     return 0;
 }
 
-#ifdef WITH_PROMETHEUS
-void exposer_handler()
+void App::exposer_handler()
 {
     // 2.18.450 - сейчас IP фактически не используется, слушает запросы с любого адреса
     Exposer exposer(std::string("localhost"), 8092);
     exposer.start();
 }
-#endif
-///////////////////////////////////////////////////////////
-int main(int argc, char *argv[])
+
+bool App::init_modem()
 {
-
-#ifdef IS_PI
-    initialize_gpio();
-#endif
-    atexit(closeAll);
-    signal_init();
-
-    Flag.store(true);
-#ifdef DEBUG
-    gsbutils::init(0, (const char *)"zhub2");
-    gsbutils::set_debug_level(3); // 0 - Отключение любого дебагового вывода
-#else
-    gsbutils::init(1, (const char *)"zhub2");
-    gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
-#endif
-    startTime = gsbutils::DDate::current_time();
-    gsbutils::dprintf(1, "Start zhub2 v%s.%s.%s \n", Project_VERSION_MAJOR, Project_VERSION_MINOR, Project_VERSION_PATCH);
-
-    std::thread cmd_thread(cmdFunc); // поток приема команд с клавиатуры
+    gsmModem = std::make_shared<GsmModem>();
+#ifdef WITH_SIM800
     try
     {
 
-        try
-        {
-            zhub = std::make_unique<zigbee::Zhub>();
-            zhub->tlg32->add_id(836487770);
-
-            if (zhub->tlg32->run())
-            { // Здесь будет выброшено исключение при отсутствии корректного токена
-                zhub->tlg32->send_message("Программа перезапущена.\n");
-            }
-
-            noAdapter = zhub->init_adapter();
-        }
-        catch (std::exception &e)
-        {
-            noAdapter = true;
-        }
-
-        if (!noAdapter)
-        {
-            zhub->start(
-#ifdef TEST
-                zigbee::Controller::TEST_RF_CHANNELS
-#else
-                zigbee::Controller::DEFAULT_RF_CHANNELS
-#endif
-            );
-        }
-
-#ifdef WITH_SIM800
-        try
-        {
-            zhub->gsmModem = std::make_shared<GsmModem>();
 #ifdef __MACH__
-            with_sim800 = zhub->gsmModem->connect("/dev/cu.usbserial-A50285BI", 9600); // 115200  19200 9600 7200
+        with_sim800 = gsmModem->connect("/dev/cu.usbserial-A50285BI", 9600); // 115200  19200 9600 7200
 #else
-            with_sim800 = zhub->gsmModem->connect("/dev/ttyUSB0");
+        with_sim800 = gsmModem->connect("/dev/ttyUSB0");
 #endif
-            if (!with_sim800)
-            {
-
-                zhub->tlg32->send_message("Модем SIM800 не обнаружен.\n");
-                //               if (zhub->gsmModem)
-                //                   delete zhub->gsmModem;
-            }
-            else
-            {
-
-                zhub->tlg32->send_message("Модем SIM800 активирован.\n");
-                zhub->gsmModem->init();
-                zhub->gsmModem->get_battery_level(true);
-            }
-        }
-        catch (std::exception &e)
+        if (!with_sim800)
         {
-            with_sim800 = false;
-
             zhub->tlg32->send_message("Модем SIM800 не обнаружен.\n");
-
-            if (gsmmodem)
-                delete gsmmodem;
+            return false;
         }
-        if (with_sim800)
-            gsmmodem->get_balance(); // для индикации корректной работы обмена по смс
-#endif
-
-        if (!noAdapter)
+        else
         {
-            timer1Min.run();
+            zhub->tlg32->send_message("Модем SIM800 активирован.\n");
+            gsmModem->init();
+            gsmModem->get_battery_level(true);
+        }
+    }
+    catch (std::exception &e)
+    {
+        with_sim800 = false;
+        zhub->tlg32->send_message("Модем SIM800 не обнаружен.\n");
+    }
+    if (with_sim800)
+        gsmModem->get_balance(); // для индикации корректной работы обмена по смс
+
+    return true;
+#else
+    with_sim800 = false;
+    return false;
+#endif
+}
+// timer 1 min - callback function
+void App::timer1min()
+{
+    app.zhub->check_motion_activity();
+}
+void App::stopApp()
+{
+    Flag.store(false);
+
+#ifdef IS_PI
+    close_gpio();
+#endif
+#ifdef WITH_PROMETHEUS
+    if (exposer_thread.joinable())
+        exposer_thread.join();
+#endif
+    zhub->tlg32->stop();
+    zhub->stop(); // остановка пулла потоков
+    if (cmd_thread.joinable())
+        cmd_thread.join();
+    gsbutils::stop(); // остановка вывода сообщений
+}
+///////////////////////////////////////////////////////////
+int main(int argc, char *argv[])
+{
+    int ret = 0;
+
+    atexit(closeAll);
+    signal_init();
+
+    if (app.object_create())
+        app.startApp();
+
+    gsbutils::dprintf(1, "Start zhub2 v%s.%s.%s \n", Project_VERSION_MAJOR, Project_VERSION_MINOR, Project_VERSION_PATCH);
+
+    try
+    {
+        if (!app.noAdapter)
+        {
 
 #ifdef IS_PI
             std::thread pwr_thread(power_detect);           // поток определения наличия 220В
@@ -291,18 +324,12 @@ int main(int argc, char *argv[])
 #ifdef WITH_HTTP
             std::thread http_thread(http_server);
 #endif
-#ifdef WITH_PROMETHEUS
-            std::thread exposer_thread(exposer_handler);
-#endif
 
 #ifdef WITH_HTTP
             if (http_thread.joinable())
                 http_thread.join();
 #endif
-#ifdef WITH_PROMETHEUS
-            if (exposer_thread.joinable())
-                exposer_thread.join();
-#endif
+
 #ifdef IS_PI
             pwr_thread.join();
             tempr_thread.join();
@@ -315,34 +342,9 @@ int main(int argc, char *argv[])
         std::cerr << e.what() << std::endl;
         ret = 1;
     }
-    cmd_thread.join();
-    Flag.store(false);
 
-#ifdef IS_PI
-    close_gpio();
-#endif
-
-    zhub->tlg32->stop();
-    zhub->stop();     // остановка пулла потоков
-    gsbutils::stop(); // остановка вывода сообщений
-
+    app.stopApp();
     return ret;
-}
-
-// используется в телеграм
-std::string show_statuses()
-{
-    std::string statuses = zhub->show_device_statuses(false);
-    if (statuses.empty())
-        return "Нет активных устройств\n";
-    else
-        return "Статусы устройств:\n" + statuses + "\n";
-}
-
-// timer 1 min - callback function
-void timer1min()
-{
-    zhub->check_motion_activity();
 }
 
 // Примечания:

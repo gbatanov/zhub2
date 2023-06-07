@@ -34,7 +34,6 @@
 
 extern std::atomic<bool> Flag;
 using namespace zigbee;
-extern std::unique_ptr<zigbee::Zhub> zhub;
 
 struct gpiod_chip *chip = nullptr;
 

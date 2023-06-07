@@ -26,13 +26,13 @@
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "../gsb_utils/gsbutils.h"
-#include "main.h"
+
 #include "common.h"
 #include "zigbee/zigbee.h"
 #include "exposer.h"
-
-extern std::atomic<bool> Flag;
-extern std::unique_ptr<zigbee::Zhub> zhub;
+#include "modem.h"
+#include "main.h"
+extern App app;
 
 Exposer::Exposer(std::string url, int port)
 {
@@ -54,7 +54,7 @@ void Exposer::start()
     gsbutils::dprintf(1, (char *)"Exposer:  ServerSocket=%d\n", httpSockfd);
 
     // Стартуем цикл сервера
-    while (Flag.load())
+    while (app.Flag.load())
     {
         // needed for coming select
         fd_set read_fds;
@@ -69,7 +69,7 @@ void Exposer::start()
         FD_SET(httpSockfd, &read_fds);
         max = httpSockfd;
 
-        if (select(max + 1, &read_fds, NULL, NULL, (timeval *)&select_timeout) > 0 && Flag.load())
+        if (select(max + 1, &read_fds, NULL, NULL, (timeval *)&select_timeout) > 0 && app.Flag.load())
         {
             // http socket has data waiting
             if (FD_ISSET(httpSockfd, &read_fds))
@@ -122,13 +122,13 @@ int Exposer::open_tcp_socket(int port)
     gsbutils::dprintf(7, (char *)"Exposer:  TCP server socket open on file descriptor %d\n", sock_fd);
     // this is done the way it is to make restarts of the program easier
     // in Linux, TCP sockets have a 2 minute wait period before closing
-    while (Flag.load() && bind(sock_fd, (struct sockaddr *)&server_address, server_len) < 0)
+    while (app.Flag.load() && bind(sock_fd, (struct sockaddr *)&server_address, server_len) < 0)
     {
         gsbutils::dprintf(7, (char *)"Exposer:  Error binding TCP server socket: %s.  Retrying...\n", strerror(errno));
         sleep(5); // wait 5 seconds to see if it clears
         retry++;
         // more than 1 minute has elapsed, there must be something wrong
-        if (retry > ((1 * 60) / 5) || !Flag.load())
+        if (retry > ((1 * 60) / 5) || !app.Flag.load())
             return (-1);
     }
     if (listen(sock_fd, 5) < 0)
@@ -252,27 +252,27 @@ std::string Exposer::metrics()
 {
     std::string answer = "";
     // Получим давление
-    std::shared_ptr<zigbee::EndDevice> di = zhub->get_device_by_mac((zigbee::IEEEAddress)0x00124b000b1bb401); // датчик климата в детской
+    std::shared_ptr<zigbee::EndDevice> di = app.zhub->get_device_by_mac((zigbee::IEEEAddress)0x00124b000b1bb401); // датчик климата в детской
     if (di)
         answer = answer + di->get_prom_pressure();
 
     for (auto &li : zigbee::EndDevice::PROM_MOTION_LIST)
     {
-        std::shared_ptr<zigbee::EndDevice> di = zhub->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = app.zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
             answer = answer + di->get_prom_motion_string();
     }
     for (auto &li : zigbee::EndDevice::PROM_RELAY_LIST)
     {
         // для сдвоенного реле показываем по отдельности
-        std::shared_ptr<zigbee::EndDevice> di = zhub->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = app.zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
 
             answer = answer + di->get_prom_relay_string();
     }
     for (auto &li : zigbee::EndDevice::PROM_DOOR_LIST)
     {
-        std::shared_ptr<zigbee::EndDevice> di = zhub->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = app.zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
             answer = answer + di->get_prom_door_string();
     }
