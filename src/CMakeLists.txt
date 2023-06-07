@@ -52,14 +52,10 @@ list( APPEND SOURCES
   comport/serial.cpp
   exposer.cpp
   modem.cpp
-)
+  http.cpp
+  httpserver.cpp
 
-if(HTTP)
-  list( APPEND SOURCES 
-    http.cpp
-    httpserver.cpp
-  )
-endif()
+)
 
 if (GPIO)
   list( APPEND SOURCES 

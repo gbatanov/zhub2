@@ -43,6 +43,7 @@ HttpServer::~HttpServer() {}
 
 bool HttpServer::start()
 {
+#ifdef WITH_HTTP
     // Попытка открыть TCP socket для HTTP-сервер
     http_sockfd = open_tcp_socket(http_server_port);
     if (http_sockfd < 0)
@@ -93,6 +94,7 @@ bool HttpServer::start()
 
     if (http_sockfd >= 0)
         close(http_sockfd);
+#endif
     return true;
 }
 

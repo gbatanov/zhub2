@@ -50,9 +50,7 @@
 #include "http.h"
 extern std::unique_ptr<HttpServer> http;
 
-
 #include "exposer.h"
-
 
 #include "main.h"
 
@@ -94,13 +92,6 @@ static void closeAll()
 bool App::object_create()
 {
     Flag.store(true);
-#ifdef DEBUG
-    gsbutils::init(0, (const char *)"zhub2");
-    gsbutils::set_debug_level(3); // 0 - Отключение любого дебагового вывода
-#else
-    gsbutils::init(1, (const char *)"zhub2");
-    gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
-#endif
 
     try
     {
@@ -124,7 +115,8 @@ bool App::object_create()
             uint8_t max_threads = 2;
             tpm->init_threads(&GsmModem::on_command, max_threads);
         }
-//        std::thread exposer_thread = std::thread(&App::exposer_handler, this);
+        http_thread = std::thread(http_server);
+        exposer_thread = std::thread(&App::exposer_handler, this);
     }
     catch (std::exception &e)
     {
@@ -258,8 +250,8 @@ bool App::init_modem()
         else
         {
             zhub->tlg32->send_message("Модем SIM800 активирован.\n");
-            gsmModem->init();
-            gsmModem->get_battery_level(true);
+            //            gsmModem->init();
+            //            gsmModem->get_battery_level(true);
         }
     }
     catch (std::exception &e)
@@ -267,8 +259,8 @@ bool App::init_modem()
         with_sim800 = false;
         zhub->tlg32->send_message("Модем SIM800 не обнаружен.\n");
     }
-    if (with_sim800)
-        gsmModem->get_balance(); // для индикации корректной работы обмена по смс
+    //   if (with_sim800)
+    //       gsmModem->get_balance(); // для индикации корректной работы обмена по смс
 
     return true;
 #else
@@ -281,6 +273,8 @@ void App::timer1min()
 {
     app.zhub->check_motion_activity();
 }
+
+// Остановка приложения
 void App::stopApp()
 {
     Flag.store(false);
@@ -288,14 +282,15 @@ void App::stopApp()
 #ifdef IS_PI
     close_gpio();
 #endif
-#ifdef WITH_PROMETHEUS
-    if (exposer_thread.joinable())
-        exposer_thread.join();
-#endif
+
     zhub->tlg32->stop();
     zhub->stop(); // остановка пулла потоков
-    if (cmd_thread.joinable())
-        cmd_thread.join();
+    if (exposer_thread.joinable())
+        exposer_thread.join();
+
+    if (http_thread.joinable())
+        http_thread.join();
+
     gsbutils::stop(); // остановка вывода сообщений
 }
 ///////////////////////////////////////////////////////////
@@ -305,11 +300,17 @@ int main(int argc, char *argv[])
 
     atexit(closeAll);
     signal_init();
-
-    if (app.object_create())
-        app.startApp();
+#ifdef DEBUG
+    gsbutils::init(0, (const char *)"zhub2");
+    gsbutils::set_debug_level(3); // 0 - Отключение любого дебагового вывода
+#else
+    gsbutils::init(1, (const char *)"zhub2");
+    gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
+#endif
 
     gsbutils::dprintf(1, "Start zhub2 v%s.%s.%s \n", Project_VERSION_MAJOR, Project_VERSION_MINOR, Project_VERSION_PATCH);
+    if (app.object_create())
+        app.startApp();
 
     try
     {
@@ -319,15 +320,6 @@ int main(int argc, char *argv[])
 #ifdef IS_PI
             std::thread pwr_thread(power_detect);           // поток определения наличия 220В
             std::thread tempr_thread(get_main_temperature); // поток определения температуры платы Raspberry
-#endif
-
-#ifdef WITH_HTTP
-            std::thread http_thread(http_server);
-#endif
-
-#ifdef WITH_HTTP
-            if (http_thread.joinable())
-                http_thread.join();
 #endif
 
 #ifdef IS_PI
@@ -342,6 +334,8 @@ int main(int argc, char *argv[])
         std::cerr << e.what() << std::endl;
         ret = 1;
     }
+    if (app.cmd_thread.joinable())
+        app.cmd_thread.join();
 
     app.stopApp();
     return ret;

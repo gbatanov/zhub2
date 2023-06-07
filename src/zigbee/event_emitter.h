@@ -18,25 +18,23 @@ public:
     // иначе, если тайм-аут - false
     bool wait(std::chrono::duration<int, std::milli> timeout)
     {
-        std::unique_lock<std::mutex> ul(mur);
-        bool res = cond_var.wait_for(ul, timeout, [this]
-                                     { return antiSpur_ == 1; });
-        ul.unlock();
-        return res;
+        std::unique_lock<std::mutex> lock(m);
+        return cond_var.wait_for(lock, timeout, [this]
+                                 { return this->antiSpur_ == 1; });
     }
 
     // уведомление всех ожидающих условную переменную
     void set()
     {
         {
-            std::lock_guard<std::mutex> lg(m);
+            std::unique_lock<std::mutex> lock(m);
             antiSpur_ = 1;
         }
         cond_var.notify_all();
     }
     void reset()
     {
-        std::lock_guard<std::mutex> lg(m);
+        std::unique_lock<std::mutex> lock(m);
         antiSpur_ = 0;
     }
     int antiSpur_ = 0;
@@ -47,10 +45,9 @@ private:
 
     std::condition_variable cond_var;
     std::mutex m;
-    std::mutex mur;
 };
 
-// event_command_ отслеживает поступление ответов на отправленную команду
+// event_command_ отслеживает поступление ответов на отправленную команду 
 // event_id - ID комманды
 class EventCommand
 {
@@ -65,10 +62,10 @@ public:
     void emit(CommandId event_id, Command argument)
     {
 #ifdef TEST
-        gsbutils::dprintf(7, "Event emit %04x\n", (uint16_t)event_id);
+        gsbutils::dprintf(7, "Event emit %04x\n",(uint16_t) event_id);
 #endif
         Listener listener = getListener(event_id);
-        std::lock_guard<std::mutex> lg(argument_mutex);
+        std::lock_guard<std::mutex> lock(argument_mutex);
         *(listener.argument) = argument;
         listener.event->set();
     }
@@ -86,7 +83,7 @@ public:
             return std::nullopt;
         else
         {
-            std::lock_guard<std::mutex> lg(argument_mutex);
+            std::lock_guard<std::mutex> lock(argument_mutex);
             return *(listener.argument);
         }
     }
@@ -148,7 +145,7 @@ public:
             return "";
         else
         {
-            std::lock_guard<std::mutex> lg(argument_mutex);
+            std::lock_guard<std::mutex> lock(argument_mutex);
             return *(listener.argument);
         }
     }
@@ -157,7 +154,7 @@ public:
     {
         Listener listener = getListener(event_id);
 
-        std::lock_guard<std::mutex> lg(argument_mutex);
+        std::lock_guard<std::mutex> lock(argument_mutex);
         *(listener.argument) = "";
         listener.event->reset();
     }
@@ -167,7 +164,7 @@ private:
     // Если такого события не зарегистрировано, создаем его с пустым аргументом и возвращаем его.
     Listener getListener(std::string event_id)
     {
-        std::lock_guard<std::mutex> lg(find_mutex);
+        std::lock_guard<std::mutex> lock(find_mutex);
 
         if (!listeners.count(event_id))
             listeners.insert(std::pair<std::string, Listener>(event_id, {std::make_shared<Event>(), std::make_shared<std::string>()}));

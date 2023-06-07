@@ -43,7 +43,7 @@ Exposer::Exposer(std::string url, int port)
 
 void Exposer::start()
 {
-
+#ifdef WITH_PROMETHEUS
     // Попытка открыть TCP socket для HTTP-сервер
     httpSockfd = open_tcp_socket(httpServerPort);
     if (httpSockfd < 0)
@@ -94,6 +94,7 @@ void Exposer::start()
 
     if (httpSockfd >= 0)
         close(httpSockfd);
+#endif
 }
 
 /// @brief Open TCP socket for web-interface

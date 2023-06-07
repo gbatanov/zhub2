@@ -19,7 +19,6 @@ public:
     std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> tpm;
 
     void exposer_handler();
-    std::thread exposer_thread;
 
     char *program_version = nullptr;
     std::atomic<bool> Flag{true};
@@ -27,6 +26,8 @@ public:
     bool with_sim800 = false;
     bool noAdapter;
     std::thread cmd_thread; // поток приема команд с клавиатуры
+    std::thread exposer_thread; // поток ответа прометею
+    std::thread http_thread;
 };
 
 void ikeaMotionTimerCallback();
