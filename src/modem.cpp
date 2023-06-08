@@ -55,7 +55,6 @@ void GsmModem::disconnect()
   if (receiver_thread_.joinable())
     receiver_thread_.join();
 
-// sim800_event_emitter_.reset();
   if (serial_->isOpen())
   {
     try
@@ -69,6 +68,8 @@ void GsmModem::disconnect()
 
   OnDisconnect(); // Посылаем сигнал, что порт отвалился
 }
+
+// функция потока обработки команд модема
 void GsmModem::on_command(void *cmd_)
 {
   std::vector<uint8_t> command = *(static_cast<std::vector<uint8_t> *>(cmd_));
@@ -111,14 +112,14 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
 bool GsmModem::init_modem()
 {
 #ifdef WITH_SIM800
-  send_command("AT\r", "OK");
+  send_command("AT\r", "At");
   set_echo(true);
   set_aon();
-  send_command(std::string("AT+CMGF=1\r"), std::string("OK"));
-  send_command(std::string("AT+DDET=1,0,0\r"), std::string("OK"));
+  send_command("AT+CMGF=1\r", "AT+CMGF");
+  send_command("AT+DDET=1,0,0\r", "AT+DDET");
   // send_command(std::string("AT+CMGDA=\"DEL ALL\"\r"), "OK");
-  send_command(std::string("AT+CMGD=1,4\r"), "OK"); // Удаление всех сообщений, второй вариант
-  send_command(std::string("AT+COLP=1\r"), "OK");
+  send_command("AT+CMGD=1,4\r", "AT+CMGD"); // Удаление всех сообщений, второй вариант
+  send_command("AT+COLP=1\r", "AT+COLP");
   return true;
 #else
   return false;
@@ -160,14 +161,14 @@ bool GsmModem::send_command_(std::string command)
 
 // Отправка команды с ожиданием ответа (синхронный запрос)
 // Если команда не отправилась или не получен ответ, возвращается пустая строка
+// Ответ, возможно, будет получен асинхронно
 std::string GsmModem::send_command(std::string command, std::string id)
 {
   sim800_event_emitter_.clear(id);
 
   if (send_command_(command))
   {
-    return sim800_event_emitter_.wait(id, std::chrono::duration(std::chrono::seconds(30)));
- //       return "OK";
+    return sim800_event_emitter_.wait(id, std::chrono::duration(std::chrono::seconds(5)));
   }
   else
   {
@@ -178,17 +179,17 @@ std::string GsmModem::send_command(std::string command, std::string id)
 bool GsmModem::set_echo(bool echo)
 {
   std::string cmd = std::string("ATE") + (echo ? "1" : "0") + "\r";
-  return !(send_command(cmd, "OK") == "");
+  return !(send_command(cmd, "ATE") == "");
 }
 bool GsmModem::set_echo()
 {
   std::string cmd = "ATE0\r";
-  return !(send_command(cmd, "OK") == "");
+  return !(send_command(cmd, "ATE") == "");
 }
 bool GsmModem::set_aon()
 {
   std::string cmd = "AT+CLIP=1\r";
-  return !(send_command(cmd, "OK") == "");
+  return !(send_command(cmd, "AT+CLIP") == "");
 }
 
 //
@@ -230,13 +231,13 @@ void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
         if (res.find("9250109365") != std::string::npos)
         {
           // Мой номер, продолжаем дальше
-          send_command("ATA\r", "OK"); // отправка команды (синхронная, макс. 3сек.)
+          send_command("ATA\r", "ATA"); // отправка команды (синхронная, макс. 3сек.)
           is_call_ = true;
         }
         else
         {
           // Чужой номер, сбрасываем
-          send_command("ATH0\r", "OK");
+          send_command("ATH0\r", "ATH0");
           is_call_ = false;
         }
       }
@@ -259,12 +260,12 @@ void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
       // АОН сработал отдельно, действия аналогично
       if (res.find("9250109365") != std::string::npos)
       {
-        send_command("ATA\r", "OK");
+        send_command("ATA\r", "ATA");
         is_call_ = true;
       }
       else
       {
-        send_command("ATH0\r", "OK");
+        send_command("ATH0\r", "ATH0");
         is_call_ = false;
       }
       // Далее реагируем только на DTMF-команды
@@ -275,7 +276,7 @@ void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
       // Если OK и CUSD пришли в одном ответе
       if (res.find("OK") != std::string::npos)
       {
-        sim800_event_emitter_.emit("OK", "OK");
+        sim800_event_emitter_.emit("OK", "OK"); // ???
       }
       size_t pos = res.find("\"");
       pos++;
@@ -316,7 +317,7 @@ void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
     else if (res.find(">") != std::string::npos)
     {
       gsbutils::dprintf(7, "Есть > \n");
-      sim800_event_emitter_.emit(">", ">");
+      sim800_event_emitter_.emit(">", ">"); ///???
     }
     else if (res.find("CBC") != std::string::npos)
     {
@@ -357,9 +358,9 @@ void GsmModem::parseReceivedData(std::vector<uint8_t> &data)
 // TODO: организовать потоки
 void GsmModem::loop()
 {
-  try
+  while (execute_flag_.load())
   {
-    while (execute_flag_.load())
+    try
     {
       if (serial_->waitReadable())
       {
@@ -367,18 +368,18 @@ void GsmModem::loop()
         rx_buff_.clear();
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
 
-               parseReceivedData(rx_buff_);
-//        app.tpm->add_command(rx_buff_);
+        //               parseReceivedData(rx_buff_);
+        app.tpm->add_command(rx_buff_);
       }
       else
       {
         std::this_thread::sleep_for(std::chrono::seconds(5));
       }
     }
-  }
-  catch (std::exception &error)
-  {
-    gsbutils::dprintf(1, "modem loop exception: %s\n", error.what());
+    catch (std::exception &error)
+    {
+      gsbutils::dprintf(1, "modem loop exception: %s\n", error.what());
+    }
   }
 }
 
@@ -432,7 +433,7 @@ void GsmModem::on_tone_command(std::string command)
       }
       tone_cmd = "";
     }
-    send_command("ATH0\r", "OK"); // Повесить трубку
+    send_command("ATH0\r", "ATH0"); // Повесить трубку
   }
 }
 
@@ -456,7 +457,7 @@ void GsmModem::on_sms_command(std::string answer)
     execute_tone_command(answer);
   }
   // AT+CMGD=1,4
-  send_command(std::string("AT+CMGD=1,4\r"), "OK"); // Удаление всех сообщений
+  send_command(std::string("AT+CMGD=1,4\r"), "AT+CMGD"); // Удаление всех сообщений
 }
 // Обработчик приема смс. Получает уведомление о приходе смс и отправляет команду на чтение.
 // ||CMTI: "SM",1||
@@ -479,7 +480,7 @@ void GsmModem::on_sms(std::string answer)
   {
     buf[res] = 0;
     std::string rd_sms = std::string(buf);
-    send_command(rd_sms, "OK");
+    send_command(rd_sms, "AT+CMGR");
     gsbutils::dprintf(1, "%s\n", buf);
   }
 }
@@ -508,7 +509,7 @@ std::array<int, 3> GsmModem::get_battery_level(bool need_query)
   if (need_query)
   {
     std::string cmd = "AT+CBC\r";
-    send_command(cmd, std::string("OK"));
+    send_command(cmd, "AT+CBC");
   }
   else
   {
@@ -522,16 +523,16 @@ std::array<int, 3> GsmModem::get_battery_level(bool need_query)
 // запрос баланса, прямо тут ответа не будет
 bool GsmModem::get_balance()
 {
-  send_command("AT+CMGF=1\r", "OK");
+  send_command("AT+CMGF=1\r", "AT+CMGF");
   std::string cmd = "AT+CUSD=1,\"*100#\"\r";
-  return !(send_command(cmd, "OK") == "");
+  return !(send_command(cmd, "AT+CUSD") == "");
 }
 
 // вызов на основной номер
 bool GsmModem::master_call()
 {
   std::string cmd = "ATD+70250109365;\r";
-  std::string res = send_command(cmd, "OK");
+  std::string res = send_command(cmd, "ATD");
   // При ожидании звонка и при сбросе звонка приходит пустой ответ
   // При ответе абонента приходит ответ COLP сразу после ответа
   gsbutils::dprintf(1, "Call answer: " + res + "\n");
@@ -549,7 +550,7 @@ bool GsmModem::send_sms(std::string sms)
   std::string res = "";
 
   cmd = "AT+CMGF=0\r";
-  res = send_command(cmd, "OK");
+  res = send_command(cmd, "AT+CMGF");
 
   sms = convert_sms(sms);
   unsigned txt_len = sms.size() / 2;
@@ -564,7 +565,7 @@ bool GsmModem::send_sms(std::string sms)
   snprintf(buff, 3, "%02X", msg_len);
 
   cmd = "AT+CMGS=" + std::to_string(msg_len) + "\r";
-  res = send_command(cmd, "OK");
+  res = send_command(cmd, "AT+CMGS");
   //
   // 00 - Длина и номер SMS центра. 0 - означает, что будет использоваться дефолтный номер.
   // 11 - SMS-SUBMIT
@@ -582,11 +583,11 @@ bool GsmModem::send_sms(std::string sms)
   //+ std::string("46")+ std::string("043F0440043804320435044200200445043004310440002C0020044D0442043E00200442043504410442043E0432043E043500200441043E043E043104490435043D04380435");
   //                                  043F0440043804320435044200200445043004310440002C0020044D0442043E00200442043504410442043E0432043E043500200441043E043E043104490435043D04380435//
   msg.push_back((char)0x1A); // Ctrl+Z
-  res = send_command(msg, "OK");
+  res = send_command(msg, "OK"); /// ??
   gsbutils::dprintf(1, "SMS answer2: " + res + "\n");
   std::this_thread::sleep_for(std::chrono::seconds(3));
   cmd = "AT+CMGF=1\r";
-  res = send_command(cmd, "OK");
+  res = send_command(cmd, "AT+CMGF");
   return !(res == "");
 }
 

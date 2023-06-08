@@ -73,6 +73,7 @@ bool App::object_create()
             zhub->tlg32->send_message("Программа перезапущена.\n");
         }
         noAdapter = zhub->init_adapter();
+        
         tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
         uint8_t max_threads = 2;
         tpm->init_threads(&GsmModem::on_command, max_threads);
