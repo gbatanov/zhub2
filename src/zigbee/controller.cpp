@@ -36,10 +36,6 @@
 #include "../modem.h"
 #include "../app.h"
 
-#ifdef WITH_SIM800
-extern GsmModem *gsmmodem;
-#endif
-
 #ifdef __MACH__
 // На маке зависит от гнезда, в которое воткнут координатор
 #ifdef TEST

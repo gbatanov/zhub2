@@ -5,7 +5,6 @@
 #define PI_RX_BUFFER_SIZE 1024
 #define PI_TX_BUFFER_SIZE 256
 #include "zigbee/zigbee.h"
-#include "sim800_event.h"
 
 class GsmModem
 {

@@ -27,11 +27,6 @@
 #include "../modem.h"
 #include "../app.h"
 
-#ifdef WITH_SIM800
-#include "../modem.h"
-extern GsmModem *gsmmodem;
-#endif
-
 using zigbee::IEEEAddress;
 using zigbee::NetworkAddress;
 using zigbee::NetworkConfiguration;
