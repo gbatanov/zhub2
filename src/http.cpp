@@ -23,7 +23,7 @@
 #include <termios.h>
 
 #include "version.h"
-
+#include "pi4-gpio.h"
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "../gsb_utils/gsbutils.h"
@@ -165,9 +165,9 @@ std::string create_device_list()
 {
 
     std::string result = "";
-/*
+
 #if !defined __MACH__
-    float board_temperature = zhub->get_board_temperature();
+    float board_temperature = get_board_temperature();
     if (board_temperature > -100.0)
     {
         char buff[128]{0};
@@ -177,7 +177,7 @@ std::string create_device_list()
         result = result + std::string(buff) + "</p>";
     }
 #endif
-*/
+
 #ifdef WITH_SIM800
     result = result + "<p>" + app.zhub->show_sim800_battery() + "</p>";
 #endif

@@ -17,7 +17,7 @@
 #include <termios.h>
 
 #include "../telebot32/src/tlg32.h"
-
+#include "../pi4-gpio.h"
 #include "../../gsb_utils/gsbutils.h"
 #include "../comport/unix.h"
 #include "../comport/serial.h"
@@ -708,7 +708,7 @@ std::string Zhub::show_device_statuses(bool as_html)
         }
 
         // Дальше выводится только в телеграм
-        /*
+       
         float temp = get_board_temperature();
         if (temp)
         {
@@ -716,7 +716,7 @@ std::string Zhub::show_device_statuses(bool as_html)
             buff[len] = 0;
             result = result + std::string(buff);
         }
-        */
+       
         std::time_t lastMotionSensorAction = getLastMotionSensorActivity();
         std::tm tm = *std::localtime(&lastMotionSensorAction);
         size_t len = std::strftime(buff, sizeof(buff) / sizeof(buff[0]), " %Y-%m-%d %H:%M:%S", &tm);

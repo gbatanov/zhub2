@@ -74,15 +74,12 @@ bool App::object_create()
             zhub->tlg32->send_message("Программа перезапущена.\n");
         }
         noAdapter = zhub->init_adapter();
-        
+
         tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
         uint8_t max_threads = 2;
         tpm->init_threads(&GsmModem::on_command, max_threads);
 
         init_modem();
-
-        httpThread = std::thread(http_server);
-        exposerThread = std::thread(&App::exposer_handler, this);
     }
     catch (std::exception &e)
     {
@@ -104,8 +101,11 @@ bool App::startApp()
             zigbee::Controller::DEFAULT_RF_CHANNELS
 #endif
         );
+        httpThread = std::thread(http_server);
+        exposerThread = std::thread(&App::exposer_handler, this);
+        timer1Min = std::make_shared<gsbutils::CycleTimer>(60, &App::timer1min);
 
-        //       timer1Min.run();
+        timer1Min->run();
     }
     return true;
 }

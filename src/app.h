@@ -12,7 +12,7 @@ public:
     void stopApp();
     bool init_modem();
     int cmd_func();
-    //    gsbutils::CycleTimer timer1Min(60, &timer1min);
+    std::shared_ptr<gsbutils::CycleTimer> timer1Min;
     static void timer1min();
     std::shared_ptr<zigbee::Zhub> zhub;
     std::shared_ptr<GsmModem> gsmModem;
