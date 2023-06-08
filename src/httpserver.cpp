@@ -21,11 +21,19 @@
 #include <mutex>
 #include <map>
 #include <array>
+#include <any>
 
+#include <termios.h>
+#include "comport/unix.h"
+#include "comport/serial.h"
+#include "common.h"
+#include "zigbee/zigbee.h"
+#include "modem.h"
 #include "http.h"
 #include "httpserver.h"
+#include "app.h"
 
-extern std::atomic<bool> Flag;
+extern App app;
 
 // TODO: нужен мап с объектом Request и функцией-обработчиком
 HttpServer::HttpServer()
@@ -35,6 +43,7 @@ HttpServer::~HttpServer() {}
 
 bool HttpServer::start()
 {
+#ifdef WITH_HTTP
     // Попытка открыть TCP socket для HTTP-сервер
     http_sockfd = open_tcp_socket(http_server_port);
     if (http_sockfd < 0)
@@ -45,7 +54,7 @@ bool HttpServer::start()
     gsbutils::dprintf(1, (char *)"HTTPServer: HTTP ServerSocket=%d\n", http_sockfd);
 
     // Стартуем цикл сервера
-    while (Flag.load())
+    while (app.Flag.load())
     {
         // needed for coming select
         fd_set read_fds;
@@ -60,7 +69,7 @@ bool HttpServer::start()
         FD_SET(http_sockfd, &read_fds);
         max = http_sockfd;
 
-        if (select(max + 1, &read_fds, NULL, NULL, (timeval *)&select_timeout) > 0 && Flag.load())
+        if (select(max + 1, &read_fds, NULL, NULL, (timeval *)&select_timeout) > 0 && app.Flag.load())
         {
             // http socket has data waiting
             if (FD_ISSET(http_sockfd, &read_fds))
@@ -85,6 +94,7 @@ bool HttpServer::start()
 
     if (http_sockfd >= 0)
         close(http_sockfd);
+#endif
     return true;
 }
 
@@ -114,13 +124,13 @@ int HttpServer::open_tcp_socket(int port)
     gsbutils::dprintf(7, (char *)"HTTPServer:  TCP server socket open on file descriptor %d\n", sock_fd);
     // this is done the way it is to make restarts of the program easier
     // in Linux, TCP sockets have a 2 minute wait period before closing
-    while (Flag.load() && bind(sock_fd, (struct sockaddr *)&server_address, server_len) < 0)
+    while (app.Flag.load() && bind(sock_fd, (struct sockaddr *)&server_address, server_len) < 0)
     {
         gsbutils::dprintf(7, (char *)"HTTPServer:  Error binding TCP server socket: %s.  Retrying...\n", strerror(errno));
         sleep(5); // wait 5 seconds to see if it clears
         retry++;
         // more than 1 minute has elapsed, there must be something wrong
-        if (retry > ((1 * 60) / 5) || !Flag.load())
+        if (retry > ((1 * 60) / 5) || !app.Flag.load())
             return (-1);
     }
     if (listen(sock_fd, 5) < 0)

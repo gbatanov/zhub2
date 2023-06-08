@@ -20,12 +20,13 @@
 #include "../../gsb_utils/gsbutils.h"
 #include "../common.h"
 #include "zigbee.h"
-#include "../main.h"
+#include "../modem.h"
+#include "../app.h"
+
+extern App app;
 
 using namespace zigbee;
 
-extern std::unique_ptr<zigbee::Zhub> zhub;
-extern std::atomic<bool> Flag;
 std::atomic<uint8_t> transaction_sequence_number = 0;
 std::mutex trans_mutex;
 
@@ -48,11 +49,12 @@ Zdo::~Zdo()
 void Zdo::init()
 {
     tp = std::make_shared<gsbutils::ThreadPool<Command>>();
-    tp->init_threads(&Zdo::on_command, 8);
+    uint8_t max_threads = std::max((uint8_t)std::thread::hardware_concurrency(), (uint8_t)8);
+    tp->init_threads(&Zdo::on_command,  max_threads);
 
     thr_cmdin = new std::thread([this]()
                                 {
-    while (Flag.load())
+    while (app.Flag.load())
     {
         Command cmd = chan_in->read();
         tp->add_command(cmd);
@@ -65,23 +67,22 @@ void Zdo::init()
 void Zdo::on_command(void *cmd_)
 {
     Command cmd = *(static_cast<Command *>(cmd_));
-    if (cmd.uid() != 0 && Flag.load())
-        zhub->handle_command(cmd);
+    if (cmd.uid() != 0 && app.Flag.load())
+        app.zhub->handle_command(cmd);
 }
 void Zdo::on_command()
 {
-    while (Flag.load())
+    while (app.Flag.load())
     {
-        Command cmd = zhub->tp->get_command();
-        if ((uint16_t)cmd.id() != 0 && Flag.load())
-            zhub->handle_command(cmd);
+        Command cmd = app.zhub->tp->get_command();
+        if ((uint16_t)cmd.id() != 0 && app.Flag.load())
+            app.zhub->handle_command(cmd);
     }
 }
 // Остановка пула потоков
 void Zdo::stop()
 {
     tp->stop_threads();
-
 }
 
 // Сброс zigbee-адаптера, по умолчанию используем программный сброс без очистки конфига и сети
@@ -381,18 +382,18 @@ void Zdo::handle_command(Command command)
     case zigbee::CommandId::AF_INCOMING_MSG: // 0x4481
     {
         gsbutils::dprintf(3, "Zdo::handle_command AF_INCOMING_MSG:%04x\n", command.id());
-        if (!zhub->get_ready())
+        if (!app.zhub->get_ready())
             return;
         gsbutils::dprintf(7, "Zdo::handle_command AF_INCOMING_MSG:%04x\n", command.id());
         try
         {
-            zhub->on_message(command);
+            app.zhub->on_message(command);
         }
         catch (std::exception &err)
         {
             std::stringstream sstream;
             sstream << "ZDO::handle_command: Bad Incoming Message data:" << err.what() << std::endl;
-            zhub->OnError(sstream.str());
+            app.zhub->OnError(sstream.str());
         }
         return;
     }
@@ -404,7 +405,7 @@ void Zdo::handle_command(Command command)
         gsbutils::dprintf(7, "Zdo::handle_command: ZDO_STATE_CHANGE_IND:%04x\n", command.id());
         current_state_ = static_cast<ZdoState>(command.payload(0));
         if (command.payload(0) == 9)
-            zhub->set_ready();
+            app.zhub->set_ready();
         gsbutils::dprintf(1, "Zdo::handle_command: current state %d \n", command.payload(0));
         break;
     }
@@ -452,7 +453,7 @@ void Zdo::handle_command(Command command)
         zigbee::IEEEAddress macAddress = *(reinterpret_cast<zigbee::IEEEAddress *>(&command.payload(4)));
         gsbutils::dprintf(dbg, "Zdo::ZDO_END_DEVICE_ANNCE_IND: new shortAddress: 0x%04x\n", networkAddress);
         gsbutils::dprintf(dbg, "Zdo::ZDO_END_DEVICE_ANNCE_IND: IEEEaddress: 0x%" PRIx64 " \n", macAddress);
-        zhub->on_join(networkAddress, macAddress);
+        app.zhub->on_join(networkAddress, macAddress);
     }
     break;
     //
@@ -489,7 +490,7 @@ void Zdo::handle_command(Command command)
     {
         zigbee::NetworkAddress network_address = _UINT16(command.payload(0), command.payload(1));
         zigbee::IEEEAddress mac_address = *(reinterpret_cast<zigbee::IEEEAddress *>(&command.payload(2)));
-        zhub->on_leave(network_address, mac_address);
+        app.zhub->on_leave(network_address, mac_address);
     }
     break;
     //

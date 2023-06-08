@@ -30,6 +30,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 configure_file(../version.h.in ../../src/version.h)
 
 list( APPEND SOURCES
+  app.cpp
   main.cpp
   zigbee/attribute.cpp
   zigbee/controller.cpp
@@ -50,31 +51,17 @@ list( APPEND SOURCES
   zigbee/cluster/other.cpp
   comport/unix.cpp
   comport/serial.cpp
+  exposer.cpp
+  modem.cpp
+  http.cpp
+  httpserver.cpp
+
 )
-
-if(SIM800)
-  list( APPEND SOURCES 
-    modem.cpp
-  )
-endif()
-
-if(HTTP)
-  list( APPEND SOURCES 
-    http.cpp
-    httpserver.cpp
-  )
-endif()
 
 if (GPIO)
   list( APPEND SOURCES 
     pi4-gpio.cpp
   )
-endif()
-
-if(PROMETHEUS)
-list( APPEND SOURCES 
-exposer.cpp
-)
 endif()
 
 set(DEPENDENTS "libcurl")
