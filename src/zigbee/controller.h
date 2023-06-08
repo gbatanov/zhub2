@@ -17,7 +17,7 @@ public:
     void on_message(Command command);
     void handle_power_off(int value);
     void handle_board_temperature(float temp);
-    float get_board_temperature();
+
     void fan(bool work);
     void ringer();
     std::string show_sim800_battery();
@@ -59,6 +59,7 @@ public:
     //    static const zigbee::NetworkConfiguration test_configuration_;
     static const std::vector<uint8_t> DEFAULT_RF_CHANNELS;
     static const std::vector<uint8_t> TEST_RF_CHANNELS;
+    virtual void send_tlg_message(std::string msg){};
 
 protected:
     std::map<zigbee::IEEEAddress, std::shared_ptr<zigbee::EndDevice>> devices_{};     // пары IEEEAddress<=>EndDevice

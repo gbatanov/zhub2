@@ -17,13 +17,14 @@
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
-#include "../../main.h"
 #include "../zigbee.h"
 #include "cluster.h"
+#include "../../modem.h"
+#include "../../app.h"
 
 using DeviceTemperatureConfiguration = zigbee::clusters::DeviceTemperatureConfiguration;
 
-extern zigbee::Zhub *zhub;
+extern App app;
 
 void DeviceTemperatureConfiguration::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
@@ -39,7 +40,7 @@ void DeviceTemperatureConfiguration::attribute_handler(std::vector<zigbee::zcl::
         int16_t val = static_cast<uint8_t>(any_cast<int16_t>(attribute.value));
         ed->set_temperature(static_cast<double>(val));
         if (val > 60)
-            zhub->height_temperature(endpoint.address);
+            app.zhub->height_temperature(endpoint.address);
         gsbutils::dprintf(dbg, "Device 0x%04x temperature =  %d grad Celsius\n", endpoint.address, val);
     }
 }

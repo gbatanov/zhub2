@@ -1,6 +1,7 @@
 build
 .token*
 misc/i2c*
+src/version.h
 gsbutils/version.h
 gsb_utils/version.h
 src/version.h

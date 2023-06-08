@@ -17,13 +17,12 @@
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
-#include "../../main.h"
 #include "../zigbee.h"
 #include "cluster.h"
+#include "../../modem.h"
+#include "../../main.h"
 
 using MultistateInput = zigbee::clusters::MultistateInput;
-
-extern zigbee::Zhub *zhub;
 
 void MultistateInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {

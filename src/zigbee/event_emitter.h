@@ -11,7 +11,7 @@ class Event
 
 public:
     Event() {}
-    ~Event() {}
+    ~Event() { set(); }
 
     // ждем заданное время,
     // если переменная установлена, возвращаем true,
@@ -27,14 +27,14 @@ public:
     void set()
     {
         {
-            std::unique_lock<std::mutex> lock(m);
+            std::lock_guard<std::mutex> lg(m);
             antiSpur_ = 1;
         }
         cond_var.notify_all();
     }
     void reset()
     {
-        std::unique_lock<std::mutex> lock(m);
+        std::lock_guard<std::mutex> lg(m);
         antiSpur_ = 0;
     }
     int antiSpur_ = 0;
@@ -47,7 +47,7 @@ private:
     std::mutex m;
 };
 
-// event_command_ отслеживает поступление ответов на отправленную команду 
+// event_command_ отслеживает поступление ответов на отправленную команду
 // event_id - ID комманды
 class EventCommand
 {
@@ -62,7 +62,7 @@ public:
     void emit(CommandId event_id, Command argument)
     {
 #ifdef TEST
-        gsbutils::dprintf(7, "Event emit %04x\n",(uint16_t) event_id);
+        gsbutils::dprintf(7, "Event emit %04x\n", (uint16_t)event_id);
 #endif
         Listener listener = getListener(event_id);
         std::lock_guard<std::mutex> lock(argument_mutex);
@@ -176,5 +176,6 @@ private:
 
     std::mutex find_mutex, argument_mutex;
 };
+
 
 #endif

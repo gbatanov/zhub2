@@ -16,10 +16,7 @@
 #include <sstream>
 #include <termios.h>
 
-#ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
-extern std::unique_ptr<Tlg32> tlg32;
-#endif
 
 #include "../../gsb_utils/gsbutils.h"
 #include "../comport/unix.h"
@@ -27,7 +24,8 @@ extern std::unique_ptr<Tlg32> tlg32;
 #include "../common.h"
 #include "command.h"
 #include "zigbee.h"
-#include "../main.h"
+#include "../modem.h"
+#include "../app.h"
 
 #ifdef WITH_SIM800
 #include "../modem.h"
@@ -41,8 +39,7 @@ using zigbee::zcl::Attribute;
 using zigbee::zcl::Cluster;
 using zigbee::zcl::Frame;
 
-extern std::atomic<bool> Flag;
-extern gsbutils::TTimer ikeaMotionTimer;
+extern App app;
 
 std::mutex mtx_timer1;
 uint16_t timer1_counter = 0;
@@ -56,20 +53,19 @@ using namespace zigbee;
 
 Zhub::Zhub() : Controller()
 {
-#ifdef WITH_TELEGA
     tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
     tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+    tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
     tlgInThread = new std::thread(&Zhub::handle, this);
-#endif
 }
 Zhub::~Zhub()
 {
-#ifdef WITH_TELEGA
+
     tlg_in->stop();
     tlg_out->stop();
     if (tlgInThread->joinable())
         tlgInThread->join();
-#endif
+
     disconnect();
 }
 
@@ -77,13 +73,14 @@ Zhub::~Zhub()
 void Zhub::start(std::vector<uint8_t> rfChannels)
 {
     init();
+
     // Старт Zigbee-сети
     gsbutils::dprintf(1, "Zhub::start_network \n");
-    while (!start_network(rfChannels) && Flag.load())
+    while (!start_network(rfChannels) && app.Flag.load())
     {
         std::this_thread::sleep_for(std::chrono::seconds(10));
     }
-    if (!Flag.load())
+    if (!app.Flag.load())
         return;
 
 #ifdef TEST
@@ -630,6 +627,7 @@ void Zhub::check_motion_activity()
 #endif
 /// Текущее состояние устройств
 /// используют http_server telegram
+/// TODO: перенести на уровень выше - в App
 std::string Zhub::show_device_statuses(bool as_html)
 {
     std::string result = "";
@@ -715,6 +713,7 @@ std::string Zhub::show_device_statuses(bool as_html)
         }
 
         // Дальше выводится только в телеграм
+        /*
         float temp = get_board_temperature();
         if (temp)
         {
@@ -722,6 +721,7 @@ std::string Zhub::show_device_statuses(bool as_html)
             buff[len] = 0;
             result = result + std::string(buff);
         }
+        */
         std::time_t lastMotionSensorAction = getLastMotionSensorActivity();
         std::tm tm = *std::localtime(&lastMotionSensorAction);
         size_t len = std::strftime(buff, sizeof(buff) / sizeof(buff[0]), " %Y-%m-%d %H:%M:%S", &tm);
@@ -853,12 +853,20 @@ inline void Zhub::switch_off_with_list()
             switch_relay(mac_addr, 0, 2);
     }
 }
+// используется в телеграм
+std::string Zhub::show_statuses()
+{
+    std::string statuses = show_device_statuses(false);
+    if (statuses.empty())
+        return "Нет активных устройств\n";
+    else
+        return "Статусы устройств:\n" + statuses + "\n";
+}
 
-#ifdef WITH_TELEGA
 // Здесь реализуется вся логика обработки принятых сообщений из телеграм
 void Zhub::handle()
 {
-    while (Flag.load())
+    while (app.Flag.load())
     {
         TlgMessage msg = tlg_in->read();
         if (!msg.text.empty())
@@ -884,17 +892,15 @@ void Zhub::handle()
             }
             else if (msg.text.starts_with("/balance"))
             {
-#ifdef WITH_SIM800
-                if (gsmmodem->get_balance())
-                    answer.text = "Запрос баланса отправлен\n";
-#else
-                answer.text = "SIM800 не подключен\n";
-#endif
-            }
-            else if (msg.text.starts_with("/join"))
-            {
-                //            zhub->permitJoin(60s)
-                answer.text = "Join 60 sec.\n";
+                if (app.with_sim800)
+                {
+                    if (app.gsmModem->get_balance())
+                        answer.text = "Запрос баланса отправлен\n";
+                }
+                else
+                {
+                    answer.text = "SIM800 не подключен\n";
+                }
             }
             else
                 answer.text = "Я не понял Вас.\n";
@@ -903,4 +909,3 @@ void Zhub::handle()
         }
     }
 }
-#endif

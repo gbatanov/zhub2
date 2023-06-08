@@ -24,33 +24,18 @@
 
 #include "version.h"
 
-#ifdef WITH_TELEGA
-#include "../telebot32/src/tlg32.h"
-extern std::unique_ptr<Tlg32> tlg32;
-#endif
-
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "../gsb_utils/gsbutils.h"
 #include "common.h"
 #include "zigbee/zigbee.h"
 
-#ifdef WITH_SIM800
 #include "modem.h"
-#endif
-
 #include "httpserver.h"
 #include "http.h"
+#include "app.h"
 
-extern char *Program_Version;
-extern std::unique_ptr<zigbee::Zhub> zhub;
-extern std::string startTime;
-
-#ifdef WITH_SIM800
-extern GsmModem *gsmmodem;
-#endif
-
-extern std::atomic<bool> Flag;
+extern App app;
 std::unique_ptr<HttpServer> http;
 
 using gsb_utils = gsbutils::SString;
@@ -180,7 +165,7 @@ std::string create_device_list()
 {
 
     std::string result = "";
-
+/*
 #if !defined __MACH__
     float board_temperature = zhub->get_board_temperature();
     if (board_temperature > -100.0)
@@ -192,15 +177,16 @@ std::string create_device_list()
         result = result + std::string(buff) + "</p>";
     }
 #endif
+*/
 #ifdef WITH_SIM800
-    result = result + "<p>" + zhub->show_sim800_battery() + "</p>";
+    result = result + "<p>" + app.zhub->show_sim800_battery() + "</p>";
 #endif
 
-    std::time_t lastMotionSensorAction = zhub->getLastMotionSensorActivity();
+    std::time_t lastMotionSensorAction = app.zhub->getLastMotionSensorActivity();
     result = result + "<p>Время последнего срабатывания датчиков движения: " + gsbutils::DDate::timestamp_to_string(lastMotionSensorAction) + "</p>";
-    result = result + "<p>Старт программы: " + startTime + "</p>";
+    result = result + "<p>Старт программы: " + app.startTime + "</p>";
 
-    std::string list = zhub->show_device_statuses(true);
+    std::string list = app.zhub->show_device_statuses(true);
     result = result + "<h3>Список устройств:</h3>";
     if (list.empty())
         result = result + "<p>(устройства отсутствуют)</p>";
@@ -224,7 +210,7 @@ std::string command_list()
     result += "<p>Кран ГВ&nbsp;<a href=\"/water?on=0xa4c138d9758e1dcd\">Включить</a>&nbsp;<a href=\"/water?off=0xa4c138d9758e1dcd\">Выключить</a></p>";
     result += "<p>Реле СМ&nbsp;<a href=\"/water?on=0x54ef441000193352\">Включить</a>&nbsp;<a href=\"/water?off=0x54ef441000193352\">Выключить</a></p>";
     result += "<p>----------- Умные розетки ---------------</p>";
-//    result += "<p>Розетка 1&nbsp;<a href=\"/command?on=0x70b3d52b6001b4a4\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b4a4\">Выключить</a></p>";
+    //    result += "<p>Розетка 1&nbsp;<a href=\"/command?on=0x70b3d52b6001b4a4\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b4a4\">Выключить</a></p>";
     result += "<p>Розетка 2&nbsp;<a href=\"/command?on=0x70b3d52b6001b5d9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b5d9\">Выключить</a></p>";
     result += "<p>Розетка 3&nbsp;<a href=\"/command?on=0x70b3d52b60022ac9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022ac9\">Выключить</a></p>";
     result += "<p>Розетка 4&nbsp;<a href=\"/command?on=0x70b3d52b60022cfd\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022cfd\">Выключить</a></p>";
@@ -255,7 +241,7 @@ std::string send_cmd_to_onoff(std::string url)
     std::string param = command.substr(pos + 1); //!!!
     std::string res_cmd = "";
     uint64_t mac_addr = 0; // mac address
-    int ep = 1;        // endpoint, default =1
+    int ep = 1;            // endpoint, default =1
 
     pos = command.find_first_of("ep=");
     if (pos == command.npos)
@@ -272,13 +258,13 @@ std::string send_cmd_to_onoff(std::string url)
     }
     if (cmd == "on")
     {
-        zhub->switch_relay(mac_addr, 0x01, (uint8_t)ep);
-        res_cmd = "Команда \"Включить\" " + param  + " исполнена";
+        app.zhub->switch_relay(mac_addr, 0x01, (uint8_t)ep);
+        res_cmd = "Команда \"Включить\" " + param + " исполнена";
     }
     else if (cmd == "off")
     {
-        zhub->switch_relay(mac_addr, 0, (uint8_t)ep);
-        res_cmd = "Команда \"Выключить\" " +  param  + " исполнена";
+        app.zhub->switch_relay(mac_addr, 0, (uint8_t)ep);
+        res_cmd = "Команда \"Выключить\" " + param + " исполнена";
     }
     else
     {
@@ -328,12 +314,12 @@ std::string send_cmd_to_device(char *url)
 
     if (cmd == "on")
     {
-        zhub->ias_zone_command(0x01, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
+        app.zhub->ias_zone_command(0x01, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
         res_cmd = "Команда \"Включить\" " + (mac_addr ? param : "all") + " исполнена";
     }
     else if (cmd == "off")
     {
-        zhub->ias_zone_command(0x00, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
+        app.zhub->ias_zone_command(0x00, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
         res_cmd = "Команда \"Выключить\" " + (mac_addr ? param : "all") + " исполнена";
     }
     else
@@ -346,18 +332,21 @@ std::string send_cmd_to_device(char *url)
 
 std::string http_get_balance()
 {
-#ifdef WITH_SIM800
-    gsmmodem->get_balance();
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-    return gsmmodem->show_balance() + command_list();
-#else
-    return "";
-#endif
+    if (app.with_sim800)
+    {
+        app.gsmModem->get_balance();
+        std::this_thread::sleep_for(std::chrono::seconds(10));
+        return app.gsmModem->show_balance() + command_list();
+    }
+    else
+    {
+        return "";
+    }
 }
 
 std::string http_join()
 {
-    zhub->permitJoin(std::chrono::seconds(60));
+    app.zhub->permitJoin(std::chrono::seconds(60));
     std::string result = command_list();
     return result;
 }
