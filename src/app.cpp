@@ -48,6 +48,7 @@
 #include "httpserver.h"
 #include "http.h"
 #include "exposer.h"
+#include "pi4-gpio.h"
 #include "app.h"
 
 using gsb_utils = gsbutils::SString;

@@ -22,6 +22,7 @@
 #include <map>
 #include <array>
 #include <any>
+#include <optional>
 
 #include <termios.h>
 #include "comport/unix.h"

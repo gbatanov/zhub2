@@ -67,7 +67,7 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_TOOLCHAIN_FILE": "",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "SIM800":"OFF",
+                "SIM800":"ON",
                 "TELEGA": "ON",
                 "BOT_NAME": "GsbHomeBot",
                 "GPIO": "ON",

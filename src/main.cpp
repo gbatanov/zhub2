@@ -44,7 +44,7 @@
 #include "common.h"
 #include "zigbee/zigbee.h"
 #include "exposer.h"
-
+#include "pi4-gpio.h"
 #include "modem.h"
 
 #include "httpserver.h"
