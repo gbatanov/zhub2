@@ -26,7 +26,6 @@
 #include <termios.h>
 
 #include "../version.h"
-
 #include "../telebot32/src/tlg32.h"
 
 #include "../comport/unix.h"
