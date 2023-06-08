@@ -64,7 +64,7 @@ bool App::object_create()
         initialize_gpio();
 #endif
 
-        cmd_thread = std::thread(&App::cmdFunc, this);
+        cmdThread = std::thread(&App::cmd_func, this);
         zhub = std::make_shared<zigbee::Zhub>();
         zhub->tlg32->add_id(836487770);
 
@@ -73,15 +73,14 @@ bool App::object_create()
             zhub->tlg32->send_message("Программа перезапущена.\n");
         }
         noAdapter = zhub->init_adapter();
+        tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
+        uint8_t max_threads = 2;
+        tpm->init_threads(&GsmModem::on_command, max_threads);
 
-        if (init_modem())
-        {
-            tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
-            uint8_t max_threads = 2;
-            tpm->init_threads(&GsmModem::on_command, max_threads);
-        }
-        http_thread = std::thread(http_server);
-        exposer_thread = std::thread(&App::exposer_handler, this);
+        init_modem();
+
+        httpThread = std::thread(http_server);
+        exposerThread = std::thread(&App::exposer_handler, this);
     }
     catch (std::exception &e)
     {
@@ -109,7 +108,7 @@ bool App::startApp()
     return true;
 }
 // Функция потока ожидания команд с клавиатуры
-int App::cmdFunc()
+int App::cmd_func()
 {
     time_t waitTime = 1;
     struct timeval tv;
@@ -214,9 +213,12 @@ bool App::init_modem()
         }
         else
         {
+            with_sim800 = gsmModem->init_modem();
+            if (!with_sim800)
+                return false;
             zhub->tlg32->send_message("Модем SIM800 активирован.\n");
-            //            gsmModem->init();
-            //            gsmModem->get_battery_level(true);
+            gsmModem->get_battery_level(true);
+            gsmModem->get_balance(); // для индикации корректной работы обмена по смс
         }
     }
     catch (std::exception &e)
@@ -224,8 +226,6 @@ bool App::init_modem()
         with_sim800 = false;
         zhub->tlg32->send_message("Модем SIM800 не обнаружен.\n");
     }
-    //   if (with_sim800)
-    //       gsmModem->get_balance(); // для индикации корректной работы обмена по смс
 
     return true;
 #else
@@ -251,11 +251,11 @@ void App::stopApp()
     gsmModem->disconnect();
     zhub->tlg32->stop();
     zhub->stop(); // остановка пулла потоков
-    if (exposer_thread.joinable())
-        exposer_thread.join();
+    if (exposerThread.joinable())
+        exposerThread.join();
 
-    if (http_thread.joinable())
-        http_thread.join();
+    if (httpThread.joinable())
+        httpThread.join();
 
     gsbutils::stop(); // остановка вывода сообщений
 }

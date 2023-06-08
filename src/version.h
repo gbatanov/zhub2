@@ -3,7 +3,7 @@
 
 #define Project_VERSION_MAJOR "2"
 #define Project_VERSION_MINOR "26"
-#define Project_VERSION_PATCH "589"
+#define Project_VERSION_PATCH "590"
 #define DEBUG 1
 
 

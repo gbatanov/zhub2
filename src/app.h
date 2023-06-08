@@ -11,7 +11,7 @@ public:
     bool startApp();
     void stopApp();
     bool init_modem();
-    int cmdFunc();
+    int cmd_func();
     //    gsbutils::CycleTimer timer1Min(60, &timer1min);
     static void timer1min();
     std::shared_ptr<zigbee::Zhub> zhub;
@@ -25,8 +25,8 @@ public:
     std::string startTime{};
     bool with_sim800 = false;
     bool noAdapter;
-    std::thread cmd_thread; // поток приема команд с клавиатуры
-    std::thread exposer_thread; // поток ответа прометею
-    std::thread http_thread;
+    std::thread cmdThread; // поток приема команд с клавиатуры
+    std::thread exposerThread; // поток ответа прометею
+    std::thread httpThread;
 };
 #endif

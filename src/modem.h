@@ -4,6 +4,8 @@
 
 #define PI_RX_BUFFER_SIZE 1024
 #define PI_TX_BUFFER_SIZE 256
+#include "zigbee/zigbee.h"
+#include "sim800_event.h"
 
 class GsmModem
 {
@@ -14,7 +16,7 @@ public:
   void disconnect();
   std::atomic<bool> execute_flag_;
   std::string send_command(std::string command, std::string id);
-  bool init();
+  bool init_modem();
   std::array<int, 3> get_battery_level(bool need_query = true);
   bool get_balance();
   std::string show_balance() { return balance_; };
@@ -24,6 +26,7 @@ public:
   void execute_tone_command(std::string command);
 
 private:
+  zigbee::Sim800Event sim800_event_emitter_;
   bool balance_to_sms = false; // отправка баланса по смс, включается по запросу с тонального набора
   bool connected = false;
   std::unique_ptr<serial::Serial> serial_ = std::make_unique<serial::Serial>();
@@ -45,7 +48,7 @@ private:
   std::vector<uint8_t> tx_buff_;
   std::vector<uint8_t> rx_buff_;
   std::mutex transmit_mutex_;
-  zigbee::Sim800Event sim800_event_emitter_;
+
   std::string balance_{"Не  определен"};
   int charge_ = -1;
   int level_ = -1;

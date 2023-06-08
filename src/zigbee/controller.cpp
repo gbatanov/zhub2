@@ -492,8 +492,7 @@ void Controller::handle_power_off(int value)
         return;
     gsbutils::dprintf(1, alarm_msg);
 
-   send_tlg_message(alarm_msg);
-
+    send_tlg_message(alarm_msg);
 }
 
 // Обработчик показаний температуры корпуса
@@ -514,8 +513,7 @@ void Controller::handle_board_temperature(float temp)
     std::string temp_msg = std::string(buff);
     gsbutils::dprintf(1, temp_msg);
 
-   send_tlg_message(temp_msg);
-
+    send_tlg_message(temp_msg);
 }
 
 // Включение звонка
@@ -527,7 +525,6 @@ void Controller::ringer()
     write_pin(26, 0);
 #endif
 }
-
 
 // Управление вентилятором обдува платы управления
 void Controller::fan(bool work)
@@ -544,8 +541,9 @@ std::string Controller::show_sim800_battery()
     static uint8_t counter = 0;
     char answer[256]{};
     std::array<int, 3> battery = app.gsmModem->get_battery_level(false);
-    //    std::string charge = battery[0] == 1 ? "Заряжается" : "Не заряжается";
-    std::string charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
+    std::string charge = "";
+    if (battery[0] != -1)
+        charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
     std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
     std::string volt = battery[2] == -1 ? "" : std::to_string((float)(battery[2] / 1000)) + "V";
     int res = std::snprintf(answer, 256, "SIM800l питание: %s, %s, %0.2f V\n", charge.c_str(), level.c_str(), battery[2] == -1 ? 0.0 : (float)battery[2] / 1000);

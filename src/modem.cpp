@@ -54,8 +54,8 @@ void GsmModem::disconnect()
   app.with_sim800 = false;
   if (receiver_thread_.joinable())
     receiver_thread_.join();
-    
-  sim800_event_emitter_.reset();
+
+// sim800_event_emitter_.reset();
   if (serial_->isOpen())
   {
     try
@@ -108,10 +108,11 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
 // текстовый режим СМС
 // включаем тональный режим для приема команд
 // Очищаем очередь смс-сообщений
-bool GsmModem::init()
+bool GsmModem::init_modem()
 {
+#ifdef WITH_SIM800
   send_command("AT\r", "OK");
-  set_echo();
+  set_echo(true);
   set_aon();
   send_command(std::string("AT+CMGF=1\r"), std::string("OK"));
   send_command(std::string("AT+DDET=1,0,0\r"), std::string("OK"));
@@ -119,6 +120,9 @@ bool GsmModem::init()
   send_command(std::string("AT+CMGD=1,4\r"), "OK"); // Удаление всех сообщений, второй вариант
   send_command(std::string("AT+COLP=1\r"), "OK");
   return true;
+#else
+  return false;
+#endif
 }
 
 // фактическая отправка команды (синхронное выполнение)
@@ -151,7 +155,6 @@ bool GsmModem::send_command_(std::string command)
   {
     gsbutils::dprintf(1, "GsmModem::send_command_ exception: %s\n", e.what());
   }
-  disconnect();
   return false;
 }
 
@@ -163,8 +166,8 @@ std::string GsmModem::send_command(std::string command, std::string id)
 
   if (send_command_(command))
   {
-    //    return sim800_event_emitter_.wait(id, std::chrono::duration(std::chrono::seconds(3)));
-    return "OK";
+    return sim800_event_emitter_.wait(id, std::chrono::duration(std::chrono::seconds(30)));
+ //       return "OK";
   }
   else
   {
@@ -364,8 +367,8 @@ void GsmModem::loop()
         rx_buff_.clear();
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
 
-        //        parseReceivedData(rx_buff_);
-        app.tpm->add_command(rx_buff_);
+               parseReceivedData(rx_buff_);
+//        app.tpm->add_command(rx_buff_);
       }
       else
       {
@@ -495,8 +498,8 @@ void GsmModem::OnDisconnect()
 // Первый параметр: 0 - не заряжается 1 - заряжается
 // Второй параметр: Процент заряда батареи
 // Третий параметр: Напряжение питания модуля в милливольтах
-// TODO: парметры унести в свойства класса, запрос сделать асинхронным
-// Если ответ не пришел за время тайм-аута, отдавать предыдущее сохраненнье значение
+
+// Если ответ не пришел за время тайм-аута, отдавать предыдущее сохраненное значение
 // В обработчике ответа записывать  свойства класса
 std::array<int, 3> GsmModem::get_battery_level(bool need_query)
 {
@@ -506,11 +509,13 @@ std::array<int, 3> GsmModem::get_battery_level(bool need_query)
   {
     std::string cmd = "AT+CBC\r";
     send_command(cmd, std::string("OK"));
-    std::this_thread::sleep_for(std::chrono::seconds(5));
   }
-  result[0] = charge_;
-  result[1] = level_;
-  result[2] = voltage_;
+  else
+  {
+    result[0] = charge_;
+    result[1] = level_;
+    result[2] = voltage_;
+  }
   return result;
 }
 

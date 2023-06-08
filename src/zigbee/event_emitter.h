@@ -27,14 +27,14 @@ public:
     void set()
     {
         {
-            std::lock_guard<std::mutex> lg(mSpur);
+            std::lock_guard<std::mutex> lg(m);
             antiSpur_ = 1;
         }
         cond_var.notify_all();
     }
     void reset()
     {
-        std::lock_guard<std::mutex> lg(mSpur);
+        std::lock_guard<std::mutex> lg(m);
         antiSpur_ = 0;
     }
     int antiSpur_ = 0;
@@ -44,7 +44,7 @@ private:
     Event &operator=(const Event &event) = delete;
 
     std::condition_variable cond_var;
-    std::mutex m, mSpur;
+    std::mutex m;
 };
 
 // event_command_ отслеживает поступление ответов на отправленную команду
@@ -159,12 +159,6 @@ public:
         listener.event->reset();
     }
 
-    void reset(){
-        for (auto & listener : listeners){
-            listener.second.event->set();
-        }
-    }
-
 private:
     // возвращаем аргумент события для заданной команды SIM800.
     // Если такого события не зарегистрировано, создаем его с пустым аргументом и возвращаем его.
@@ -182,5 +176,6 @@ private:
 
     std::mutex find_mutex, argument_mutex;
 };
+
 
 #endif

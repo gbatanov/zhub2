@@ -44,6 +44,7 @@
 #include "common.h"
 #include "zigbee/zigbee.h"
 #include "exposer.h"
+
 #include "modem.h"
 
 #include "httpserver.h"
@@ -121,8 +122,8 @@ int main(int argc, char *argv[])
         std::cerr << e.what() << std::endl;
         ret = 1;
     }
-    if (app.cmd_thread.joinable())
-        app.cmd_thread.join();
+    if (app.cmdThread.joinable())
+        app.cmdThread.join();
 
     app.stopApp();
     return ret;
