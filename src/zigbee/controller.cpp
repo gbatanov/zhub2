@@ -26,22 +26,15 @@
 #include <termios.h>
 
 #include "../version.h"
-#ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
-extern std::unique_ptr<Tlg32> tlg32;
-#endif
-
+#include "../pi4-gpio.h"
 #include "../comport/unix.h"
 #include "../comport/serial.h"
 #include "../../gsb_utils/gsbutils.h"
 #include "../common.h"
-#include "../main.h"
 #include "zigbee.h"
 #include "../modem.h"
-
-#ifdef WITH_SIM800
-extern GsmModem *gsmmodem;
-#endif
+#include "../app.h"
 
 #ifdef __MACH__
 // На маке зависит от гнезда, в которое воткнут координатор
@@ -66,6 +59,7 @@ using zigbee::NetworkConfiguration;
 using zigbee::zcl::Cluster;
 using zigbee::zcl::Frame;
 
+extern App app;
 extern std::mutex trans_mutex;
 extern std::atomic<uint8_t> transaction_sequence_number;
 
@@ -106,11 +100,7 @@ bool Controller::init_adapter()
         noAdapter = true;
     }
     if (noAdapter)
-    {
-#ifdef WITH_TELEGA
-        tlg32->send_message("Zigbee adapter не обнаружен.\n");
-#endif
-    }
+        send_tlg_message("Zigbee adapter не обнаружен.\n");
 
     return noAdapter;
 }
@@ -295,12 +285,12 @@ void Controller::on_message(zigbee::Command command)
                     ed->set_last_action((uint64_t)ts);
                     std::string alarm_msg = "Сработал датчик протечки: ";
                     alarm_msg = alarm_msg + ed->get_human_name();
-#ifdef WITH_TELEGA
-                    tlg32->send_message(alarm_msg);
-#endif
+
+                    send_tlg_message(alarm_msg);
+
 #ifdef WITH_SIM800
                     gsbutils::dprintf(1, "Phone number call \n");
-                    gsmmodem->master_call();
+                    app.gsmModem->master_call();
 #endif
                 }
                 gsbutils::dprintf(1, "Device 0x%02x Water Leak: %s \n ", message.source.address, message.zcl_frame.payload[0] ? "ALARM" : "NORMAL");
@@ -350,6 +340,24 @@ void Controller::after_message_action()
                     }
                 }
             }
+            // краны
+            {
+                // Получим состояние кранов, если не было получено при старте
+                std::shared_ptr<EndDevice> ed1 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
+                if (ed1 && ed1->get_current_state(1) != "On" && ed1->get_current_state(1) != "Off")
+                {
+                    uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
+                    std::vector<uint16_t> idsAV{0x0000};
+                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
+                }
+                std::shared_ptr<EndDevice> ed2 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138373e89d731);
+                if (ed2 && ed2->get_current_state(1) != "On" && ed2->get_current_state(1) != "Off")
+                {
+                    std::vector<uint16_t> idsAV{0x0000};
+                    uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
+                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
+                }
+            }
         }
     }
 
@@ -369,7 +377,7 @@ void Controller::switch_off_with_timeout()
                 off = true;
                 gsbutils::dprintf(1, "Принудительное выключение реле  при отсутствии людей дома \n");
 
-                tlg32->send_message("Никого нет дома.\n");
+                send_tlg_message("Никого нет дома.\n");
 
                 for (const uint64_t &macAddress : EndDevice::OFF_LIST)
                 {
@@ -482,9 +490,8 @@ void Controller::handle_power_off(int value)
     else
         return;
     gsbutils::dprintf(1, alarm_msg);
-#ifdef WITH_TELEGA
-    tlg32->send_message(alarm_msg);
-#endif
+
+    send_tlg_message(alarm_msg);
 }
 
 // Обработчик показаний температуры корпуса
@@ -504,9 +511,8 @@ void Controller::handle_board_temperature(float temp)
     buff[len] = 0;
     std::string temp_msg = std::string(buff);
     gsbutils::dprintf(1, temp_msg);
-#ifdef WITH_TELEGA
-    tlg32->send_message(temp_msg);
-#endif
+
+    send_tlg_message(temp_msg);
 }
 
 // Включение звонка
@@ -519,31 +525,6 @@ void Controller::ringer()
 #endif
 }
 
-// Получить значение температуры управляющей платы
-float Controller::get_board_temperature()
-{
-    char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
-    uint32_t temp_int = 0; // uint16_t не пролезает !!!!
-    float temp_f = 0.0;
-
-    int fd = open(fname, O_RDONLY);
-    if (!fd)
-        return -200.0;
-
-    char buff[32]{0};
-    size_t len = read(fd, buff, 32);
-    close(fd);
-    if (len < 0)
-    {
-        return -100.0;
-    }
-    buff[len - 1] = 0;
-    if (sscanf(buff, "%d", &temp_int))
-    {
-        temp_f = (float)temp_int / 1000;
-    }
-    return temp_f;
-}
 // Управление вентилятором обдува платы управления
 void Controller::fan(bool work)
 {
@@ -558,9 +539,10 @@ std::string Controller::show_sim800_battery()
 #ifdef WITH_SIM800
     static uint8_t counter = 0;
     char answer[256]{};
-    std::array<int, 3> battery = gsmmodem->get_battery_level(false);
-    //    std::string charge = battery[0] == 1 ? "Заряжается" : "Не заряжается";
-    std::string charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
+    std::array<int, 3> battery = app.gsmModem->get_battery_level(false);
+    std::string charge = "";
+    if (battery[0] != -1)
+        charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
     std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
     std::string volt = battery[2] == -1 ? "" : std::to_string((float)(battery[2] / 1000)) + "V";
     int res = std::snprintf(answer, 256, "SIM800l питание: %s, %s, %0.2f V\n", charge.c_str(), level.c_str(), battery[2] == -1 ? 0.0 : (float)battery[2] / 1000);
@@ -573,7 +555,7 @@ std::string Controller::show_sim800_battery()
     if (counter > 5)
     {
         counter = 0;
-        gsmmodem->get_battery_level(true);
+        app.gsmModem->get_battery_level(true);
     }
     return std::string(answer);
 

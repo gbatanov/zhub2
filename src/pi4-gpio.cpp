@@ -24,17 +24,18 @@
 #include "../gsb_utils/gsbutils.h"
 
 #include "version.h"
+
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "common.h"
 #include "zigbee/zigbee.h"
-#include "httpserver.h"
 #include "modem.h"
-#include "main.h"
+#include "http.h"
+#include "httpserver.h"
+#include "app.h"
+#include "pi4-gpio.h"
 
-extern std::atomic<bool> Flag;
-using namespace zigbee;
-extern std::unique_ptr<zigbee::Zhub> zhub;
+extern App app;
 
 struct gpiod_chip *chip = nullptr;
 
@@ -106,29 +107,55 @@ void get_main_temperature()
 {
 
 	bool notify_high_send = false;
-	while (Flag.load())
+	while (app.Flag.load())
 	{
 
-		float temp_f = zhub->get_board_temperature();
+		float temp_f = get_board_temperature();
 		if (temp_f > 0.0)
 		{
 			if (temp_f > 70.0 && !notify_high_send)
 			{
 				// посылаем уведомление о высокой температуре и включаем вентилятор
 				notify_high_send = true;
-				zhub->handle_board_temperature(temp_f);
+				app.zhub->handle_board_temperature(temp_f);
 			}
 			else if (temp_f < 50.0 && notify_high_send)
 			{
 				// посылаем уведомление о нормальной температуре и выключаем вентилятор
 				notify_high_send = false;
-				zhub->handle_board_temperature(temp_f);
+				app.zhub->handle_board_temperature(temp_f);
 			}
 		}
 		using namespace std::chrono_literals;
 		std::this_thread::sleep_for(10s);
 	}
 }
+// Получить значение температуры управляющей платы
+float get_board_temperature()
+{
+    char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
+    uint32_t temp_int = 0; // uint16_t не пролезает !!!!
+    float temp_f = 0.0;
+
+    int fd = open(fname, O_RDONLY);
+    if (!fd)
+        return -200.0;
+
+    char buff[32]{0};
+    size_t len = read(fd, buff, 32);
+    close(fd);
+    if (len < 0)
+    {
+        return -100.0;
+    }
+    buff[len - 1] = 0;
+    if (sscanf(buff, "%d", &temp_int))
+    {
+        temp_f = (float)temp_int / 1000;
+    }
+    return temp_f;
+}
+
 
 // функция потока наличия напряжения 220В
 // на малинке определяет по наличию +3В на контакте 38(GPIO20),
@@ -140,7 +167,7 @@ void power_detect()
 	static bool notify_off = false;
 	static bool notify_on = true;
 
-	while (Flag.load())
+	while (app.Flag.load())
 	{
 		value = read_pin(20);
 		gsbutils::dprintf(7, "GPIO 20 %d\n", value);
@@ -148,13 +175,13 @@ void power_detect()
 		{
 			notify_off = true;
 			notify_on = false;
-			zhub->handle_power_off(value);
+			app.zhub->handle_power_off(value);
 		}
 		else if (value == 1 && !notify_on)
 		{
 			notify_on = true;
 			notify_off = false;
-			zhub->handle_power_off(value);
+			app.zhub->handle_power_off(value);
 		}
 
 		using namespace std::chrono_literals;

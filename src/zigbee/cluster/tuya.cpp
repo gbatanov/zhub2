@@ -17,13 +17,12 @@
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
-#include "../../main.h"
 #include "../zigbee.h"
 #include "cluster.h"
+#include "../../modem.h"
+#include "../../main.h"
 
 using Tuya = zigbee::clusters::Tuya;
-
-extern zigbee::Zhub *zhub;
 
 void Tuya::attribute_handler_private(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {

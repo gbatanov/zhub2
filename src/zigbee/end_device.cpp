@@ -20,9 +20,10 @@
 #include "../../gsb_utils/gsbutils.h"
 #include "../common.h"
 #include "zigbee.h"
-#include "../main.h"
+#include "../modem.h"
+#include "../app.h"
 
-extern std::unique_ptr<zigbee::Zhub> zhub;
+extern App app;
 
 using gsb_utils = gsbutils::SString;
 using namespace zigbee;
