@@ -30,7 +30,7 @@ private:
   bool balance_to_sms = false; // отправка баланса по смс, включается по запросу с тонального набора
   bool connected = false;
   std::unique_ptr<serial::Serial> serial_ = std::make_unique<serial::Serial>();
-  void parseReceivedData(std::vector<uint8_t> &data);
+  void command_handler(std::vector<uint8_t> &data);
   void loop();
   void OnDisconnect();
   void on_tone_command(std::string answer);
