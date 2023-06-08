@@ -35,7 +35,7 @@
 #include "../common.h"
 #include "zigbee.h"
 #include "../modem.h"
-#include "../main.h"
+#include "../app.h"
 
 #ifdef __MACH__
 // На маке зависит от гнезда, в которое воткнут координатор
@@ -528,31 +528,7 @@ void Controller::ringer()
 #endif
 }
 
-// Получить значение температуры управляющей платы
-float Controller::get_board_temperature()
-{
-    char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
-    uint32_t temp_int = 0; // uint16_t не пролезает !!!!
-    float temp_f = 0.0;
 
-    int fd = open(fname, O_RDONLY);
-    if (!fd)
-        return -200.0;
-
-    char buff[32]{0};
-    size_t len = read(fd, buff, 32);
-    close(fd);
-    if (len < 0)
-    {
-        return -100.0;
-    }
-    buff[len - 1] = 0;
-    if (sscanf(buff, "%d", &temp_int))
-    {
-        temp_f = (float)temp_int / 1000;
-    }
-    return temp_f;
-}
 // Управление вентилятором обдува платы управления
 void Controller::fan(bool work)
 {

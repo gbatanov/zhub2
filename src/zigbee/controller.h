@@ -17,7 +17,7 @@ public:
     void on_message(Command command);
     void handle_power_off(int value);
     void handle_board_temperature(float temp);
-    float get_board_temperature();
+
     void fan(bool work);
     void ringer();
     std::string show_sim800_battery();

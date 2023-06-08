@@ -31,7 +31,7 @@
 #include "zigbee/zigbee.h"
 #include "exposer.h"
 #include "modem.h"
-#include "main.h"
+#include "app.h"
 extern App app;
 
 Exposer::Exposer(std::string url, int port)

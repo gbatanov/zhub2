@@ -21,7 +21,7 @@
 #include "../common.h"
 #include "zigbee.h"
 #include "../modem.h"
-#include "../main.h"
+#include "../app.h"
 
 extern App app;
 

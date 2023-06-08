@@ -12,7 +12,7 @@
                 "CMAKE_TOOLCHAIN_FILE": "",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
                 "DEBUG": "ON",
-                "SIM800": "OFF",
+                "SIM800": "ON",
                 "TELEGA": "ON",
                 "TEST":"ON",
                 "BOT_NAME": "TestGsbBot",

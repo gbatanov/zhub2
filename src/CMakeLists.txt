@@ -30,6 +30,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 configure_file(../version.h.in ../../src/version.h)
 
 list( APPEND SOURCES
+  app.cpp
   main.cpp
   zigbee/attribute.cpp
   zigbee/controller.cpp

@@ -33,7 +33,7 @@
 #include "modem.h"
 #include "httpserver.h"
 #include "http.h"
-#include "main.h"
+#include "app.h"
 
 extern App app;
 std::unique_ptr<HttpServer> http;
@@ -165,7 +165,7 @@ std::string create_device_list()
 {
 
     std::string result = "";
-
+/*
 #if !defined __MACH__
     float board_temperature = zhub->get_board_temperature();
     if (board_temperature > -100.0)
@@ -177,6 +177,7 @@ std::string create_device_list()
         result = result + std::string(buff) + "</p>";
     }
 #endif
+*/
 #ifdef WITH_SIM800
     result = result + "<p>" + app.zhub->show_sim800_battery() + "</p>";
 #endif

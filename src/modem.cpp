@@ -20,10 +20,9 @@
 #include "common.h"
 #include "zigbee/zigbee.h"
 #include "modem.h"
-#include "main.h"
+#include "app.h"
 
 extern App app;
-bool balance_to_sms = false; // отправка баланса по смс, включается по запросу с тонального набора
 
 using gsb_utils = gsbutils::SString;
 
@@ -41,26 +40,40 @@ GsmModem::GsmModem()
   tone_cmd_started = false;
 }
 
+GsmModem::~GsmModem()
+{
+  if (connected)
+    disconnect();
+}
+
+// будет выполнять еще функцию stop
+void GsmModem::disconnect()
+{
+  connected = false;
+  execute_flag_.store(false);
+  app.with_sim800 = false;
+  if (receiver_thread_.joinable())
+    receiver_thread_.join();
+    
+  sim800_event_emitter_.reset();
+  if (serial_->isOpen())
+  {
+    try
+    {
+      serial_->close();
+    }
+    catch (std::exception &error)
+    {
+    }
+  }
+
+  OnDisconnect(); // Посылаем сигнал, что порт отвалился
+}
 void GsmModem::on_command(void *cmd_)
 {
   std::vector<uint8_t> command = *(static_cast<std::vector<uint8_t> *>(cmd_));
 
   app.gsmModem->parseReceivedData(command);
-}
-
-GsmModem::~GsmModem()
-{
-  execute_flag_.store(false);
-  app.with_sim800 = false;
-  if (receiver_thread_.joinable())
-    receiver_thread_.join();
-  try
-  {
-    serial_->close();
-  }
-  catch (std::system_error &error)
-  {
-  }
 }
 
 bool GsmModem::connect(std::string port, unsigned int baud_rate)
@@ -79,7 +92,7 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
     execute_flag_.store(true);
 
     receiver_thread_ = std::thread(&GsmModem::loop, this);
-
+    connected = true;
     return true;
   }
   catch (std::exception &error)
@@ -106,24 +119,6 @@ bool GsmModem::init()
   send_command(std::string("AT+CMGD=1,4\r"), "OK"); // Удаление всех сообщений, второй вариант
   send_command(std::string("AT+COLP=1\r"), "OK");
   return true;
-}
-
-void GsmModem::disconnect()
-{
-  execute_flag_.store(false);
-
-  if (serial_->isOpen())
-  {
-    try
-    {
-      serial_->close();
-    }
-    catch (std::exception &error)
-    {
-    }
-  }
-
-  OnDisconnect(); // Посылаем сигнал, что порт отвалился
 }
 
 // фактическая отправка команды (синхронное выполнение)
@@ -168,7 +163,7 @@ std::string GsmModem::send_command(std::string command, std::string id)
 
   if (send_command_(command))
   {
-//    return sim800_event_emitter_.wait(id, std::chrono::duration(std::chrono::seconds(3)));
+    //    return sim800_event_emitter_.wait(id, std::chrono::duration(std::chrono::seconds(3)));
     return "OK";
   }
   else
@@ -382,7 +377,6 @@ void GsmModem::loop()
   {
     gsbutils::dprintf(1, "modem loop exception: %s\n", error.what());
   }
-  disconnect();
 }
 
 // Здесь обрабатываем тоновые команды

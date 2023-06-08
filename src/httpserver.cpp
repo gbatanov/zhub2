@@ -31,7 +31,7 @@
 #include "modem.h"
 #include "http.h"
 #include "httpserver.h"
-#include "main.h"
+#include "app.h"
 
 extern App app;
 

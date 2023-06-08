@@ -25,7 +25,7 @@
 #include "command.h"
 #include "zigbee.h"
 #include "../modem.h"
-#include "../main.h"
+#include "../app.h"
 
 using zigbee::IEEEAddress;
 using zigbee::NetworkAddress;
@@ -622,6 +622,7 @@ void Zhub::check_motion_activity()
 #endif
 /// Текущее состояние устройств
 /// используют http_server telegram
+/// TODO: перенести на уровень выше - в App
 std::string Zhub::show_device_statuses(bool as_html)
 {
     std::string result = "";
@@ -707,6 +708,7 @@ std::string Zhub::show_device_statuses(bool as_html)
         }
 
         // Дальше выводится только в телеграм
+        /*
         float temp = get_board_temperature();
         if (temp)
         {
@@ -714,6 +716,7 @@ std::string Zhub::show_device_statuses(bool as_html)
             buff[len] = 0;
             result = result + std::string(buff);
         }
+        */
         std::time_t lastMotionSensorAction = getLastMotionSensorActivity();
         std::tm tm = *std::localtime(&lastMotionSensorAction);
         size_t len = std::strftime(buff, sizeof(buff) / sizeof(buff[0]), " %Y-%m-%d %H:%M:%S", &tm);

@@ -20,7 +20,7 @@
 #include "../zigbee.h"
 #include "cluster.h"
 #include "../../modem.h"
-#include "../../main.h"
+#include "../../app.h"
 
 using DeviceTemperatureConfiguration = zigbee::clusters::DeviceTemperatureConfiguration;
 
