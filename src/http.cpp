@@ -46,6 +46,10 @@ void http_server()
     http->start(); // поток приема http-запросов
 }
 
+void http_stop(){
+    http->stop_http();
+}
+
 // Функция-обработчик входящих запросов
 void receive_http(int client_sockfd)
 {

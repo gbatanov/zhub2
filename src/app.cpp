@@ -252,7 +252,7 @@ void App::stopApp()
     zhub->stop(); // остановка пулла потоков
     if (exposerThread.joinable())
         exposerThread.join();
-
+    http_stop();
     if (httpThread.joinable())
         httpThread.join();
 

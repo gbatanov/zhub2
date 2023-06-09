@@ -2,6 +2,7 @@
 #define GSBHTTP_H
 
 void http_server();
+void http_stop();
 std::string create_device_list();
 std::string http_get_balance();
 void receive_http(int client_sockfd);
