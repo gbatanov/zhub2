@@ -19,20 +19,22 @@
 
 struct GlobalConfig
 {
+    // working mode
+    std::string Mode;
     // telegram bot
     std::string BotName;
     int64_t MyId;
     std::string TokenPath;
     // map short address to mac address
     std::string MapPath;
-    // working mode
-    std::string Mode;
     // channels
     std::vector<uint8_t> Channels;
     // serial port
     std::string Port;
     // operating system
     std::string Os;
+    // modem
+    std::string PhoneNumber;
 };
 
 class App

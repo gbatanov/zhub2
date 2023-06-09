@@ -17,9 +17,9 @@ bool App::object_create()
         tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
         // канал отправки сообщений в телеграм
         tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
-        tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
+        tlg32 = std::make_shared<Tlg32>(config.BotName, tlg_in, tlg_out);
         tlgInThread = new std::thread(&App::handle, this);
-        tlg32->add_id(836487770);
+        tlg32->add_id(config.MyId);
         if (tlg32->run())
         { // Здесь будет выброшено исключение при отсутствии корректного токена
             tlg32->send_message("Программа перезапущена.\n");
@@ -50,13 +50,7 @@ bool App::startApp()
     startTime = gsbutils::DDate::current_time();
     if (!noAdapter)
     {
-        zhub->start(
-#ifdef TEST
-            zigbee::Controller::TEST_RF_CHANNELS
-#else
-            zigbee::Controller::DEFAULT_RF_CHANNELS
-#endif
-        );
+        zhub->start(config.Channels);
         httpThread = std::thread(http_server);
         exposerThread = std::thread(&App::exposer_handler, this);
         timer1Min = std::make_shared<gsbutils::CycleTimer>(60, &App::timer1min);
@@ -501,6 +495,12 @@ bool App::parse_config()
             {
                 // TODO: check valid
                 config.Port = value;
+            }
+            else if (key == "PhoneNumber")
+            {
+                // TODO: check valid
+                // Плюс в начале убираю
+                config.PhoneNumber = gsb_utils::remove_before(value, "+");
             }
             else if (key == "Channels")
             {

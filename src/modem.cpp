@@ -219,7 +219,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       if (res.find("CLIP") != std::string::npos)
       {
         // АОН сработал в этом же ответе
-        if (res.find("9250109365") != std::string::npos) // TODO: номер в конфигурацию
+        if (res.find(app.config.PhoneNumber) != std::string::npos) // TODO: номер в конфигурацию
         {
           // Мой номер, продолжаем дальше
           send_command("ATA\r", "ATA"); // отправка команды (синхронная, макс. 3сек.)
@@ -278,7 +278,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
     else if (res.find("+CLIP") != std::string::npos)
     { 
       // АОН при входящем звонке
-      if (res.find("9250109365") != std::string::npos) // TODO: телефон в настройки
+      if (res.find(app.config.PhoneNumber) != std::string::npos) // TODO: телефон в настройки
       {
         send_command("ATA\r", "ATA");
         is_call_ = true;
@@ -459,17 +459,17 @@ void GsmModem::on_tone_command(std::string command)
 // Команда обязательно начинается с /cmnd, через один пробел код команды,
 // аналогичный тоновым командам
 // ||CMGR: "REC UNREAD","+70250109365","","22/09/03,12:42:54+12"||test 5||||OK||
-// ||+CMGR: "REC UNREAD","+79250109365","","23/06/08,17:32:30+12"||/cmnd401||||OK||
+// ||+CMGR: "REC UNREAD","+79050109365","","23/06/08,17:32:30+12"||/cmnd401||||OK||
 void GsmModem::on_sms_command(std::string answer)
 {
   gsbutils::dprintf(1, "on_sms_command: %s\n", answer.c_str());
-  // TODO: номер телефона в конфиг
-  if (answer.find("79250109365") != std::string::npos && answer.find("/cmnd") != std::string::npos)
+
+  if (answer.find("7"+app.config.PhoneNumber) != std::string::npos && answer.find("/cmnd") != std::string::npos)
   {
     // принимаю команды пока только со своего телефона
-    gsbutils::dprintf(1, "%s\n", answer.c_str());
+//    gsbutils::dprintf(1, "%s\n", answer.c_str());
     answer = gsb_utils::remove_before(answer, "/cmnd");
-    gsbutils::dprintf(1, "%s\n", answer.c_str());
+//    gsbutils::dprintf(1, "%s\n", answer.c_str());
     answer = gsb_utils::remove_after(answer, "||||");
  //   gsbutils::dprintf(1, "%s\n", answer.c_str());
     gsb_utils::remove_all(answer, " ");
@@ -554,7 +554,7 @@ bool GsmModem::get_balance()
 // вызов на основной номер
 bool GsmModem::master_call()
 {
-  std::string cmd = "ATD+79250109365;\r"; // TODO: номер в конфиг
+  std::string cmd = "ATD+7"+app.config.PhoneNumber+";\r"; // TODO: номер в конфиг
   std::string res = send_command(cmd, "ATD");
   // При ожидании звонка и при сбросе звонка приходит пустой ответ
   // При ответе абонента приходит ответ COLP сразу после ответа

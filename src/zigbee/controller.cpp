@@ -36,21 +36,6 @@
 #include "../modem.h"
 #include "../app.h"
 
-#ifdef __MACH__
-// На маке зависит от гнезда, в которое воткнут координатор
-#ifdef TEST
-// тестовый координатор
-#define ADAPTER_ADDRESS "/dev/cu.usbmodem148201"
-#else
-// рабочий координатор
-#define ADAPTER_ADDRESS "/dev/cu.usbserial-53220280771"
-#endif
-#else
-#ifdef __linux__
-#define ADAPTER_ADDRESS "/dev/ttyACM0"
-#endif
-#endif
-
 using namespace zigbee;
 
 using zigbee::IEEEAddress;
@@ -62,9 +47,6 @@ using zigbee::zcl::Frame;
 extern App app;
 extern std::mutex trans_mutex;
 extern std::atomic<uint8_t> transaction_sequence_number;
-
-const std::vector<uint8_t> Controller::DEFAULT_RF_CHANNELS = {11};
-const std::vector<uint8_t> Controller::TEST_RF_CHANNELS = {15};
 
 const std::vector<zigbee::SimpleDescriptor> Controller::DEFAULT_ENDPOINTS_ = {{1,      // Enpoint number.
                                                                                0x0104, // Profile ID.
@@ -87,7 +69,7 @@ bool Controller::init_adapter()
     try
     {
         // в connect происходит запуск потока приема команд zigbee
-        if (!connect(ADAPTER_ADDRESS, 115200))
+        if (!connect(app.config.Port, 115200))
         {
             gsbutils::dprintf(1, "Zigbee UART is not connected\n");
             // дальнейшее выполнение бессмысленно, но надо уведомить по СМС или телеграм
@@ -478,7 +460,6 @@ void Controller::read_attribute(zigbee::NetworkAddress address, zigbee::zcl::Clu
     sendMessage(endpoint, cl, frame);
 }
 
-
 // получить устройство по сетевому адресу
 std::shared_ptr<zigbee::EndDevice> Controller::get_device_by_short_addr(zigbee::NetworkAddress network_address)
 {
@@ -697,13 +678,10 @@ bool Controller::setDevicesMapToFile()
 {
     std::string prefix = "/usr/local";
 
-    int dbg = 4;
-#ifdef TEST
-    dbg = 2;
-    std::string filename = prefix + "/etc/zhub2/map_addr_test.cfg";
-#else
-    std::string filename = prefix + "/etc/zhub2/map_addr.cfg";
-#endif
+    int dbg = 3;
+
+    std::string filename = app.config.MapPath;
+
     std::FILE *fd = std::fopen(filename.c_str(), "w");
     if (!fd)
     {
@@ -748,11 +726,9 @@ std::map<uint16_t, uint64_t> Controller::readMapFromFile()
 {
 
     std::map<uint16_t, uint64_t> item_data{};
-#ifdef TEST
-    std::string filename = "/usr/local/etc/zhub2/map_addr_test.cfg";
-#else
-    std::string filename = "/usr/local/etc/zhub2/map_addr.cfg";
-#endif
+
+    std::string filename = app.config.MapPath;
+
     std::FILE *fd = std::fopen(filename.c_str(), "r");
 
     if (fd)
