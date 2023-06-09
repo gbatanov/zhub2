@@ -36,19 +36,6 @@
 #include <termios.h>
 
 #include "version.h"
-
-#include "../telebot32/src/tlg32.h"
-#include "../gsb_utils/gsbutils.h"
-#include "comport/unix.h"
-#include "comport/serial.h"
-#include "common.h"
-#include "zigbee/zigbee.h"
-#include "exposer.h"
-#include "modem.h"
-#include "httpserver.h"
-#include "http.h"
-#include "exposer.h"
-#include "pi4-gpio.h"
 #include "app.h"
 
 using gsb_utils = gsbutils::SString;
@@ -110,8 +97,14 @@ bool App::startApp()
         timer1Min = std::make_shared<gsbutils::CycleTimer>(60, &App::timer1min);
 
         timer1Min->run();
+
+#ifdef IS_PI
+        tempr_thread = std::thread(get_main_temperature); // поток определения температуры платы Raspberry
+#endif
+
+        return true;
     }
-    return true;
+    return false;
 }
 // Функция потока ожидания команд с клавиатуры
 int App::cmd_func()
@@ -249,13 +242,18 @@ void App::timer1min()
 void App::stopApp()
 {
     Flag.store(false);
+    if (cmdThread.joinable())
+        cmdThread.join();
 
 #ifdef IS_PI
     close_gpio();
 #endif
 
     gsmModem->disconnect();
-
+#ifdef IS_PI
+    if (tempr_thread.joinable())
+        tempr_thread.join();
+#endif
     zhub->stop(); // остановка пулла потоков
     if (exposerThread.joinable())
         exposerThread.join();

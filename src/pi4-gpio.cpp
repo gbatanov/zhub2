@@ -38,12 +38,14 @@ Pi4Gpio::Pi4Gpio(power_func power)
 Pi4Gpio::~Pi4Gpio()
 {
 	flag.store(false);
+
 	close_gpio();
 }
 
 void Pi4Gpio::initialize_gpio()
 {
 #ifdef IS_PI
+	pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
 	// Открываем устройство
 	chip = gpiod_chip_open("/dev/gpiochip0");
 #endif
@@ -52,6 +54,9 @@ void Pi4Gpio::initialize_gpio()
 void Pi4Gpio::close_gpio()
 {
 #ifdef IS_PI
+	if (pwr_thread.joinable())
+		pwr_thread.join();
+
 	// Закрываем устройство
 	if (chip)
 		gpiod_chip_close(chip);
@@ -108,7 +113,6 @@ int Pi4Gpio::write_pin(int pin, int value)
 // функция потока наличия напряжения 220В
 // на малинке определяет по наличию +3В на контакте 38(GPIO20),
 // подается через реле, подключеннному к БП от 220В
-// TODO: убрать вызовы функций, переписать на каналы
 void Pi4Gpio::power_detect()
 {
 #ifdef IS_PI

@@ -19,6 +19,7 @@ private:
     struct gpiod_chip *chip = nullptr;
     std::atomic<bool> flag;
     power_func power_;
+        std::thread pwr_thread;
 };
 
 #endif
