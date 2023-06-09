@@ -21,9 +21,6 @@
 #include "../common.h"
 #include "zigbee.h"
 #include "../modem.h"
-#include "../app.h"
-
-extern App app;
 
 using gsb_utils = gsbutils::SString;
 using namespace zigbee;

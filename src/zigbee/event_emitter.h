@@ -1,10 +1,7 @@
 #ifndef EVENT_EMITTER_H
 #define EVENT_EMITTER_H
 
-#include <chrono>
-#include <mutex>
-#include <condition_variable>
-#include <map>
+
 
 class Event
 {
@@ -47,7 +44,7 @@ private:
     std::mutex m;
 };
 
-// event_command_ отслеживает поступление ответов на отправленную команду
+// eventCommand_ отслеживает поступление ответов на отправленную команду
 // event_id - ID комманды
 class EventCommand
 {

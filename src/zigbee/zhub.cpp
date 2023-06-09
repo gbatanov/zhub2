@@ -17,7 +17,7 @@
 #include <termios.h>
 
 #include "../telebot32/src/tlg32.h"
-
+#include "../pi4-gpio.h"
 #include "../../gsb_utils/gsbutils.h"
 #include "../comport/unix.h"
 #include "../comport/serial.h"
@@ -48,19 +48,21 @@ using namespace zigbee;
 
 Zhub::Zhub() : Controller()
 {
+    /*
     tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
     tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
     tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
     tlgInThread = new std::thread(&Zhub::handle, this);
+    */
 }
 Zhub::~Zhub()
 {
-
-    tlg_in->stop();
-    tlg_out->stop();
-    if (tlgInThread->joinable())
-        tlgInThread->join();
-
+    /*
+        tlg_in->stop();
+        tlg_out->stop();
+        if (tlgInThread->joinable())
+            tlgInThread->join();
+    */
     disconnect();
 }
 
@@ -216,7 +218,7 @@ void Zhub::handle_sonoff_door(std::shared_ptr<zigbee::EndDevice> ed, uint8_t cmd
         // информируем об открытии верхнего ящика
         if (cmd == 0x01)
             alarm_msg = "Открыт ящик ";
-        tlg32->send_message(alarm_msg);
+        send_tlg_message(alarm_msg);
     }
     else if (ed->getIEEEAddress() == 0x00124b0025485ee6) // sensor 1 датчик света в туалете
     {
@@ -481,10 +483,8 @@ void Zhub::onoff_command(zigbee::Message message)
         {
             ed->set_current_state("Double click"); // 1 - double , 2 - single, 0 - long
             std::string alarm_msg = "Вызов с кнопки ";
-            ringer();
-#ifdef WITH_TELEGA
-            tlg32->send_message(alarm_msg);
-#endif
+            app.ringer();
+            send_tlg_message(alarm_msg);
         }
         break;
         case 2:
@@ -708,20 +708,17 @@ std::string Zhub::show_device_statuses(bool as_html)
         }
 
         // Дальше выводится только в телеграм
-        /*
-        float temp = get_board_temperature();
+
+        float temp = app.get_board_temperature();
         if (temp)
         {
             size_t len = snprintf(buff, 1024, "Температура платы управления: %0.1f \n", temp);
             buff[len] = 0;
             result = result + std::string(buff);
         }
-        */
-        std::time_t lastMotionSensorAction = getLastMotionSensorActivity();
-        std::tm tm = *std::localtime(&lastMotionSensorAction);
-        size_t len = std::strftime(buff, sizeof(buff) / sizeof(buff[0]), " %Y-%m-%d %H:%M:%S", &tm);
-        buff[len] = 0;
-        result = result + "Последнее движение в " + std::string(buff) + "\n";
+
+        result = result + "Последнее движение в " +
+                 gsbutils::DDate::timestamp_to_string(getLastMotionSensorActivity()) + "\n";
     }
     catch (std::exception &e)
     {
@@ -848,59 +845,7 @@ inline void Zhub::switch_off_with_list()
             switch_relay(mac_addr, 0, 2);
     }
 }
-// используется в телеграм
-std::string Zhub::show_statuses()
+void Zhub::send_tlg_message(std::string msg)
 {
-    std::string statuses = show_device_statuses(false);
-    if (statuses.empty())
-        return "Нет активных устройств\n";
-    else
-        return "Статусы устройств:\n" + statuses + "\n";
-}
-
-// Здесь реализуется вся логика обработки принятых сообщений из телеграм
-void Zhub::handle()
-{
-    while (app.Flag.load())
-    {
-        TlgMessage msg = tlg_in->read();
-        if (!msg.text.empty())
-        {
-            TlgMessage answer{};
-            answer.chat.id = msg.from.id;
-
-            DBGLOG("Входное сообщение %s: %s \n", msg.from.firstName.c_str(), msg.text.c_str());
-            if (!tlg32->client_valid(msg.from.id))
-            {
-                answer.text = "Я не понял Вас.\n";
-                bool ret = tlg32->send_message(answer);
-            }
-            if (msg.text.starts_with("/start"))
-                answer.text = "Привет, " + msg.from.firstName;
-            else if (msg.text.starts_with("/stat"))
-            {
-                std::string stat = show_statuses();
-                if (stat.size() == 0)
-                    answer.text = "Нет ответа\n";
-                else
-                    answer.text = stat;
-            }
-            else if (msg.text.starts_with("/balance"))
-            {
-                if (app.with_sim800)
-                {
-                    if (app.gsmModem->get_balance())
-                        answer.text = "Запрос баланса отправлен\n";
-                }
-                else
-                {
-                    answer.text = "SIM800 не подключен\n";
-                }
-            }
-            else
-                answer.text = "Я не понял Вас.\n";
-
-            tlg_out->write(answer);
-        }
-    }
+    app.tlg32->send_message(msg);
 }

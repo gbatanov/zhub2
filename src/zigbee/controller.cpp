@@ -27,7 +27,7 @@
 
 #include "../version.h"
 #include "../telebot32/src/tlg32.h"
-
+#include "../pi4-gpio.h"
 #include "../comport/unix.h"
 #include "../comport/serial.h"
 #include "../../gsb_utils/gsbutils.h"
@@ -35,21 +35,6 @@
 #include "zigbee.h"
 #include "../modem.h"
 #include "../app.h"
-
-#ifdef __MACH__
-// На маке зависит от гнезда, в которое воткнут координатор
-#ifdef TEST
-// тестовый координатор
-#define ADAPTER_ADDRESS "/dev/cu.usbmodem148201"
-#else
-// рабочий координатор
-#define ADAPTER_ADDRESS "/dev/cu.usbserial-53220280771"
-#endif
-#else
-#ifdef __linux__
-#define ADAPTER_ADDRESS "/dev/ttyACM0"
-#endif
-#endif
 
 using namespace zigbee;
 
@@ -62,9 +47,6 @@ using zigbee::zcl::Frame;
 extern App app;
 extern std::mutex trans_mutex;
 extern std::atomic<uint8_t> transaction_sequence_number;
-
-const std::vector<uint8_t> Controller::DEFAULT_RF_CHANNELS = {11};
-const std::vector<uint8_t> Controller::TEST_RF_CHANNELS = {15};
 
 const std::vector<zigbee::SimpleDescriptor> Controller::DEFAULT_ENDPOINTS_ = {{1,      // Enpoint number.
                                                                                0x0104, // Profile ID.
@@ -87,7 +69,7 @@ bool Controller::init_adapter()
     try
     {
         // в connect происходит запуск потока приема команд zigbee
-        if (!connect(ADAPTER_ADDRESS, 115200))
+        if (!connect(app.config.Port, 115200))
         {
             gsbutils::dprintf(1, "Zigbee UART is not connected\n");
             // дальнейшее выполнение бессмысленно, но надо уведомить по СМС или телеграм
@@ -478,92 +460,6 @@ void Controller::read_attribute(zigbee::NetworkAddress address, zigbee::zcl::Clu
     sendMessage(endpoint, cl, frame);
 }
 
-/// все что дальше, унести в координатор
-// обработчик пропажи 220В
-void Controller::handle_power_off(int value)
-{
-    std::string alarm_msg = "";
-    if (value == 1)
-        alarm_msg = "Восстановлено 220В\n";
-    else if (value == 0)
-        alarm_msg = "Отсутствует 220В\n";
-    else
-        return;
-    gsbutils::dprintf(1, alarm_msg);
-
-    send_tlg_message(alarm_msg);
-}
-
-// Обработчик показаний температуры корпуса
-// Включение/выключение вентилятора
-void Controller::handle_board_temperature(float temp)
-{
-    char buff[128]{0};
-
-#ifdef IS_PI
-    if (temp > 70.0)
-        write_pin(16, 1);
-    else
-        write_pin(16, 0);
-#endif
-
-    size_t len = snprintf(buff, 128, "Температура платы управления: %0.1f \n", temp);
-    buff[len] = 0;
-    std::string temp_msg = std::string(buff);
-    gsbutils::dprintf(1, temp_msg);
-
-    send_tlg_message(temp_msg);
-}
-
-// Включение звонка
-void Controller::ringer()
-{
-#ifdef IS_PI
-    write_pin(26, 1);
-    sleep(1);
-    write_pin(26, 0);
-#endif
-}
-
-// Управление вентилятором обдува платы управления
-void Controller::fan(bool work)
-{
-#ifdef IS_PI
-    write_pin(16, work ? 1 : 0);
-#endif
-}
-
-// Параметры питания модема
-std::string Controller::show_sim800_battery()
-{
-#ifdef WITH_SIM800
-    static uint8_t counter = 0;
-    char answer[256]{};
-    std::array<int, 3> battery = app.gsmModem->get_battery_level(false);
-    std::string charge = "";
-    if (battery[0] != -1)
-        charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
-    std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
-    std::string volt = battery[2] == -1 ? "" : std::to_string((float)(battery[2] / 1000)) + "V";
-    int res = std::snprintf(answer, 256, "SIM800l питание: %s, %s, %0.2f V\n", charge.c_str(), level.c_str(), battery[2] == -1 ? 0.0 : (float)battery[2] / 1000);
-    if (res > 0 && res < 256)
-        answer[res] = 0;
-    else
-        strcat(answer, (char *)"Ошибка получения инфо о батарее");
-
-    counter++;
-    if (counter > 5)
-    {
-        counter = 0;
-        app.gsmModem->get_battery_level(true);
-    }
-    return std::string(answer);
-
-#else
-    return "";
-#endif
-}
-
 // получить устройство по сетевому адресу
 std::shared_ptr<zigbee::EndDevice> Controller::get_device_by_short_addr(zigbee::NetworkAddress network_address)
 {
@@ -782,13 +678,10 @@ bool Controller::setDevicesMapToFile()
 {
     std::string prefix = "/usr/local";
 
-    int dbg = 4;
-#ifdef TEST
-    dbg = 2;
-    std::string filename = prefix + "/etc/zhub2/map_addr_test.cfg";
-#else
-    std::string filename = prefix + "/etc/zhub2/map_addr.cfg";
-#endif
+    int dbg = 3;
+
+    std::string filename = app.config.MapPath;
+
     std::FILE *fd = std::fopen(filename.c_str(), "w");
     if (!fd)
     {
@@ -833,11 +726,9 @@ std::map<uint16_t, uint64_t> Controller::readMapFromFile()
 {
 
     std::map<uint16_t, uint64_t> item_data{};
-#ifdef TEST
-    std::string filename = "/usr/local/etc/zhub2/map_addr_test.cfg";
-#else
-    std::string filename = "/usr/local/etc/zhub2/map_addr.cfg";
-#endif
+
+    std::string filename = app.config.MapPath;
+
     std::FILE *fd = std::fopen(filename.c_str(), "r");
 
     if (fd)
