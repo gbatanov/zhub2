@@ -270,10 +270,11 @@ void Controller::on_message(zigbee::Command command)
 
                     send_tlg_message(alarm_msg);
 
-#ifdef WITH_SIM800
-                    gsbutils::dprintf(1, "Phone number call \n");
-                    app.gsmModem->master_call();
-#endif
+                    if (app.with_sim800)
+                    {
+                        gsbutils::dprintf(1, "Phone number call \n");
+                        app.gsmModem->master_call();
+                    }
                 }
                 gsbutils::dprintf(1, "Device 0x%02x Water Leak: %s \n ", message.source.address, message.zcl_frame.payload[0] ? "ALARM" : "NORMAL");
             }

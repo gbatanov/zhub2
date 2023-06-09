@@ -184,9 +184,8 @@ std::string create_device_list()
         result = result + std::string(buff) + "</p>";
     }
 #endif
-#ifdef WITH_SIM800
-    result = result + "<p>" + app.show_sim800_battery() + "</p>";
-#endif
+    if (app.with_sim800)
+        result = result + "<p>" + app.show_sim800_battery() + "</p>";
 
     result = result + "<p>Время последнего срабатывания датчиков движения: " +
              gsbutils::DDate::timestamp_to_string(app.zhub->getLastMotionSensorActivity()) + "</p>";
@@ -225,10 +224,11 @@ std::string command_list()
     result += "<p>Реле 7&nbsp;<a href=\"/command?on=0x00158d0009414d7e&ep=1\">Включить 1</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=1\">Выключить1</a><a href=\"/command?on=0x00158d0009414d7e&ep=2\">Включить 2</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=2\">Выключить 2</a></p>";
     result += "<p></p>";
     result += "<p>-------------------------------</p>";
-#ifdef WITH_SIM800
-    result += "<p><a href=\"/balance\">Запросить баланс</a></p>";
-    result += "<p>-------------------------------</p>";
-#endif
+    if (app.with_sim800)
+    {
+        result += "<p><a href=\"/balance\">Запросить баланс</a></p>";
+        result += "<p>-------------------------------</p>";
+    }
     result += "<p><a href=\"/join\">Разрешить спаривание</a></p>";
     result += "<p>-------------------------------</p>";
 

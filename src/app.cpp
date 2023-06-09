@@ -56,9 +56,7 @@ bool App::startApp()
 
         timer1Min->run();
 
-#ifdef IS_PI
-        tempr_thread = std::thread(get_main_temperature); // поток определения температуры платы Raspberry
-#endif
+        tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы Raspberry
 
         return true;
     }
@@ -146,49 +144,50 @@ int App::cmd_func()
 
 void App::exposer_handler()
 {
-    // 2.18.450 - сейчас IP фактически не используется, слушает запросы с любого адреса
-    Exposer exposer(std::string("localhost"), 8092);
-    exposer.start();
+    if (config.Prometheus)
+    {
+        // 2.18.450 - сейчас IP фактически не используется, слушает запросы с любого адреса
+        Exposer exposer(std::string("localhost"), 8092);
+        exposer.start();
+    }
 }
 
 bool App::init_modem()
 {
     gsmModem = std::make_shared<GsmModem>();
-#ifdef WITH_SIM800
-    try
+    if (config.Sim800)
     {
-
-#ifdef __MACH__
-        with_sim800 = gsmModem->connect("/dev/cu.usbserial-A50285BI", 9600); // 115200  19200 9600 7200
-#else
-        with_sim800 = gsmModem->connect("/dev/ttyUSB0");
-#endif
-        if (!with_sim800)
+        try
         {
-            tlg32->send_message("Модем SIM800 не обнаружен.\n");
-            return false;
-        }
-        else
-        {
-            with_sim800 = gsmModem->init_modem();
+            with_sim800 = gsmModem->connect(config.PortModem, 9600); // 115200  19200 9600 7200
             if (!with_sim800)
+            {
+                tlg32->send_message("Модем SIM800 не обнаружен.\n");
                 return false;
-            tlg32->send_message("Модем SIM800 активирован.\n");
-            gsmModem->get_battery_level(true);
-            gsmModem->get_balance(); // для индикации корректной работы обмена по смс
+            }
+            else
+            {
+                with_sim800 = gsmModem->init_modem();
+                if (!with_sim800)
+                    return false;
+                tlg32->send_message("Модем SIM800 активирован.\n");
+                gsmModem->get_battery_level(true);
+                gsmModem->get_balance(); // для индикации корректной работы обмена по смс
+            }
         }
+        catch (std::exception &e)
+        {
+            with_sim800 = false;
+            tlg32->send_message("Модем SIM800 не обнаружен.\n");
+        }
+
+        return true;
     }
-    catch (std::exception &e)
+    else
     {
         with_sim800 = false;
-        tlg32->send_message("Модем SIM800 не обнаружен.\n");
+        return false;
     }
-
-    return true;
-#else
-    with_sim800 = false;
-    return false;
-#endif
 }
 // timer 1 min - callback function
 void App::timer1min()
@@ -208,16 +207,19 @@ void App::stopApp()
 #endif
 
     gsmModem->disconnect();
-#ifdef IS_PI
+
     if (tempr_thread.joinable())
         tempr_thread.join();
-#endif
-    zhub->stop(); // остановка пулла потоков
     if (exposerThread.joinable())
         exposerThread.join();
+
     http_stop();
     if (httpThread.joinable())
         httpThread.join();
+
+    tpm->stop_threads();
+
+    zhub->stop(); // остановка пулла потоков, длится дольше всего
 
     tlg32->stop();
     tlg_in->stop();
@@ -229,32 +231,34 @@ void App::stopApp()
 // Параметры питания модема
 std::string App::show_sim800_battery()
 {
-#ifdef WITH_SIM800
-    static uint8_t counter = 0;
-    char answer[256]{};
-    std::array<int, 3> battery = gsmModem->get_battery_level(false);
-    std::string charge = "";
-    if (battery[0] != -1)
-        charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
-    std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
-    std::string volt = battery[2] == -1 ? "" : std::to_string((float)(battery[2] / 1000)) + "V";
-    int res = std::snprintf(answer, 256, "SIM800l питание: %s, %s, %0.2f V\n", charge.c_str(), level.c_str(), battery[2] == -1 ? 0.0 : (float)battery[2] / 1000);
-    if (res > 0 && res < 256)
-        answer[res] = 0;
-    else
-        strcat(answer, (char *)"Ошибка получения инфо о батарее");
-
-    counter++;
-    if (counter > 5)
+    if (with_sim800)
     {
-        counter = 0;
-        gsmModem->get_battery_level(true);
-    }
-    return std::string(answer);
+        static uint8_t counter = 0;
+        char answer[256]{};
+        std::array<int, 3> battery = gsmModem->get_battery_level(false);
+        std::string charge = "";
+        if (battery[0] != -1)
+            charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
+        std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
+        std::string volt = battery[2] == -1 ? "" : std::to_string((float)(battery[2] / 1000)) + "V";
+        int res = std::snprintf(answer, 256, "SIM800l питание: %s, %s, %0.2f V\n", charge.c_str(), level.c_str(), battery[2] == -1 ? 0.0 : (float)battery[2] / 1000);
+        if (res > 0 && res < 256)
+            answer[res] = 0;
+        else
+            strcat(answer, (char *)"Ошибка получения инфо о батарее");
 
-#else
-    return "";
-#endif
+        counter++;
+        if (counter > 5)
+        {
+            counter = 0;
+            gsmModem->get_battery_level(true);
+        }
+        return std::string(answer);
+    }
+    else
+    {
+        return "";
+    }
 }
 // Измеряем температуру основной платы
 // Если она больше 70 градусов, посылаем сообщение в телеграм
@@ -289,6 +293,9 @@ void App::get_main_temperature()
 // Получить значение температуры управляющей платы
 float App::get_board_temperature()
 {
+#ifdef __MACH__
+    return -100.0;
+#else
     char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
     uint32_t temp_int = 0; // uint16_t не пролезает !!!!
     float temp_f = 0.0;
@@ -310,6 +317,7 @@ float App::get_board_temperature()
         temp_f = (float)temp_int / 1000;
     }
     return temp_f;
+#endif
 }
 
 // обработчик пропажи 220В
@@ -426,6 +434,11 @@ bool App::parse_config()
 #ifdef __linux__
     config.Os = "linux";
 #endif
+    // некоторые предустановки по умолчанию, если параметр в конфиге пропущен или некорректен,
+    // будет взят дефолтный
+    config.Prometheus = false;
+    config.Sim800 = false;
+    config.Gpio = false;
 
     std::string filename = "/usr/local/etc/zhub2/config";
     std::ifstream infile(filename.c_str());
@@ -518,6 +531,24 @@ bool App::parse_config()
                                 config.Channels.push_back((uint8_t)ch);
                     }
                 }
+            }
+            else if (key == "Prometheus")
+            {
+                unsigned v;
+                if (sscanf(value.c_str(), "%u", &v) > 0)
+                    config.Prometheus = v != 0;
+            }
+            else if (key == "Sim800")
+            {
+                unsigned v;
+                if (sscanf(value.c_str(), "%u", &v) > 0)
+                    config.Sim800 = v != 0;
+            }
+            else if (key == "Gpio")
+            {
+                unsigned v;
+                if (sscanf(value.c_str(), "%u", &v) > 0)
+                    config.Gpio = v != 0;
             }
 
         } // while

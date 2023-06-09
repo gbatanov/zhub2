@@ -106,18 +106,21 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
 // Очищаем очередь смс-сообщений
 bool GsmModem::init_modem()
 {
-#ifdef WITH_SIM800
-  send_command("AT\r", "At");
-  set_echo(true);
-  set_aon();
-  send_command("AT+CMGF=1\r", "AT+CMGF");
-  send_command("AT+DDET=1,0,0\r", "AT+DDET");
-  send_command("AT+CMGD=1,4\r", "AT+CMGD"); // Удаление всех сообщений, второй вариант
-  send_command("AT+COLP=1\r", "AT+COLP");
-  return true;
-#else
-  return false;
-#endif
+  if (app.with_sim800)
+  {
+    send_command("AT\r", "At");
+    set_echo(true);
+    set_aon();
+    send_command("AT+CMGF=1\r", "AT+CMGF");
+    send_command("AT+DDET=1,0,0\r", "AT+DDET");
+    send_command("AT+CMGD=1,4\r", "AT+CMGD"); // Удаление всех сообщений, второй вариант
+    send_command("AT+COLP=1\r", "AT+COLP");
+    return true;
+  }
+  else
+  {
+    return false;
+  }
 }
 
 // фактическая отправка команды (синхронное выполнение)
@@ -276,7 +279,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       }
     }
     else if (res.find("+CLIP") != std::string::npos)
-    { 
+    {
       // АОН при входящем звонке
       if (res.find(app.config.PhoneNumber) != std::string::npos) // TODO: телефон в настройки
       {
@@ -324,7 +327,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       std::string inCmd = gsb_utils::remove_after(res, "|");
       inCmd = gsb_utils::remove_after(inCmd, "=");
       res = gsb_utils::remove_before(res, "|");
-//      gsbutils::dprintf(1, "Принят ответ %s на команду %s \n", res.c_str(), inCmd.c_str());
+      //      gsbutils::dprintf(1, "Принят ответ %s на команду %s \n", res.c_str(), inCmd.c_str());
       if (inCmd == "AT" ||
           inCmd == "ATE1" ||
           inCmd == "ATH0" ||
@@ -464,16 +467,16 @@ void GsmModem::on_sms_command(std::string answer)
 {
   gsbutils::dprintf(1, "on_sms_command: %s\n", answer.c_str());
 
-  if (answer.find("7"+app.config.PhoneNumber) != std::string::npos && answer.find("/cmnd") != std::string::npos)
+  if (answer.find("7" + app.config.PhoneNumber) != std::string::npos && answer.find("/cmnd") != std::string::npos)
   {
     // принимаю команды пока только со своего телефона
-//    gsbutils::dprintf(1, "%s\n", answer.c_str());
+    //    gsbutils::dprintf(1, "%s\n", answer.c_str());
     answer = gsb_utils::remove_before(answer, "/cmnd");
-//    gsbutils::dprintf(1, "%s\n", answer.c_str());
+    //    gsbutils::dprintf(1, "%s\n", answer.c_str());
     answer = gsb_utils::remove_after(answer, "||||");
- //   gsbutils::dprintf(1, "%s\n", answer.c_str());
+    //   gsbutils::dprintf(1, "%s\n", answer.c_str());
     gsb_utils::remove_all(answer, " ");
-//    gsbutils::dprintf(1, "%s\n", answer.c_str());
+    //    gsbutils::dprintf(1, "%s\n", answer.c_str());
     execute_tone_command(answer);
   }
   // AT+CMGD=1,4
@@ -503,7 +506,7 @@ void GsmModem::on_sms(std::string answer)
     buf[res] = 0;
     std::string rd_sms = std::string(buf);
     send_command(rd_sms, "AT+CMGR");
-//    gsbutils::dprintf(1, "%s\n", buf);
+    //    gsbutils::dprintf(1, "%s\n", buf);
   }
 }
 
@@ -554,7 +557,7 @@ bool GsmModem::get_balance()
 // вызов на основной номер
 bool GsmModem::master_call()
 {
-  std::string cmd = "ATD+7"+app.config.PhoneNumber+";\r"; // TODO: номер в конфиг
+  std::string cmd = "ATD+7" + app.config.PhoneNumber + ";\r"; // TODO: номер в конфиг
   std::string res = send_command(cmd, "ATD");
   // При ожидании звонка и при сбросе звонка приходит пустой ответ
   // При ответе абонента приходит ответ COLP сразу после ответа
@@ -607,7 +610,7 @@ bool GsmModem::send_sms(std::string sms)
   //                                  043F0440043804320435044200200445043004310440002C0020044D0442043E00200442043504410442043E0432043E043500200441043E043E043104490435043D04380435//
   msg.push_back((char)0x1A);     // Ctrl+Z
   res = send_command(msg, "OK"); /// ??
-//  gsbutils::dprintf(1, "SMS answer2: " + res + "\n");
+                                 //  gsbutils::dprintf(1, "SMS answer2: " + res + "\n");
   std::this_thread::sleep_for(std::chrono::seconds(3));
   cmd = "AT+CMGF=1\r";
   res = send_command(cmd, "AT+CMGF");

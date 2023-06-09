@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(zhub2 LANGUAGES CXX VERSION 2.27.605)
+project(zhub2 LANGUAGES CXX VERSION 2.27.606)
 
 message(STATUS "${PROJECT_NAME} version ${PROJECT_VERSION}")
 
@@ -7,10 +7,6 @@ if(DEBUG)
   set(PROJECT_DEFAULT_BUILD_TYPE "Debug")
 else()
   set(PROJECT_DEFAULT_BUILD_TYPE "Release")
-endif()
-
-if(SIM800)
-   set(SIM_800 "#define WITH_SIM800 1")
 endif()
 
 if(GPIO)

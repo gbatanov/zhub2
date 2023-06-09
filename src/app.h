@@ -38,7 +38,13 @@ struct GlobalConfig
     // operating system
     std::string Os;
     // modem
+    bool Sim800;
+    std::string PortModem;
     std::string PhoneNumber;
+    // using Prometheus
+    bool Prometheus;
+    // using gpio
+    bool Gpio;
 };
 
 class App

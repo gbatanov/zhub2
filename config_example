@@ -2,6 +2,9 @@
 Mode   test 
 Port /dev/cu.usbmodem148201
 PhoneNumber +79020109365
+Sim800 1
+PortModem /dev/ttyUSB0
+
 
 [prod]
 // telegram bot
@@ -12,6 +15,10 @@ TokenPath /usr/local/etc/telebot32/.tokenDummyBo/.token
 MapPath /usr/local/etc/zhub4/map_addr.cfg
 // RF channels
 Channels 11
+// using Prometheus
+Prometheus 1
+//using GPIO
+Gpio 1
 
 [test]
 // telegram bot
