@@ -27,7 +27,7 @@ using Other = zigbee::clusters::Other;
 // Известные, но неподдерживаемые в этой программе кластеры
 void Other::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 7;

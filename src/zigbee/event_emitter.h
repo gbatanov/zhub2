@@ -58,7 +58,7 @@ public:
     // устанавливает событие с заданным ID и аргументом
     void emit(CommandId event_id, Command argument)
     {
-#ifdef TEST
+#ifdef DEBUG
         gsbutils::dprintf(7, "Event emit %04x\n", (uint16_t)event_id);
 #endif
         Listener listener = getListener(event_id);
@@ -71,7 +71,7 @@ public:
     // Если оно произошло, возвращаем сохраненную в событии команду, иначе по тайм-ауту возвращаем nullopt
     std::optional<Command> wait(CommandId event_id, std::chrono::duration<int, std::milli> timeout)
     {
-#ifdef TEST
+#ifdef DEBUG
         gsbutils::dprintf(7, "Event wait %04x\n", (uint16_t)event_id);
 #endif
         Listener listener = getListener(event_id);

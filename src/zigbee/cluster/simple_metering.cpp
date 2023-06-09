@@ -27,7 +27,7 @@ using SimpleMetering = zigbee::clusters::SimpleMetering;
 
 void SimpleMetering::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
     // здесь отображаются данные с умной розетки
     for (auto attribute : attributes)

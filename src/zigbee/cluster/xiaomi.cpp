@@ -26,7 +26,7 @@ using Xiaomi = zigbee::clusters::Xiaomi;
 
 void Xiaomi::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 3;

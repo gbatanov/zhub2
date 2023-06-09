@@ -374,7 +374,7 @@ std::optional<int> Zdo::setTransmitPower(int power)
 // Основнаяя обработка входящих сообщений(AF_INCOMING_MSG) в OnMessage
 void Zdo::handle_command(Command command)
 {
-#ifdef TEST
+#ifdef DEBUG
     gsbutils::dprintf(1, "Zdo::handle_command Command:%04x %s\n", command.id(), getCommandStr(command).c_str());
 #endif
     switch (command.id())
@@ -465,7 +465,7 @@ void Zdo::handle_command(Command command)
                                             // может приходить несколько раз для одного события
     {
 //        eventCommand_.emit(command.id(), command);
-#ifdef TEST
+#ifdef DEBUG
         uint8_t dbg = 5;
         gsbutils::dprintf(dbg, "Zdo::handle_command: ZDO_TC_DEV_IND:%04x\n", command.id());
         zigbee::NetworkAddress networkAddress = _UINT16(command.payload(0), command.payload(1));
@@ -515,7 +515,7 @@ void Zdo::handle_command(Command command)
     case zigbee::CommandId::ZDO_BIND_RSP: // 0x45a1
     {
 
-#ifdef TEST
+#ifdef DEBUG
         size_t len = command.payload_size();
         if (len > 0)
         {
@@ -544,7 +544,7 @@ void Zdo::handle_command(Command command)
     case zigbee::CommandId::ZDO_ACTIVE_EP_RSP: // 0x4585
     {
 //        eventCommand_.emit(command.id(), command);
-#ifdef TEST
+#ifdef DEBUG
 
         if ((static_cast<Status>(command.payload(2)) == Status::SUCCESS))
         {
@@ -568,7 +568,7 @@ void Zdo::handle_command(Command command)
     case zigbee::CommandId::ZDO_SIMPLE_DESC_RSP: // 0x4584
     {
         //       eventCommand_.emit(command.id(), command);
-#ifdef TEST
+#ifdef DEBUG
         size_t len = command.payload_size();
         if (len > 0)
         {
@@ -784,7 +784,7 @@ std::vector<uint8_t> Zdo::read_rf_channels()
             if (channelBitMask & (1 << i))
             {
                 rf.push_back(i);
-                gsbutils::dprintf_c(dbg, " %d ", i); // TEST - 11
+                gsbutils::dprintf_c(dbg, " %d ", i); // prod - 11, test - 15
             }
         }
         gsbutils::dprintf_c(dbg, "\n");

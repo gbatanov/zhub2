@@ -30,7 +30,7 @@ extern App app;
 
 void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
         int dbg = 1;
 #else
         int dbg = 4;
@@ -161,7 +161,7 @@ void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
         break;
         case zigbee::zcl::Attributes::OnOffSwitch::_00F7: // какие то наборы символов
         {
-#ifdef TEST
+#ifdef DEBUG
             for (uint8_t b : any_cast<std::string>(attribute.value))
             {
                 gsbutils::dprintf_c(dbg, " 0x%02x", b);

@@ -48,21 +48,10 @@ using namespace zigbee;
 
 Zhub::Zhub() : Controller()
 {
-    /*
-    tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
-    tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
-    tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
-    tlgInThread = new std::thread(&Zhub::handle, this);
-    */
+
 }
 Zhub::~Zhub()
 {
-    /*
-        tlg_in->stop();
-        tlg_out->stop();
-        if (tlgInThread->joinable())
-            tlgInThread->join();
-    */
     disconnect();
 }
 
@@ -80,7 +69,7 @@ void Zhub::start(std::vector<uint8_t> rfChannels)
     if (!app.Flag.load())
         return;
 
-#ifdef TEST
+#ifdef DEBUG
     // Датчик движения ИКЕА
     std::vector<uint16_t> idsOnoff{0x0000};
     uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0x0c4314fffe17d8a8);
@@ -615,7 +604,7 @@ void Zhub::check_motion_activity()
     if (as_html)  \
         result = result + "<tr class='empty'><td colspan='8'><hr></td></tr>";
 
-#ifdef TEST
+#ifdef DEBUG
 #define EDCHECK (ed && ed->deviceInfo.test)
 #else
 #define EDCHECK (ed && ed->deviceInfo.available)

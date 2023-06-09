@@ -619,7 +619,7 @@ bool Controller::configureReporting(zigbee::NetworkAddress address,
                                     zcl::Attribute::DataType attribute_data_type,
                                     uint16_t reportable_change)
 {
-#ifdef TEST
+#ifdef DEBUG
     gsbutils::dprintf(1, "Configure Reporting \n");
 #endif
     // default
@@ -636,16 +636,11 @@ bool Controller::configureReporting(zigbee::NetworkAddress address,
     frame.frame_control.manufacturer_specific = false;
     frame.transaction_sequence_number = generateTransactionSequenceNumber();
     frame.command = zigbee::zcl::GlobalCommands::CONFIGURE_REPORTING; // 0x06
-// end ZCL Header
+                                                                      // end ZCL Header
 
-// Интервал идет в секундах!
-#ifdef TEST
-    uint16_t min_interval = 180; // 3 min
-    uint16_t max_interval = 600; // 10 min
-#else
+    // Интервал идет в секундах!
     uint16_t min_interval = 60;   // 1 minutes
     uint16_t max_interval = 3600; // 1 hours
-#endif
 
     std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(address);
 

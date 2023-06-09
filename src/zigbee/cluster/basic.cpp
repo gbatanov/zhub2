@@ -317,7 +317,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
             break;
             case zigbee::zcl::Attributes::Basic::PHYSICAL_ENVIRONMENT: // 0x0011, enum8
             {
-#ifdef TEST
+#ifdef DEBUG
                 uint8_t val = any_cast<uint8_t>(attribute.value);
                 gsbutils::dprintf(1, "PHYSICAL_ENVIRONMENT: 0x%04x 0x%02x \n\n", endpoint.address, val);
 #endif
@@ -325,7 +325,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
             break;
             case zigbee::zcl::Attributes::Basic::DEVICE_ENABLED: // 0x0012, uint8
             {
-#ifdef TEST
+#ifdef DEBUG
                 uint8_t val = any_cast<uint8_t>(attribute.value);
                 gsbutils::dprintf(1, "DEVICE_ENABLED: 0x%04x %s \n\n", endpoint.address, val ? "Enabled" : "Disabled");
 #endif

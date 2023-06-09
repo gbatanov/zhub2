@@ -89,17 +89,6 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/local/bin)
 
 install(FILES gsb_style.css DESTINATION /usr/local/etc/zhub2/css/)
-
-if(TELEGA)
-  message(STATUS "Bot name ${BOT_NAME}")
-endif()
-
-if(TEST)
 install(FILES ../map_addr_test.cfg DESTINATION /usr/local/etc/zhub2/)
-#  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/.token DESTINATION /usr/local/etc/telebot32/.token${BOT_NAME})
-else()
 install(FILES ../map_addr.cfg DESTINATION /usr/local/etc/zhub2/)
-#  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/.token DESTINATION /usr/local/etc/telebot32/.token${BOT_NAME})
-endif()
-
 install(FILES ../config DESTINATION /usr/local/etc/zhub2/)

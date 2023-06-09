@@ -26,7 +26,7 @@ using ElectricalMeasurements = zigbee::clusters::ElectricalMeasurements;
 
 void ElectricalMeasurements::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 4;
@@ -41,7 +41,7 @@ void ElectricalMeasurements::attribute_handler(std::vector<zigbee::zcl::Attribut
         {
             uint16_t val = any_cast<uint16_t>(attribute.value);
             ed->set_mains_voltage((double)val);
-#ifdef TEST
+#ifdef DEBUG
             gsbutils::dprintf(dbg, "ElectricalMeasuremenrs Device 0x%04x,Voltage=%0.3fV, \n", endpoint.address, (double)val);
 #endif
         }
@@ -50,7 +50,7 @@ void ElectricalMeasurements::attribute_handler(std::vector<zigbee::zcl::Attribut
         {
             uint16_t val = any_cast<uint16_t>(attribute.value);
             ed->set_current((double)val / 1000);
-#ifdef TEST
+#ifdef DEBUG
             gsbutils::dprintf(dbg, "ElectricalMeasuremenrs Device 0x%04x,Current=%0.3fA, \n", endpoint.address, (double)val / 1000);
 #endif
         }

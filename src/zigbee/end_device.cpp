@@ -105,16 +105,12 @@ const std::vector<uint64_t> EndDevice::OFF_LIST = {
 
 // Список устройств для отображения в Графане
 const std::vector<uint64_t> EndDevice::PROM_MOTION_LIST = {
-#ifdef TEST
-    0x0c4314fffe17d8a8
-#else
     0x00124b0025137475, // коридор
     0x00124b0014db2724, // прихожая
     0x00124b0009451438, // кухня
     0x00124b0024455048, // комната
     0x00124b002444d159, // детская
     0x00124b0007246963  // балкон
-#endif
 };
 const std::vector<uint64_t> EndDevice::PROM_DOOR_LIST = {
     0x00124b0025485ee6 // туалет

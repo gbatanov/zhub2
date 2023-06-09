@@ -74,11 +74,10 @@ int main(int argc, char *argv[])
     signal_init();
 #ifdef DEBUG
     gsbutils::init(0, (const char *)"zhub2");
-    gsbutils::set_debug_level(3); // 0 - Отключение любого дебагового вывода
 #else
     gsbutils::init(1, (const char *)"zhub2");
-    gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
 #endif
+    gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
 
     gsbutils::dprintf(1, "Start zhub2 v%s.%s.%s \n", Project_VERSION_MAJOR, Project_VERSION_MINOR, Project_VERSION_PATCH);
     if (!app.parse_config())
@@ -86,12 +85,15 @@ int main(int argc, char *argv[])
         gsbutils::stop(); // остановка вывода сообщений
         return -100;
     }
+    if (app.config.Mode == "debug" || app.config.Mode == "test")
+        gsbutils::set_debug_level(3);
+
     if (app.object_create())
         app.startApp();
 
     app.stopApp();
 
-    gsbutils::stop(); // остановка вывода сообщений    
+    gsbutils::stop(); // остановка вывода сообщений
     return ret;
 }
 

@@ -41,7 +41,7 @@ Exposer::~Exposer()
 void Exposer::start()
 {
     flag.store(false);
-#ifdef WITH_PROMETHEUS
+
     flag.store(true);
     // Попытка открыть TCP socket для HTTP-сервер
     httpSockfd = open_tcp_socket(httpServerPort);
@@ -93,7 +93,7 @@ void Exposer::start()
 
     if (httpSockfd >= 0)
         close(httpSockfd);
-#endif
+
 }
 
 /// @brief Open TCP socket for web-interface

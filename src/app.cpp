@@ -477,8 +477,12 @@ bool App::parse_config()
             }
             else if (key == "MyId")
             {
-                // TODO: check int64
+// TODO: check int64
+#ifdef __MACH__
+                sscanf(value.c_str(), "%lld", &config.MyId);
+#else
                 sscanf(value.c_str(), "%ld", &config.MyId);
+#endif
             }
             else if (key == "TokenPath")
             {
