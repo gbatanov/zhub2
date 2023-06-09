@@ -62,14 +62,19 @@ bool App::object_create()
     try
     {
 
+        tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+        tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+        tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
+        tlgInThread = new std::thread(&App::handle, this);
+        tlg32->add_id(836487770);
+        if (tlg32->run())
+        { // Здесь будет выброшено исключение при отсутствии корректного токена
+            tlg32->send_message("Программа перезапущена.\n");
+        }
+
         cmdThread = std::thread(&App::cmd_func, this);
         zhub = std::make_shared<zigbee::Zhub>();
-        zhub->tlg32->add_id(836487770);
 
-        if (zhub->tlg32->run())
-        { // Здесь будет выброшено исключение при отсутствии корректного токена
-            zhub->tlg32->send_message("Программа перезапущена.\n");
-        }
         noAdapter = zhub->init_adapter();
 
         tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
@@ -248,13 +253,19 @@ void App::stopApp()
 #endif
 
     gsmModem->disconnect();
-    zhub->tlg32->stop();
+
     zhub->stop(); // остановка пулла потоков
     if (exposerThread.joinable())
         exposerThread.join();
     http_stop();
     if (httpThread.joinable())
         httpThread.join();
+
+    tlg32->stop();
+    tlg_in->stop();
+    tlg_out->stop();
+    if (tlgInThread->joinable())
+        tlgInThread->join();
 
     gsbutils::stop(); // остановка вывода сообщений
 }
@@ -357,7 +368,7 @@ void App::handle_power_off(int value)
         return;
     gsbutils::dprintf(1, alarm_msg);
 
-    zhub->tlg32->send_message(alarm_msg);
+    tlg32->send_message(alarm_msg);
 }
 
 // Обработчик показаний температуры корпуса
@@ -376,7 +387,7 @@ void App::handle_board_temperature(float temp)
     std::string temp_msg = std::string(buff);
     gsbutils::dprintf(1, temp_msg);
 
-    zhub->tlg32->send_message(temp_msg);
+    tlg32->send_message(temp_msg);
 }
 
 // Включение звонка
@@ -391,4 +402,61 @@ void App::ringer()
 void App::fan(bool work)
 {
     gpio.write_pin(16, work ? 1 : 0);
+}
+
+// используется в телеграм
+std::string App::show_statuses()
+{
+    std::string statuses = zhub->show_device_statuses(false);
+    if (statuses.empty())
+        return "Нет активных устройств\n";
+    else
+        return "Статусы устройств:\n" + statuses + "\n";
+}
+
+// Здесь реализуется вся логика обработки принятых сообщений из телеграм
+void App::handle()
+{
+    while (Flag.load())
+    {
+        TlgMessage msg = tlg_in->read();
+        if (!msg.text.empty())
+        {
+            TlgMessage answer{};
+            answer.chat.id = msg.from.id;
+
+            DBGLOG("Входное сообщение %s: %s \n", msg.from.firstName.c_str(), msg.text.c_str());
+            if (!tlg32->client_valid(msg.from.id))
+            {
+                answer.text = "Я не понял Вас.\n";
+                bool ret = tlg32->send_message(answer);
+            }
+            if (msg.text.starts_with("/start"))
+                answer.text = "Привет, " + msg.from.firstName;
+            else if (msg.text.starts_with("/stat"))
+            {
+                std::string stat = show_statuses();
+                if (stat.size() == 0)
+                    answer.text = "Нет ответа\n";
+                else
+                    answer.text = stat;
+            }
+            else if (msg.text.starts_with("/balance"))
+            {
+                if (app.with_sim800)
+                {
+                    if (app.gsmModem->get_balance())
+                        answer.text = "Запрос баланса отправлен\n";
+                }
+                else
+                {
+                    answer.text = "SIM800 не подключен\n";
+                }
+            }
+            else
+                answer.text = "Я не понял Вас.\n";
+
+            tlg_out->write(answer);
+        }
+    }
 }

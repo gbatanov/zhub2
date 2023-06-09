@@ -36,5 +36,12 @@ public:
     void fan(bool work);
     void ringer();
     Pi4Gpio gpio;
+
+    std::shared_ptr<Tlg32> tlg32;
+    std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, tlg_out;
+    std::thread *tlgInThread;
+    void handle();
+    
+    std::string show_statuses();
 };
 #endif

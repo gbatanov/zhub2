@@ -31,6 +31,8 @@ private:
   std::vector<uint8_t> tx_buff_;
   std::vector<uint8_t> rx_buff_;
   std::mutex transmit_mutex_;
+
+  std::atomic<bool>flag;
 };
 
 #endif

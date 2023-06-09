@@ -34,13 +34,14 @@ public:
     void check_motion_activity();
     std::string show_one_type(std::shared_ptr<zigbee::EndDevice> d, bool as_html);
     inline void switch_off_with_list();
-    std::shared_ptr<Tlg32> tlg32;
-    std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, tlg_out;
-    std::thread *tlgInThread;
-    void handle();
-    virtual void send_tlg_message(std::string msg) { tlg32->send_message(msg); };
-    std::string show_statuses();
-
+    /*
+        std::shared_ptr<Tlg32> tlg32;
+        std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, tlg_out;
+        std::thread *tlgInThread;
+        void handle();
+        std::string show_statuses();
+    */
+    virtual void send_tlg_message(std::string msg);
 
 private:
     zigbee::EventCommand event_command_;
