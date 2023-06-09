@@ -2,9 +2,6 @@
 
 #define INVALID_PARAMS "Invalid params\n"
 
-#include "version.h"
-#include "../gsb_utils/gsbutils.h"
-
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -23,28 +20,29 @@
 #include <array>
 #include <any>
 #include <optional>
-
 #include <termios.h>
-#include "comport/unix.h"
-#include "comport/serial.h"
-#include "common.h"
-#include "zigbee/zigbee.h"
-#include "modem.h"
+
+#include "version.h"
+#include "../gsb_utils/gsbutils.h"
+
 #include "http.h"
 #include "httpserver.h"
-#include "app.h"
-
-extern App app;
 
 // TODO: нужен мап с объектом Request и функцией-обработчиком
 HttpServer::HttpServer()
 {
 }
-HttpServer::~HttpServer() {}
+HttpServer::~HttpServer() { flag.store(false); }
+
+void HttpServer::stop_http()
+{
+    flag.store(false);
+}
 
 bool HttpServer::start()
 {
 #ifdef WITH_HTTP
+    flag.store(true);
     // Попытка открыть TCP socket для HTTP-сервер
     http_sockfd = open_tcp_socket(http_server_port);
     if (http_sockfd < 0)
@@ -55,7 +53,7 @@ bool HttpServer::start()
     gsbutils::dprintf(1, (char *)"HTTPServer: HTTP ServerSocket=%d\n", http_sockfd);
 
     // Стартуем цикл сервера
-    while (app.Flag.load())
+    while (flag.load())
     {
         // needed for coming select
         fd_set read_fds;
@@ -70,7 +68,7 @@ bool HttpServer::start()
         FD_SET(http_sockfd, &read_fds);
         max = http_sockfd;
 
-        if (select(max + 1, &read_fds, NULL, NULL, (timeval *)&select_timeout) > 0 && app.Flag.load())
+        if (select(max + 1, &read_fds, NULL, NULL, (timeval *)&select_timeout) > 0 && flag.load())
         {
             // http socket has data waiting
             if (FD_ISSET(http_sockfd, &read_fds))
@@ -91,7 +89,7 @@ bool HttpServer::start()
         {
             std::this_thread::sleep_for(std::chrono::seconds(1));
         }
-    } // while Flag
+    } // while flag
 
     if (http_sockfd >= 0)
         close(http_sockfd);
@@ -125,13 +123,13 @@ int HttpServer::open_tcp_socket(int port)
     gsbutils::dprintf(7, (char *)"HTTPServer:  TCP server socket open on file descriptor %d\n", sock_fd);
     // this is done the way it is to make restarts of the program easier
     // in Linux, TCP sockets have a 2 minute wait period before closing
-    while (app.Flag.load() && bind(sock_fd, (struct sockaddr *)&server_address, server_len) < 0)
+    while (flag.load() && bind(sock_fd, (struct sockaddr *)&server_address, server_len) < 0)
     {
         gsbutils::dprintf(7, (char *)"HTTPServer:  Error binding TCP server socket: %s.  Retrying...\n", strerror(errno));
         sleep(5); // wait 5 seconds to see if it clears
         retry++;
         // more than 1 minute has elapsed, there must be something wrong
-        if (retry > ((1 * 60) / 5) || !app.Flag.load())
+        if (retry > ((1 * 60) / 5) || !flag.load())
             return (-1);
     }
     if (listen(sock_fd, 5) < 0)
@@ -261,7 +259,6 @@ void HttpServer::send_answer(int client_sockfd, char *http_buffer, size_t http_s
         gsbutils::dprintf(7, "Response size: %ld\n", response.size());
         gsbutils::dprintf(7, "%s\n", response.c_str());
         ssize_t written = write(client_sockfd, response.c_str(), response.size());
-        //        ssize_t written = send(client_sockfd, response.c_str(), response.size(),0);
         gsbutils::dprintf(7, "Response written size: %ld\n", written);
     }
 }

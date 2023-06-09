@@ -21,18 +21,17 @@
 #include "../common.h"
 #include "zigbee.h"
 #include "../modem.h"
-#include "../app.h"
 
 using std::cerr;
 using std::cout;
 using std::string;
 using std::vector;
 
-extern App app;
 using namespace zigbee;
 
 Uart::Uart(std::shared_ptr<gsbutils::Channel<Command>> chan_out_, std::shared_ptr<gsbutils::Channel<Command>> chan_in_)
 {
+    flag.store(true);
     chan_out = chan_out_;
     chan_in = chan_in_;
     rx_buff_.reserve(RX_BUFFER_SIZE);
@@ -41,6 +40,7 @@ Uart::Uart(std::shared_ptr<gsbutils::Channel<Command>> chan_out_, std::shared_pt
 
 Uart::~Uart()
 {
+    flag.store(false);
     if (receiver_thread_.joinable())
         receiver_thread_.join();
     if (send_thread_.joinable())
@@ -100,7 +100,7 @@ void Uart::disconnect()
 // с версии 2.24.571 использую канал вывода команд
 void Uart::snd_loop()
 {
-    while (app.Flag.load())
+    while (flag.load())
     {
         Command cmd = chan_out->read(); // read next command from ouput channel
         if ((uint16_t)cmd.id() != 0)
@@ -195,7 +195,7 @@ bool Uart::send_command_to_device(Command command)
 
 void Uart::loop()
 {
-    while (app.Flag.load())
+    while (flag.load())
     {
         try
         {

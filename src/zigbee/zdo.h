@@ -141,7 +141,7 @@ public:
     std::array<unsigned, 3> version_{0, 0, 0};
     zigbee::NetworkAddress network_address_ = 0;
     zigbee::IEEEAddress mac_address_ = 0;
-    zigbee::EventCommand event_command_;
+    zigbee::EventCommand eventCommand_;
 
     void get_attribute_RSSI_Power(zigbee::NetworkAddress address);
     std::string getCommandStr(Command &command);
