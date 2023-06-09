@@ -481,10 +481,8 @@ void Zhub::onoff_command(zigbee::Message message)
         {
             ed->set_current_state("Double click"); // 1 - double , 2 - single, 0 - long
             std::string alarm_msg = "Вызов с кнопки ";
-            ringer();
-#ifdef WITH_TELEGA
+            app.ringer();
             tlg32->send_message(alarm_msg);
-#endif
         }
         break;
         case 2:

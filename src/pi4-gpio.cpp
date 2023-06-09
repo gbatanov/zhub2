@@ -39,25 +39,40 @@ extern App app;
 
 #ifdef IS_PI
 #include <gpiod.h>
-struct gpiod_chip *chip = nullptr;
+#endif
 
-void initialize_gpio()
+Pi4Gpio::Pi4Gpio()
 {
-	// Открываем устройство
-	chip = gpiod_chip_open("/dev/gpiochip0");
+	initialize_gpio();
+}
+Pi4Gpio::~Pi4Gpio()
+{
+	close_gpio();
 }
 
-void close_gpio()
+void Pi4Gpio::initialize_gpio()
 {
+#ifdef IS_PI
+	// Открываем устройство
+	chip = gpiod_chip_open("/dev/gpiochip0");
+#endif
+}
+
+void Pi4Gpio::close_gpio()
+{
+#ifdef IS_PI
 	// Закрываем устройство
 	if (chip)
 		gpiod_chip_close(chip);
+#endif
 }
 // Значение может быть только 0 или 1, поэтому -1 можно вернуть как ошибку
 // Пока так и не понял, как сделать программно подтяжку к питанию,
 // поэтому реле переключается с земли на +3В через резистор, без этой цепочки не работает
-int read_pin(int pin)
+int Pi4Gpio::read_pin(int pin)
 {
+	int value = -1;
+#ifdef IS_PI
 	struct gpiod_line *line;
 	int req = -6;
 
@@ -72,14 +87,16 @@ int read_pin(int pin)
 			return -3;
 	}
 
-	int value = gpiod_line_get_value(line);
+	value = gpiod_line_get_value(line);
+#endif
 	return value;
 }
 
-int write_pin(int pin, int value)
+int Pi4Gpio::write_pin(int pin, int value)
 {
-	struct gpiod_line *line;
 	int req = -1;
+#ifdef IS_PI
+	struct gpiod_line *line;
 	value = value == 0 ? 0 : 1;
 
 	line = gpiod_chip_get_line(chip, pin);
@@ -93,7 +110,7 @@ int write_pin(int pin, int value)
 			return -3;
 	}
 	req = gpiod_line_set_value(line, value);
-
+#endif
 	return req;
 }
 
@@ -101,10 +118,11 @@ int write_pin(int pin, int value)
 // на малинке определяет по наличию +3В на контакте 38(GPIO20),
 // подается через реле, подключеннному к БП от 220В
 // TODO: убрать вызовы функций, переписать на каналы
-void power_detect()
+void Pi4Gpio::power_detect()
 {
-
+#ifdef IS_PI
 	int value = -1; // -1 заведомо кривое значение, могут быть 0 или 1
+
 	static bool notify_off = false;
 	static bool notify_on = true;
 
@@ -128,13 +146,5 @@ void power_detect()
 		using namespace std::chrono_literals;
 		std::this_thread::sleep_for(10s);
 	}
-}
-#else
-
-void initialize_gpio(){}
-void close_gpio(){}
-int read_pin(int pin) { return -1; }
-int write_pin(int pin, int value) { return -1; }
-void power_detect(){}
-
 #endif
+}

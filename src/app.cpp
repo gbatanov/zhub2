@@ -62,8 +62,6 @@ bool App::object_create()
     try
     {
 
-        initialize_gpio();
-
         cmdThread = std::thread(&App::cmd_func, this);
         zhub = std::make_shared<zigbee::Zhub>();
         zhub->tlg32->add_id(836487770);
@@ -165,10 +163,10 @@ int App::cmd_func()
             }
             break;
             case 'F': // включить вентилятор
-                zhub->fan(1);
+                fan(1);
                 break;
             case 'f': // выключить вентилятор
-                zhub->fan(0);
+                fan(0);
                 break;
 
             case 'q': // завершение программы
@@ -260,58 +258,137 @@ void App::stopApp()
 
     gsbutils::stop(); // остановка вывода сообщений
 }
+
+// Параметры питания модема
+std::string App::show_sim800_battery()
+{
+#ifdef WITH_SIM800
+    static uint8_t counter = 0;
+    char answer[256]{};
+    std::array<int, 3> battery = gsmModem->get_battery_level(false);
+    std::string charge = "";
+    if (battery[0] != -1)
+        charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
+    std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
+    std::string volt = battery[2] == -1 ? "" : std::to_string((float)(battery[2] / 1000)) + "V";
+    int res = std::snprintf(answer, 256, "SIM800l питание: %s, %s, %0.2f V\n", charge.c_str(), level.c_str(), battery[2] == -1 ? 0.0 : (float)battery[2] / 1000);
+    if (res > 0 && res < 256)
+        answer[res] = 0;
+    else
+        strcat(answer, (char *)"Ошибка получения инфо о батарее");
+
+    counter++;
+    if (counter > 5)
+    {
+        counter = 0;
+        gsmModem->get_battery_level(true);
+    }
+    return std::string(answer);
+
+#else
+    return "";
+#endif
+}
 // Измеряем температуру основной платы
 // Если она больше 70 градусов, посылаем сообщение в телеграм
 // включаем вентилятор, выключаем при температуре ниже 60
 void App::get_main_temperature()
 {
 
-	bool notify_high_send = false;
-	while (app.Flag.load())
-	{
+    bool notify_high_send = false;
+    while (app.Flag.load())
+    {
 
-		float temp_f = get_board_temperature();
-		if (temp_f > 0.0)
-		{
-			if (temp_f > 70.0 && !notify_high_send)
-			{
-				// посылаем уведомление о высокой температуре и включаем вентилятор
-				notify_high_send = true;
-				zhub->handle_board_temperature(temp_f);
-			}
-			else if (temp_f < 50.0 && notify_high_send)
-			{
-				// посылаем уведомление о нормальной температуре и выключаем вентилятор
-				notify_high_send = false;
-				zhub->handle_board_temperature(temp_f);
-			}
-		}
-		using namespace std::chrono_literals;
-		std::this_thread::sleep_for(10s);
-	}
+        float temp_f = get_board_temperature();
+        if (temp_f > 0.0)
+        {
+            if (temp_f > 70.0 && !notify_high_send)
+            {
+                // посылаем уведомление о высокой температуре и включаем вентилятор
+                notify_high_send = true;
+                handle_board_temperature(temp_f);
+            }
+            else if (temp_f < 50.0 && notify_high_send)
+            {
+                // посылаем уведомление о нормальной температуре и выключаем вентилятор
+                notify_high_send = false;
+                handle_board_temperature(temp_f);
+            }
+        }
+        using namespace std::chrono_literals;
+        std::this_thread::sleep_for(10s);
+    }
 }
 // Получить значение температуры управляющей платы
 float App::get_board_temperature()
 {
-	char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
-	uint32_t temp_int = 0; // uint16_t не пролезает !!!!
-	float temp_f = 0.0;
+    char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
+    uint32_t temp_int = 0; // uint16_t не пролезает !!!!
+    float temp_f = 0.0;
 
-	int fd = open(fname, O_RDONLY);
-	if (!fd)
-		return -200.0;
+    int fd = open(fname, O_RDONLY);
+    if (!fd)
+        return -200.0;
 
-	char buff[32]{0};
-	size_t len = read(fd, buff, 32);
-	close(fd);
-	if (len < 0)
-	{
-		return -100.0;
-	}
-	buff[len - 1] = 0;
-	if (sscanf(buff, "%d", &temp_int))
-	{
-		temp_f = (float)temp_int / 1000;
-	}
-	return temp_f;
+    char buff[32]{0};
+    size_t len = read(fd, buff, 32);
+    close(fd);
+    if (len < 0)
+    {
+        return -100.0;
+    }
+    buff[len - 1] = 0;
+    if (sscanf(buff, "%d", &temp_int))
+    {
+        temp_f = (float)temp_int / 1000;
+    }
+    return temp_f;
+}
+
+// обработчик пропажи 220В
+void App::handle_power_off(int value)
+{
+    std::string alarm_msg = "";
+    if (value == 1)
+        alarm_msg = "Восстановлено 220В\n";
+    else if (value == 0)
+        alarm_msg = "Отсутствует 220В\n";
+    else
+        return;
+    gsbutils::dprintf(1, alarm_msg);
+
+    zhub->tlg32->send_message(alarm_msg);
+}
+
+// Обработчик показаний температуры корпуса
+// Включение/выключение вентилятора
+void App::handle_board_temperature(float temp)
+{
+    char buff[128]{0};
+
+    if (temp > 70.0)
+        gpio.write_pin(16, 1);
+    else
+        gpio.write_pin(16, 0);
+
+    size_t len = snprintf(buff, 128, "Температура платы управления: %0.1f \n", temp);
+    buff[len] = 0;
+    std::string temp_msg = std::string(buff);
+    gsbutils::dprintf(1, temp_msg);
+
+    zhub->tlg32->send_message(temp_msg);
+}
+
+// Включение звонка
+void App::ringer()
+{
+    gpio.write_pin(26, 1);
+    sleep(1);
+    gpio.write_pin(26, 0);
+}
+
+// Управление вентилятором обдува платы управления
+void App::fan(bool work)
+{
+    gpio.write_pin(16, work ? 1 : 0);
 }

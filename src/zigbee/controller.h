@@ -15,13 +15,7 @@ public:
     bool start_network(std::vector<uint8_t> rfChannels);
     void finish() { disconnect(); }
     void on_message(Command command);
-    void handle_power_off(int value);
-    void handle_board_temperature(float temp);
-
-    void fan(bool work);
-    void ringer();
-    std::string show_sim800_battery();
-    void read_attribute(zigbee::NetworkAddress address, zigbee::zcl::Cluster cl, std::vector<uint16_t> ids);
+     void read_attribute(zigbee::NetworkAddress address, zigbee::zcl::Cluster cl, std::vector<uint16_t> ids);
     std::map<uint16_t, uint64_t> readMapFromFile();
     void join_device(zigbee::NetworkAddress network_address, zigbee::IEEEAddress mac_address, bool norec = true);
 

@@ -1,9 +1,7 @@
 #ifndef COORDINATOR_H
 #define COORDINATOR_H
 
-#ifdef WITH_TELEGA
 #include "../telebot32/src/tlg32.h"
-#endif
 
 class Zdo;
 
@@ -42,6 +40,7 @@ public:
     void handle();
     virtual void send_tlg_message(std::string msg) { tlg32->send_message(msg); };
     std::string show_statuses();
+
 
 private:
     zigbee::EventCommand event_command_;
