@@ -1,0 +1,23 @@
+// working mode, always before sections
+Mode   test 
+Port /dev/cu.usbmodem148201
+
+[prod]
+// telegram bot
+BotName DummyBot
+MyId 111111111
+TokenPath /usr/local/etc/telebot32/.tokenDummyBo/.token
+// map short address to mac address
+MapPath /usr/local/etc/zhub4/map_addr.cfg
+// RF channels
+Channels 11
+
+[test]
+// telegram bot
+BotName EmptyBot
+MyId 000000000
+TokenPath /usr/local/etc/telebot32/.tokenEmptyBot/.token
+// map short address to mac address
+MapPath /usr/local/etc/zhub4/map_addr_test.cfg
+// RF channels
+Channels 15

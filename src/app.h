@@ -1,6 +1,13 @@
 #ifndef GSB_APP_H
 #define GSB_APP_H
 
+#include <array>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <fstream>
+#include <fcntl.h>
+
 #include "pi4-gpio.h"
 #include "http.h"
 #include "httpserver.h"
@@ -10,6 +17,23 @@
 #include "modem.h"
 #include "zigbee/zigbee.h"
 
+struct GlobalConfig
+{
+    // telegram bot
+    std::string BotName;
+    int64_t MyId;
+    std::string TokenPath;
+    // map short address to mac address
+    std::string MapPath;
+    // working mode
+    std::string Mode;
+    // channels
+    std::vector<uint8_t> Channels;
+    // serial port
+    std::string Port;
+    // operating system
+    std::string Os;
+};
 
 class App
 {
@@ -19,6 +43,7 @@ public:
     bool object_create();
     bool startApp();
     void stopApp();
+
     bool init_modem();
     int cmd_func();
     std::shared_ptr<gsbutils::CycleTimer> timer1Min;
@@ -36,7 +61,7 @@ public:
     std::thread cmdThread;     // поток приема команд с клавиатуры
     std::thread exposerThread; // поток ответа прометею
     std::thread httpThread;
-
+    bool parse_config();
     void get_main_temperature();
     float get_board_temperature();
     static void handle_power_off(int value);
@@ -44,14 +69,12 @@ public:
     void fan(bool work);
     void ringer();
     std::shared_ptr<Pi4Gpio> gpio;
-
     std::shared_ptr<Tlg32> tlg32;
     std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, tlg_out;
     std::thread *tlgInThread;
     void handle();
-    
     std::string show_statuses();
-
     std::thread tempr_thread;
+    GlobalConfig config;
 };
 #endif

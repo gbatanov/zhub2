@@ -13,6 +13,7 @@
 #include <memory>
 #include <any>
 #include <termios.h>
+#include <array>
 
 #include "../../gsb_utils/gsbutils.h"
 #include "../../telebot32/src/tlg32.h"

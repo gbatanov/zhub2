@@ -1,39 +1,4 @@
 
-#include <memory>
-#include <stdio.h>
-#include <unistd.h>
-#include <iostream>
-#include <thread>
-#include <atomic>
-#include <ctime>
-#include <fcntl.h>
-#include <cstdlib>
-#include <signal.h>
-#include <sys/select.h>
-#include <string>
-#include <mutex>
-#include <sstream>
-#include <queue>
-#include <chrono>
-#include <syslog.h>
-#include <array>
-#include <set>
-#include <unordered_map>
-#include <iostream>
-#include <condition_variable>
-#include <thread>
-#include <chrono>
-#include <string>
-#include <queue>
-#include <mutex>
-#include <atomic>
-#include <unordered_map>
-#include <vector>
-#include <utility>
-#include <algorithm>
-#include <optional>
-#include <any>
-#include <termios.h>
 
 #include "version.h"
 #include "app.h"
@@ -266,8 +231,6 @@ void App::stopApp()
     tlg_out->stop();
     if (tlgInThread->joinable())
         tlgInThread->join();
-
-    gsbutils::stop(); // остановка вывода сообщений
 }
 
 // Параметры питания модема
@@ -459,4 +422,104 @@ void App::handle()
             tlg_out->write(answer);
         }
     }
+}
+
+// Получение глобального конфига настроек
+bool App::parse_config()
+{
+#ifdef __MACH__
+    config.Os = "darwin";
+#endif
+#ifdef __linux__
+    config.Os = "linux";
+#endif
+
+    std::string filename = "/usr/local/etc/zhub2/config";
+    std::ifstream infile(filename.c_str());
+    if (infile.is_open())
+    {
+        std::string mode = "";   // имя текущей секции, пустая строка - параметры до секций
+        bool sectionMode = true; // параметр находится в нужной секции (true) или нет (false)
+        std::string line;
+        while (std::getline(infile, line))
+        {
+            if (line.starts_with("//") || line.size() < 3)
+                continue;
+            line = gsb_utils::trim(line);
+
+            // find mode
+            if (mode.size() == 0)
+            {
+                std::pair<std::string, std::string> val = gsb_utils::split_string_with_delimiter(line, " ");
+                std::string key = gsb_utils::trim(val.first);
+                if (key == "Mode")
+                {
+                    if (val.second.size() > 0)
+                        mode = gsb_utils::trim(val.second);
+
+                    config.Mode = mode;
+                }
+
+                continue;
+            }
+            if (line.starts_with("["))
+            {
+                // section start
+                line = gsb_utils::remove_before(line, "[");
+                line = gsb_utils::remove_after(line, "]");
+                sectionMode = config.Mode == line;
+                continue;
+            }
+            if (!sectionMode)
+                continue; // pass unnecessary section
+
+            // Далее идут параметры нужной секции
+            std::pair<std::string, std::string> val = gsb_utils::split_string_with_delimiter(line, " ");
+            std::string key = gsb_utils::trim(val.first);
+            std::string value = gsb_utils::trim(val.second);
+            if (key == "BotName")
+            {
+                // TODO: check length
+                config.BotName = value;
+            }
+            else if (key == "MyId")
+            {
+                // TODO: check int64
+                sscanf(value.c_str(), "%ld", &config.MyId);
+            }
+            else if (key == "TokenPath")
+            {
+                // TODO: check valid path
+                config.TokenPath = value;
+            }
+            else if (key == "MapPath")
+            {
+                // TODO: check valid path
+                config.MapPath = value;
+            }
+            else if (key == "Port")
+            {
+                // TODO: check valid
+                config.Port = value;
+            }
+            else if (key == "Channels")
+            {
+                std::vector<std::string> resChan = gsb_utils::split(value, ",");
+                if (resChan.size() > 0)
+                {
+                    unsigned ch = 0;
+                    for (auto &s : resChan)
+                    {
+                        if (sscanf(s.c_str(), "%u", &ch) > 0)
+                            if (ch > 0)
+                                config.Channels.push_back((uint8_t)ch);
+                    }
+                }
+            }
+
+        } // while
+        return true;
+    } // if
+
+    return false;
 }

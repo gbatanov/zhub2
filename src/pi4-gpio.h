@@ -1,5 +1,7 @@
 #ifndef GSB_PI4_GPIO_H
 #define GSB_PI4_GPIO_H
+#include <atomic>
+#include <thread>
 
 typedef void(*power_func)(int);
 

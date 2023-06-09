@@ -81,10 +81,17 @@ int main(int argc, char *argv[])
 #endif
 
     gsbutils::dprintf(1, "Start zhub2 v%s.%s.%s \n", Project_VERSION_MAJOR, Project_VERSION_MINOR, Project_VERSION_PATCH);
+    if (!app.parse_config())
+    {
+        gsbutils::stop(); // остановка вывода сообщений
+        return -100;
+    }
     if (app.object_create())
         app.startApp();
 
     app.stopApp();
+
+    gsbutils::stop(); // остановка вывода сообщений    
     return ret;
 }
 
