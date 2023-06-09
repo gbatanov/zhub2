@@ -219,7 +219,8 @@ std::string command_list()
     result += "<p>Розетка 2&nbsp;<a href=\"/command?on=0x70b3d52b6001b5d9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b5d9\">Выключить</a></p>";
     result += "<p>Розетка 3&nbsp;<a href=\"/command?on=0x70b3d52b60022ac9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022ac9\">Выключить</a></p>";
     result += "<p>Розетка 4&nbsp;<a href=\"/command?on=0x70b3d52b60022cfd\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022cfd\">Выключить</a></p>";
-    result += "<p>----------- Двухканальные реле ---------------</p>";
+    result += "<p>----------- реле ---------------</p>";
+    result += "<p>Реле 6&nbsp;<a href=\"/command?on=0x54ef441000609dcc&ep=1\">Включить Реле6</a>&nbsp;<a href=\"/command?off=00x54ef441000609dcc&ep=1\">Выключить Реле6</a></p>";
     result += "<p>Реле 7&nbsp;<a href=\"/command?on=0x00158d0009414d7e&ep=1\">Включить 1</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=1\">Выключить1</a><a href=\"/command?on=0x00158d0009414d7e&ep=2\">Включить 2</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=2\">Выключить 2</a></p>";
     result += "<p></p>";
     result += "<p>-------------------------------</p>";

@@ -1,6 +1,7 @@
 #ifndef ZIGBEE_H
 #define ZIGBEE_H
 
+#include "../common.h"
 namespace zigbee
 {
 #include "zcl.h"

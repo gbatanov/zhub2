@@ -16,10 +16,6 @@
 
 #include "../gsb_utils/gsbutils.h"
 #include "../telebot32/src/tlg32.h"
-#include "comport/unix.h"
-#include "comport/serial.h"
-#include "common.h"
-#include "zigbee/zigbee.h"
 #include "modem.h"
 #include "app.h"
 
@@ -268,7 +264,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
         balance_ = res;
 
         // отправляем баланс в телеграм
-        app.zhub->send_tlg_message("Баланс: " + res + " руб.");
+        app.tlg32->send_message("Баланс: " + res + " руб.");
 
         // если была команда запроса баланса с тонового набора
         if (balance_to_sms)

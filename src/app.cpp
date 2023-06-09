@@ -241,9 +241,9 @@ void App::timer1min()
 // Остановка приложения
 void App::stopApp()
 {
-    Flag.store(false);
     if (cmdThread.joinable())
         cmdThread.join();
+    Flag.store(false);
 
 #ifdef IS_PI
     close_gpio();

@@ -2,6 +2,9 @@
 #ifndef UART_H
 #define UART_H
 
+#include "../comport/unix.h"
+#include "../comport/serial.h"
+
 #define SOF 0xFE
 
 #define RX_BUFFER_SIZE 512

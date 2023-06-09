@@ -2,9 +2,6 @@
 
 #define INVALID_PARAMS "Invalid params\n"
 
-#include "version.h"
-#include "../gsb_utils/gsbutils.h"
-
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -23,13 +20,11 @@
 #include <array>
 #include <any>
 #include <optional>
-
 #include <termios.h>
-#include "comport/unix.h"
-#include "comport/serial.h"
-#include "common.h"
-#include "zigbee/zigbee.h"
-#include "modem.h"
+
+#include "version.h"
+#include "../gsb_utils/gsbutils.h"
+
 #include "http.h"
 #include "httpserver.h"
 
