@@ -47,8 +47,10 @@ void http_server()
     http->start(); // поток приема http-запросов
 }
 
-void http_stop(){
-    http->stop_http();
+void http_stop()
+{
+    if (http)
+        http->stop_http();
 }
 
 // Функция-обработчик входящих запросов

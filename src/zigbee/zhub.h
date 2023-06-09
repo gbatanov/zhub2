@@ -44,7 +44,7 @@ public:
     virtual void send_tlg_message(std::string msg);
 
 private:
-    zigbee::EventCommand event_command_;
+    zigbee::EventCommand eventCommand_;
 };
 
 #endif

@@ -51,7 +51,7 @@ void Zdo::init()
 {
     tp = std::make_shared<gsbutils::ThreadPool<Command>>();
     uint8_t max_threads = std::max((uint8_t)std::thread::hardware_concurrency(), (uint8_t)8);
-    tp->init_threads(&Zdo::on_command,  max_threads);
+    tp->init_threads(&Zdo::on_command, max_threads);
 
     thr_cmdin = new std::thread([this]()
                                 {
@@ -95,7 +95,7 @@ int Zdo::reset(ResetType reset_type, bool clear_network_state, bool clear_config
     int res = 1;
     std::optional<Command> reset_response = std::nullopt;
     // аппаратный сброс игнорируем
-    event_command_.clear(zigbee::CommandId::SYS_RESET_IND); // очистка события с идентификатором id
+    eventCommand_.clear(zigbee::CommandId::SYS_RESET_IND); // очистка события с идентификатором id
     // Программный сброс делаю в любом случае (с 2.23.560)
     res = 2;
     uint8_t startup_options = static_cast<uint8_t>(clear_network_state << 1) + static_cast<uint8_t>(clear_config);
@@ -105,10 +105,10 @@ int Zdo::reset(ResetType reset_type, bool clear_network_state, bool clear_config
 
     Command reset_request(zigbee::CommandId::SYS_RESET_REQ);
     reset_request.payload(0) = static_cast<uint8_t>(reset_type);
-    event_command_.clear(zigbee::CommandId::SYS_RESET_IND); // очистка события с идентификатором id
+    eventCommand_.clear(zigbee::CommandId::SYS_RESET_IND); // очистка события с идентификатором id
 
     chan_out->write(reset_request);
-    reset_response = event_command_.wait(zigbee::CommandId::SYS_RESET_IND, RESET_TIMEOUT); // ожидаем наступления события с заданным идентификатором
+    reset_response = eventCommand_.wait(zigbee::CommandId::SYS_RESET_IND, RESET_TIMEOUT); // ожидаем наступления события с заданным идентификатором
 
     if (reset_response)
     {
@@ -432,7 +432,7 @@ void Zdo::handle_command(Command command)
         //   bit 7: – Reserved
         // кнопка - 0x80 1000 0000 - end device, battery, no reseived when idle,
         // Анонс нового устройства, инициируется самим устройством
-        //       event_command_.emit(command.id(), command);
+        //       eventCommand_.emit(command.id(), command);
         uint8_t dbg = 1;
 
 #ifdef DEBUG
@@ -463,7 +463,7 @@ void Zdo::handle_command(Command command)
                                             // формат payload не совпадает с ZDO_END_DEVICE_ANNCE_IND
                                             // может приходить несколько раз для одного события
     {
-//        event_command_.emit(command.id(), command);
+//        eventCommand_.emit(command.id(), command);
 #ifdef TEST
         uint8_t dbg = 5;
         gsbutils::dprintf(dbg, "Zdo::handle_command: ZDO_TC_DEV_IND:%04x\n", command.id());
@@ -542,7 +542,7 @@ void Zdo::handle_command(Command command)
     break;
     case zigbee::CommandId::ZDO_ACTIVE_EP_RSP: // 0x4585
     {
-//        event_command_.emit(command.id(), command);
+//        eventCommand_.emit(command.id(), command);
 #ifdef TEST
 
         if ((static_cast<Status>(command.payload(2)) == Status::SUCCESS))
@@ -566,7 +566,7 @@ void Zdo::handle_command(Command command)
     break;
     case zigbee::CommandId::ZDO_SIMPLE_DESC_RSP: // 0x4584
     {
-        //       event_command_.emit(command.id(), command);
+        //       eventCommand_.emit(command.id(), command);
 #ifdef TEST
         size_t len = command.payload_size();
         if (len > 0)
@@ -637,22 +637,10 @@ void Zdo::handle_command(Command command)
         MinorRel – 1 byte – Minor release number.
         HwRev – 1 byte – Hardware revision number
     */
-#ifdef TEST
+
         // программный сброс: 00 02 00 02 06 03
-        gsbutils::dprintf(1, "Zdo::handle_command SYS_RESET_IND\n");
-        size_t len = command.payload_size();
-        if (len > 0)
-        {
-            uint8_t i = 0;
-            gsbutils::dprintf(1, "zcl_frame.payload: \n");
-            while (len--)
-            {
-                gsbutils::dprintf_c(1, " %02x ", command.payload(i++));
-            }
-        }
-        gsbutils::dprintf_c(1, "\n");
-#endif
-        event_command_.emit(command.id(), command);
+        gsbutils::dprintf(3, "Zdo::handle_command SYS_RESET_IND\n");
+        eventCommand_.emit(command.id(), command);
     }
     break;
 
@@ -674,7 +662,7 @@ void Zdo::handle_command(Command command)
     case zigbee::CommandId::ZDO_ACTIVE_EP_SRSP:   // 0x6505
     case zigbee::CommandId::ZDO_BIND_SRSP:        // 0x6521
     {
-        event_command_.emit(command.id(), command);
+        eventCommand_.emit(command.id(), command);
     }
     break;
 
@@ -848,10 +836,10 @@ std::optional<Command> Zdo::syncRequest(Command request, std::chrono::duration<i
     assert(request.type() == Command::Type::SREQ); // убеждаемся, что команда синхронная
 
     CommandId id = (CommandId)((uint16_t)request.id() | 0b0100000000000000); // идентификатор синхронного ответа
-    event_command_.clear(id);                                                // очистка события с идентификатором id
+    eventCommand_.clear(id);                                                 // очистка события с идентификатором id
 
     chan_out->write(request);
-    return event_command_.wait(id, timeout); // ожидаем наступления события с заданным идентификатором
+    return eventCommand_.wait(id, timeout); // ожидаем наступления события с заданным идентификатором
 }
 
 // для асинхронной команды происходит ее отправка,

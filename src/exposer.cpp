@@ -23,15 +23,9 @@
 #include <termios.h>
 
 #include "version.h"
-#include "comport/unix.h"
-#include "comport/serial.h"
 #include "../gsb_utils/gsbutils.h"
-#include "../telebot32/src/tlg32.h"
-#include "common.h"
-#include "zigbee/zigbee.h"
 #include "exposer.h"
-#include "modem.h"
-#include "app.h"
+
 extern App app;
 
 Exposer::Exposer(std::string url, int port)
@@ -40,10 +34,15 @@ Exposer::Exposer(std::string url, int port)
     if (port > 0)
         httpServerPort = port;
 }
-
+Exposer::~Exposer()
+{
+    flag.store(false);
+}
 void Exposer::start()
 {
+    flag.store(false);
 #ifdef WITH_PROMETHEUS
+    flag.store(true);
     // Попытка открыть TCP socket для HTTP-сервер
     httpSockfd = open_tcp_socket(httpServerPort);
     if (httpSockfd < 0)
@@ -54,7 +53,7 @@ void Exposer::start()
     gsbutils::dprintf(1, (char *)"Exposer:  ServerSocket=%d\n", httpSockfd);
 
     // Стартуем цикл сервера
-    while (app.Flag.load())
+    while (flag.load())
     {
         // needed for coming select
         fd_set read_fds;
@@ -69,7 +68,7 @@ void Exposer::start()
         FD_SET(httpSockfd, &read_fds);
         max = httpSockfd;
 
-        if (select(max + 1, &read_fds, NULL, NULL, (timeval *)&select_timeout) > 0 && app.Flag.load())
+        if (select(max + 1, &read_fds, NULL, NULL, (timeval *)&select_timeout) > 0 && flag.load())
         {
             // http socket has data waiting
             if (FD_ISSET(httpSockfd, &read_fds))

@@ -47,7 +47,7 @@ private:
     std::mutex m;
 };
 
-// event_command_ отслеживает поступление ответов на отправленную команду
+// eventCommand_ отслеживает поступление ответов на отправленную команду
 // event_id - ID комманды
 class EventCommand
 {
