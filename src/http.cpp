@@ -21,13 +21,13 @@
 #include <any>
 #include <sstream>
 #include <termios.h>
-
+#include "../gsb_utils/gsbutils.h"
+#include "../telebot32/src/tlg32.h"
 #include "version.h"
 #include "pi4-gpio.h"
 #include "comport/unix.h"
 #include "comport/serial.h"
-#include "../gsb_utils/gsbutils.h"
-#include "../telebot32/src/tlg32.h"
+
 #include "common.h"
 #include "zigbee/zigbee.h"
 

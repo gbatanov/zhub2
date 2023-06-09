@@ -61,8 +61,9 @@ bool App::object_create()
 
     try
     {
-
+        // канал приема команд из теоеграм
         tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+        // канал отправки сообщений в телеграм
         tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
         tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
         tlgInThread = new std::thread(&App::handle, this);
@@ -81,6 +82,7 @@ bool App::object_create()
         uint8_t max_threads = 2;
         tpm->init_threads(&GsmModem::on_command, max_threads);
 
+        gpio = std::make_shared<Pi4Gpio>(&App::handle_power_off);
         init_modem();
     }
     catch (std::exception &e)
@@ -368,7 +370,7 @@ void App::handle_power_off(int value)
         return;
     gsbutils::dprintf(1, alarm_msg);
 
-    tlg32->send_message(alarm_msg);
+    app.tlg32->send_message(alarm_msg);
 }
 
 // Обработчик показаний температуры корпуса
@@ -378,9 +380,9 @@ void App::handle_board_temperature(float temp)
     char buff[128]{0};
 
     if (temp > 70.0)
-        gpio.write_pin(16, 1);
+        gpio->write_pin(16, 1);
     else
-        gpio.write_pin(16, 0);
+        gpio->write_pin(16, 0);
 
     size_t len = snprintf(buff, 128, "Температура платы управления: %0.1f \n", temp);
     buff[len] = 0;
@@ -393,15 +395,15 @@ void App::handle_board_temperature(float temp)
 // Включение звонка
 void App::ringer()
 {
-    gpio.write_pin(26, 1);
+    gpio->write_pin(26, 1);
     sleep(1);
-    gpio.write_pin(26, 0);
+    gpio->write_pin(26, 0);
 }
 
 // Управление вентилятором обдува платы управления
 void App::fan(bool work)
 {
-    gpio.write_pin(16, work ? 1 : 0);
+    gpio->write_pin(16, work ? 1 : 0);
 }
 
 // используется в телеграм

@@ -31,11 +31,11 @@ public:
 
     void get_main_temperature();
     float get_board_temperature();
-    void handle_power_off(int value);
+    static void handle_power_off(int value);
     void handle_board_temperature(float temp);
     void fan(bool work);
     void ringer();
-    Pi4Gpio gpio;
+    std::shared_ptr<Pi4Gpio> gpio;
 
     std::shared_ptr<Tlg32> tlg32;
     std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, tlg_out;

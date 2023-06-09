@@ -22,31 +22,22 @@
 #include <termios.h>
 
 #include "../gsb_utils/gsbutils.h"
-
 #include "version.h"
-#include "../telebot32/src/tlg32.h"
-#include "comport/unix.h"
-#include "comport/serial.h"
-#include "common.h"
-#include "zigbee/zigbee.h"
-#include "modem.h"
-#include "http.h"
-#include "httpserver.h"
-#include "app.h"
 #include "pi4-gpio.h"
-
-extern App app;
 
 #ifdef IS_PI
 #include <gpiod.h>
 #endif
 
-Pi4Gpio::Pi4Gpio()
+Pi4Gpio::Pi4Gpio(power_func power)
 {
+	power_ = power;
+	flag.store(true);
 	initialize_gpio();
 }
 Pi4Gpio::~Pi4Gpio()
 {
+	flag.store(false);
 	close_gpio();
 }
 
@@ -126,7 +117,7 @@ void Pi4Gpio::power_detect()
 	static bool notify_off = false;
 	static bool notify_on = true;
 
-	while (app.Flag.load())
+	while (flag.load())
 	{
 		value = read_pin(20);
 		gsbutils::dprintf(7, "GPIO 20 %d\n", value);
@@ -134,13 +125,15 @@ void Pi4Gpio::power_detect()
 		{
 			notify_off = true;
 			notify_on = false;
-			app.zhub->handle_power_off(value);
+			//			app.handle_power_off(value);
+			power_(value);
 		}
 		else if (value == 1 && !notify_on)
 		{
 			notify_on = true;
 			notify_off = false;
-			app.zhub->handle_power_off(value);
+			//			app.handle_power_off(value);
+			power_(value);
 		}
 
 		using namespace std::chrono_literals;
