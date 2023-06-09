@@ -61,9 +61,8 @@ bool App::object_create()
 
     try
     {
-#ifdef IS_PI
+
         initialize_gpio();
-#endif
 
         cmdThread = std::thread(&App::cmd_func, this);
         zhub = std::make_shared<zigbee::Zhub>();
@@ -260,4 +259,59 @@ void App::stopApp()
         httpThread.join();
 
     gsbutils::stop(); // остановка вывода сообщений
+}
+// Измеряем температуру основной платы
+// Если она больше 70 градусов, посылаем сообщение в телеграм
+// включаем вентилятор, выключаем при температуре ниже 60
+void App::get_main_temperature()
+{
+
+	bool notify_high_send = false;
+	while (app.Flag.load())
+	{
+
+		float temp_f = get_board_temperature();
+		if (temp_f > 0.0)
+		{
+			if (temp_f > 70.0 && !notify_high_send)
+			{
+				// посылаем уведомление о высокой температуре и включаем вентилятор
+				notify_high_send = true;
+				zhub->handle_board_temperature(temp_f);
+			}
+			else if (temp_f < 50.0 && notify_high_send)
+			{
+				// посылаем уведомление о нормальной температуре и выключаем вентилятор
+				notify_high_send = false;
+				zhub->handle_board_temperature(temp_f);
+			}
+		}
+		using namespace std::chrono_literals;
+		std::this_thread::sleep_for(10s);
+	}
+}
+// Получить значение температуры управляющей платы
+float App::get_board_temperature()
+{
+	char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
+	uint32_t temp_int = 0; // uint16_t не пролезает !!!!
+	float temp_f = 0.0;
+
+	int fd = open(fname, O_RDONLY);
+	if (!fd)
+		return -200.0;
+
+	char buff[32]{0};
+	size_t len = read(fd, buff, 32);
+	close(fd);
+	if (len < 0)
+	{
+		return -100.0;
+	}
+	buff[len - 1] = 0;
+	if (sscanf(buff, "%d", &temp_int))
+	{
+		temp_f = (float)temp_int / 1000;
+	}
+	return temp_f;
 }

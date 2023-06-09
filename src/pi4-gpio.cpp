@@ -4,7 +4,7 @@
 //  GPIO26 - 37 пин - включение звонка
 #include <thread>
 #include <chrono>
-#include <gpiod.h>
+#include <array>
 #include <iostream>
 #include <errno.h>
 #include <fcntl.h>
@@ -37,24 +37,21 @@
 
 extern App app;
 
+#ifdef IS_PI
+#include <gpiod.h>
 struct gpiod_chip *chip = nullptr;
 
-int initialize_gpio()
+void initialize_gpio()
 {
 	// Открываем устройство
 	chip = gpiod_chip_open("/dev/gpiochip0");
-	if (!chip)
-		return -4;
-
-	return 0;
 }
 
-int close_gpio()
+void close_gpio()
 {
 	// Закрываем устройство
 	if (chip)
 		gpiod_chip_close(chip);
-	return 0;
 }
 // Значение может быть только 0 или 1, поэтому -1 можно вернуть как ошибку
 // Пока так и не понял, как сделать программно подтяжку к питанию,
@@ -100,66 +97,10 @@ int write_pin(int pin, int value)
 	return req;
 }
 
-// Измеряем температуру основной платы
-// Если она больше 70 градусов, посылаем сообщение в телеграм
-// включаем вентилятор, выключаем при температуре ниже 60
-void get_main_temperature()
-{
-
-	bool notify_high_send = false;
-	while (app.Flag.load())
-	{
-
-		float temp_f = get_board_temperature();
-		if (temp_f > 0.0)
-		{
-			if (temp_f > 70.0 && !notify_high_send)
-			{
-				// посылаем уведомление о высокой температуре и включаем вентилятор
-				notify_high_send = true;
-				app.zhub->handle_board_temperature(temp_f);
-			}
-			else if (temp_f < 50.0 && notify_high_send)
-			{
-				// посылаем уведомление о нормальной температуре и выключаем вентилятор
-				notify_high_send = false;
-				app.zhub->handle_board_temperature(temp_f);
-			}
-		}
-		using namespace std::chrono_literals;
-		std::this_thread::sleep_for(10s);
-	}
-}
-// Получить значение температуры управляющей платы
-float get_board_temperature()
-{
-    char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
-    uint32_t temp_int = 0; // uint16_t не пролезает !!!!
-    float temp_f = 0.0;
-
-    int fd = open(fname, O_RDONLY);
-    if (!fd)
-        return -200.0;
-
-    char buff[32]{0};
-    size_t len = read(fd, buff, 32);
-    close(fd);
-    if (len < 0)
-    {
-        return -100.0;
-    }
-    buff[len - 1] = 0;
-    if (sscanf(buff, "%d", &temp_int))
-    {
-        temp_f = (float)temp_int / 1000;
-    }
-    return temp_f;
-}
-
-
 // функция потока наличия напряжения 220В
 // на малинке определяет по наличию +3В на контакте 38(GPIO20),
 // подается через реле, подключеннному к БП от 220В
+// TODO: убрать вызовы функций, переписать на каналы
 void power_detect()
 {
 
@@ -188,3 +129,12 @@ void power_detect()
 		std::this_thread::sleep_for(10s);
 	}
 }
+#else
+
+void initialize_gpio(){}
+void close_gpio(){}
+int read_pin(int pin) { return -1; }
+int write_pin(int pin, int value) { return -1; }
+void power_detect(){}
+
+#endif

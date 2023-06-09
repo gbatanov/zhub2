@@ -167,7 +167,7 @@ std::string create_device_list()
     std::string result = "";
 
 #if !defined __MACH__
-    float board_temperature = get_board_temperature();
+    float board_temperature = app.get_board_temperature();
     if (board_temperature > -100.0)
     {
         char buff[128]{0};
@@ -182,8 +182,8 @@ std::string create_device_list()
     result = result + "<p>" + app.zhub->show_sim800_battery() + "</p>";
 #endif
 
-    std::time_t lastMotionSensorAction = app.zhub->getLastMotionSensorActivity();
-    result = result + "<p>Время последнего срабатывания датчиков движения: " + gsbutils::DDate::timestamp_to_string(lastMotionSensorAction) + "</p>";
+    result = result + "<p>Время последнего срабатывания датчиков движения: " +
+             gsbutils::DDate::timestamp_to_string(app.zhub->getLastMotionSensorActivity()) + "</p>";
     result = result + "<p>Старт программы: " + app.startTime + "</p>";
 
     std::string list = app.zhub->show_device_statuses(true);

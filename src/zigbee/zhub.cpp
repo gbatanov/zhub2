@@ -708,20 +708,17 @@ std::string Zhub::show_device_statuses(bool as_html)
         }
 
         // Дальше выводится только в телеграм
-       
-        float temp = get_board_temperature();
+
+        float temp = app.get_board_temperature();
         if (temp)
         {
             size_t len = snprintf(buff, 1024, "Температура платы управления: %0.1f \n", temp);
             buff[len] = 0;
             result = result + std::string(buff);
         }
-       
-        std::time_t lastMotionSensorAction = getLastMotionSensorActivity();
-        std::tm tm = *std::localtime(&lastMotionSensorAction);
-        size_t len = std::strftime(buff, sizeof(buff) / sizeof(buff[0]), " %Y-%m-%d %H:%M:%S", &tm);
-        buff[len] = 0;
-        result = result + "Последнее движение в " + std::string(buff) + "\n";
+
+        result = result + "Последнее движение в " +
+                 gsbutils::DDate::timestamp_to_string(getLastMotionSensorActivity()) + "\n";
     }
     catch (std::exception &e)
     {
