@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(zhub LANGUAGES CXX VERSION ${PROJECT_VERSION})
 
-set(PROJECT_DEFAULT_BUILD_TYPE ${PROJECT_DEFAULT_BUILD_TYPE})
-
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -I. -Wno-unused-result -Wno-unused-variable")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -18,10 +16,8 @@ message(STATUS "${PROJECT_NAME} build type: ${CMAKE_BUILD_TYPE}")
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
   set(PREFIX "/opt/local")
-#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-rpath,/opt/local/lib")
 else()
   set(PREFIX "/usr/local")
-#  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wl,-rpath,/usr/local/lib")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
@@ -55,14 +51,8 @@ list( APPEND SOURCES
   modem.cpp
   http.cpp
   httpserver.cpp
-
+  pi4-gpio.cpp
 )
-
-if (GPIO)
-  list( APPEND SOURCES 
-    pi4-gpio.cpp
-  )
-endif()
 
 set(DEPENDENTS "libcurl")
 include(FindPkgConfig)
@@ -99,16 +89,6 @@ set_property(TARGET ${PROJECT_NAME} PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/local/bin)
 
 install(FILES gsb_style.css DESTINATION /usr/local/etc/zhub2/css/)
-
-if(TELEGA)
-  message(STATUS "Bot name ${BOT_NAME}")
-endif()
-
-if(TEST)
-  install(FILES ../map_addr_test.cfg DESTINATION /usr/local/etc/zhub2/)
-#  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/.token DESTINATION /usr/local/etc/telebot32/.token${BOT_NAME})
-else()
+install(FILES ../map_addr_test.cfg DESTINATION /usr/local/etc/zhub2/)
 install(FILES ../map_addr.cfg DESTINATION /usr/local/etc/zhub2/)
-#  install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/.token DESTINATION /usr/local/etc/telebot32/.token${BOT_NAME})
-endif()
-
+install(FILES ../config DESTINATION /usr/local/etc/zhub2/)

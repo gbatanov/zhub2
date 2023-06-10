@@ -4,7 +4,7 @@
 //  GPIO26 - 37 пин - включение звонка
 #include <thread>
 #include <chrono>
-#include <gpiod.h>
+#include <array>
 #include <iostream>
 #include <errno.h>
 #include <fcntl.h>
@@ -22,45 +22,53 @@
 #include <termios.h>
 
 #include "../gsb_utils/gsbutils.h"
-
 #include "version.h"
-
-#include "comport/unix.h"
-#include "comport/serial.h"
-#include "common.h"
-#include "zigbee/zigbee.h"
-#include "modem.h"
-#include "http.h"
-#include "httpserver.h"
-#include "app.h"
 #include "pi4-gpio.h"
 
-extern App app;
+#ifdef IS_PI
+#include <gpiod.h>
+#endif
 
-struct gpiod_chip *chip = nullptr;
-
-int initialize_gpio()
+Pi4Gpio::Pi4Gpio(power_func power)
 {
-	// Открываем устройство
-	chip = gpiod_chip_open("/dev/gpiochip0");
-	if (!chip)
-		return -4;
+	power_ = power;
+	flag.store(true);
+	initialize_gpio();
+}
+Pi4Gpio::~Pi4Gpio()
+{
+	flag.store(false);
 
-	return 0;
+	close_gpio();
 }
 
-int close_gpio()
+void Pi4Gpio::initialize_gpio()
 {
+#ifdef IS_PI
+	pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
+	// Открываем устройство
+	chip = gpiod_chip_open("/dev/gpiochip0");
+#endif
+}
+
+void Pi4Gpio::close_gpio()
+{
+#ifdef IS_PI
+	if (pwr_thread.joinable())
+		pwr_thread.join();
+
 	// Закрываем устройство
 	if (chip)
 		gpiod_chip_close(chip);
-	return 0;
+#endif
 }
 // Значение может быть только 0 или 1, поэтому -1 можно вернуть как ошибку
 // Пока так и не понял, как сделать программно подтяжку к питанию,
 // поэтому реле переключается с земли на +3В через резистор, без этой цепочки не работает
-int read_pin(int pin)
+int Pi4Gpio::read_pin(int pin)
 {
+	int value = -1;
+#ifdef IS_PI
 	struct gpiod_line *line;
 	int req = -6;
 
@@ -75,14 +83,16 @@ int read_pin(int pin)
 			return -3;
 	}
 
-	int value = gpiod_line_get_value(line);
+	value = gpiod_line_get_value(line);
+#endif
 	return value;
 }
 
-int write_pin(int pin, int value)
+int Pi4Gpio::write_pin(int pin, int value)
 {
-	struct gpiod_line *line;
 	int req = -1;
+#ifdef IS_PI
+	struct gpiod_line *line;
 	value = value == 0 ? 0 : 1;
 
 	line = gpiod_chip_get_line(chip, pin);
@@ -96,78 +106,22 @@ int write_pin(int pin, int value)
 			return -3;
 	}
 	req = gpiod_line_set_value(line, value);
-
+#endif
 	return req;
 }
-
-// Измеряем температуру основной платы
-// Если она больше 70 градусов, посылаем сообщение в телеграм
-// включаем вентилятор, выключаем при температуре ниже 60
-void get_main_temperature()
-{
-
-	bool notify_high_send = false;
-	while (app.Flag.load())
-	{
-
-		float temp_f = get_board_temperature();
-		if (temp_f > 0.0)
-		{
-			if (temp_f > 70.0 && !notify_high_send)
-			{
-				// посылаем уведомление о высокой температуре и включаем вентилятор
-				notify_high_send = true;
-				app.zhub->handle_board_temperature(temp_f);
-			}
-			else if (temp_f < 50.0 && notify_high_send)
-			{
-				// посылаем уведомление о нормальной температуре и выключаем вентилятор
-				notify_high_send = false;
-				app.zhub->handle_board_temperature(temp_f);
-			}
-		}
-		using namespace std::chrono_literals;
-		std::this_thread::sleep_for(10s);
-	}
-}
-// Получить значение температуры управляющей платы
-float get_board_temperature()
-{
-    char *fname = (char *)"/sys/class/thermal/thermal_zone0/temp";
-    uint32_t temp_int = 0; // uint16_t не пролезает !!!!
-    float temp_f = 0.0;
-
-    int fd = open(fname, O_RDONLY);
-    if (!fd)
-        return -200.0;
-
-    char buff[32]{0};
-    size_t len = read(fd, buff, 32);
-    close(fd);
-    if (len < 0)
-    {
-        return -100.0;
-    }
-    buff[len - 1] = 0;
-    if (sscanf(buff, "%d", &temp_int))
-    {
-        temp_f = (float)temp_int / 1000;
-    }
-    return temp_f;
-}
-
 
 // функция потока наличия напряжения 220В
 // на малинке определяет по наличию +3В на контакте 38(GPIO20),
 // подается через реле, подключеннному к БП от 220В
-void power_detect()
+void Pi4Gpio::power_detect()
 {
-
+#ifdef IS_PI
 	int value = -1; // -1 заведомо кривое значение, могут быть 0 или 1
+
 	static bool notify_off = false;
 	static bool notify_on = true;
 
-	while (app.Flag.load())
+	while (flag.load())
 	{
 		value = read_pin(20);
 		gsbutils::dprintf(7, "GPIO 20 %d\n", value);
@@ -175,16 +129,19 @@ void power_detect()
 		{
 			notify_off = true;
 			notify_on = false;
-			app.zhub->handle_power_off(value);
+			//			app.handle_power_off(value);
+			power_(value);
 		}
 		else if (value == 1 && !notify_on)
 		{
 			notify_on = true;
 			notify_off = false;
-			app.zhub->handle_power_off(value);
+			//			app.handle_power_off(value);
+			power_(value);
 		}
 
 		using namespace std::chrono_literals;
 		std::this_thread::sleep_for(10s);
 	}
+#endif
 }

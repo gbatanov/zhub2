@@ -36,21 +36,6 @@
 #include "../modem.h"
 #include "../app.h"
 
-#ifdef __MACH__
-// На маке зависит от гнезда, в которое воткнут координатор
-#ifdef TEST
-// тестовый координатор
-#define ADAPTER_ADDRESS "/dev/cu.usbmodem148201"
-#else
-// рабочий координатор
-#define ADAPTER_ADDRESS "/dev/cu.usbserial-53220280771"
-#endif
-#else
-#ifdef __linux__
-#define ADAPTER_ADDRESS "/dev/ttyACM0"
-#endif
-#endif
-
 using namespace zigbee;
 
 using zigbee::IEEEAddress;
@@ -62,9 +47,6 @@ using zigbee::zcl::Frame;
 extern App app;
 extern std::mutex trans_mutex;
 extern std::atomic<uint8_t> transaction_sequence_number;
-
-const std::vector<uint8_t> Controller::DEFAULT_RF_CHANNELS = {11};
-const std::vector<uint8_t> Controller::TEST_RF_CHANNELS = {15};
 
 const std::vector<zigbee::SimpleDescriptor> Controller::DEFAULT_ENDPOINTS_ = {{1,      // Enpoint number.
                                                                                0x0104, // Profile ID.
@@ -83,11 +65,12 @@ Controller::~Controller()
 
 bool Controller::init_adapter()
 {
+    gsbutils::dprintf(1, "Controller init_adapter\n");
     bool noAdapter = false;
     try
     {
         // в connect происходит запуск потока приема команд zigbee
-        if (!connect(ADAPTER_ADDRESS, 115200))
+        if (!connect(app.config.Port, 115200))
         {
             gsbutils::dprintf(1, "Zigbee UART is not connected\n");
             // дальнейшее выполнение бессмысленно, но надо уведомить по СМС или телеграм
@@ -173,7 +156,7 @@ void Controller::on_message(zigbee::Command command)
         gsbutils::dprintf(1, "Сообщение от устройства, незарегистрированного в моей рабочей системе\n");
         return;
     }
-    uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
+    uint64_t macAddress = (uint64_t)ed->get_ieee_address();
 
 #ifdef DEBUG
     int dbg = 3;
@@ -288,10 +271,11 @@ void Controller::on_message(zigbee::Command command)
 
                     send_tlg_message(alarm_msg);
 
-#ifdef WITH_SIM800
-                    gsbutils::dprintf(1, "Phone number call \n");
-                    app.gsmModem->master_call();
-#endif
+                    if (app.withSim800)
+                    {
+                        gsbutils::dprintf(1, "Phone number call \n");
+                        app.gsmModem->master_call();
+                    }
                 }
                 gsbutils::dprintf(1, "Device 0x%02x Water Leak: %s \n ", message.source.address, message.zcl_frame.payload[0] ? "ALARM" : "NORMAL");
             }
@@ -313,50 +297,53 @@ void Controller::on_message(zigbee::Command command)
 }
 
 // Блок выполняемый после всех действий
+// Играет функцию таймера, поскольку точность в данной системе не важна,
+// а выделенные таймеры отъедают потоки, что для Raspberry плохо
 void Controller::after_message_action()
 {
     // Выполнять каждую минуту для устройств, которым нужен более частый контроль состояния
     std::vector<uint64_t> smartPlugDevices{0x70b3d52b6001b5d9};
+
+    std::time_t ts = std::time(0); // get time now
+    if (ts - smartPlugTime > 60)
     {
-        std::time_t ts = std::time(0); // get time now
-        if (ts - smartPlugTime > 60)
+        smartPlugTime = ts;
+        
+        app.zhub->check_motion_activity();
+
+        for (uint64_t &di : smartPlugDevices)
         {
-            smartPlugTime = ts;
-
-            for (uint64_t &di : smartPlugDevices)
+            std::shared_ptr<EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)di);
+            if (ed)
             {
-                std::shared_ptr<EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)di);
-                if (ed)
-                {
-                    zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
-                    // запрос тока и напряжения
-                    std::vector<uint16_t> idsAV{0x0505, 0x508};
-                    read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
+                zigbee::NetworkAddress shortAddr = ed->get_network_address();
+                // запрос тока и напряжения
+                std::vector<uint16_t> idsAV{0x0505, 0x508};
+                read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
 
-                    if (ed->get_current_state(1) != "On" && ed->get_current_state(1) != "Off")
-                    {
-                        std::vector<uint16_t> idsAV{0x0000};
-                        read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
-                    }
+                if (ed->get_current_state(1) != "On" && ed->get_current_state(1) != "Off")
+                {
+                    std::vector<uint16_t> idsAV{0x0000};
+                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
                 }
             }
-            // краны
+        }
+        // краны
+        {
+            // Получим состояние кранов, если не было получено при старте
+            std::shared_ptr<EndDevice> ed1 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
+            if (ed1 && ed1->get_current_state(1) != "On" && ed1->get_current_state(1) != "Off")
             {
-                // Получим состояние кранов, если не было получено при старте
-                std::shared_ptr<EndDevice> ed1 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
-                if (ed1 && ed1->get_current_state(1) != "On" && ed1->get_current_state(1) != "Off")
-                {
-                    uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
-                    std::vector<uint16_t> idsAV{0x0000};
-                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
-                }
-                std::shared_ptr<EndDevice> ed2 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138373e89d731);
-                if (ed2 && ed2->get_current_state(1) != "On" && ed2->get_current_state(1) != "Off")
-                {
-                    std::vector<uint16_t> idsAV{0x0000};
-                    uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
-                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
-                }
+                uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
+                std::vector<uint16_t> idsAV{0x0000};
+                read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
+            }
+            std::shared_ptr<EndDevice> ed2 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138373e89d731);
+            if (ed2 && ed2->get_current_state(1) != "On" && ed2->get_current_state(1) != "Off")
+            {
+                std::vector<uint16_t> idsAV{0x0000};
+                uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
+                read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
             }
         }
     }
@@ -409,7 +396,7 @@ void Controller::switch_relay(uint64_t mac_addr, uint8_t cmd, uint8_t ep)
     std::shared_ptr<EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)mac_addr);
     if (ed)
     {
-        sendCommandToOnOffDevice(ed->getNetworkAddress(), cmd, ep);
+        sendCommandToOnOffDevice(ed->get_network_address(), cmd, ep);
         std::time_t ts = std::time(0); // get time now
         ed->set_last_action((uint64_t)ts);
     }
@@ -478,92 +465,6 @@ void Controller::read_attribute(zigbee::NetworkAddress address, zigbee::zcl::Clu
     sendMessage(endpoint, cl, frame);
 }
 
-/// все что дальше, унести в координатор
-// обработчик пропажи 220В
-void Controller::handle_power_off(int value)
-{
-    std::string alarm_msg = "";
-    if (value == 1)
-        alarm_msg = "Восстановлено 220В\n";
-    else if (value == 0)
-        alarm_msg = "Отсутствует 220В\n";
-    else
-        return;
-    gsbutils::dprintf(1, alarm_msg);
-
-    send_tlg_message(alarm_msg);
-}
-
-// Обработчик показаний температуры корпуса
-// Включение/выключение вентилятора
-void Controller::handle_board_temperature(float temp)
-{
-    char buff[128]{0};
-
-#ifdef IS_PI
-    if (temp > 70.0)
-        write_pin(16, 1);
-    else
-        write_pin(16, 0);
-#endif
-
-    size_t len = snprintf(buff, 128, "Температура платы управления: %0.1f \n", temp);
-    buff[len] = 0;
-    std::string temp_msg = std::string(buff);
-    gsbutils::dprintf(1, temp_msg);
-
-    send_tlg_message(temp_msg);
-}
-
-// Включение звонка
-void Controller::ringer()
-{
-#ifdef IS_PI
-    write_pin(26, 1);
-    sleep(1);
-    write_pin(26, 0);
-#endif
-}
-
-// Управление вентилятором обдува платы управления
-void Controller::fan(bool work)
-{
-#ifdef IS_PI
-    write_pin(16, work ? 1 : 0);
-#endif
-}
-
-// Параметры питания модема
-std::string Controller::show_sim800_battery()
-{
-#ifdef WITH_SIM800
-    static uint8_t counter = 0;
-    char answer[256]{};
-    std::array<int, 3> battery = app.gsmModem->get_battery_level(false);
-    std::string charge = "";
-    if (battery[0] != -1)
-        charge = (battery[1] == 100 && battery[2] > 4400) ? "от сети" : "от батареи";
-    std::string level = battery[1] == -1 ? "" : std::to_string(battery[1]) + "%";
-    std::string volt = battery[2] == -1 ? "" : std::to_string((float)(battery[2] / 1000)) + "V";
-    int res = std::snprintf(answer, 256, "SIM800l питание: %s, %s, %0.2f V\n", charge.c_str(), level.c_str(), battery[2] == -1 ? 0.0 : (float)battery[2] / 1000);
-    if (res > 0 && res < 256)
-        answer[res] = 0;
-    else
-        strcat(answer, (char *)"Ошибка получения инфо о батарее");
-
-    counter++;
-    if (counter > 5)
-    {
-        counter = 0;
-        app.gsmModem->get_battery_level(true);
-    }
-    return std::string(answer);
-
-#else
-    return "";
-#endif
-}
-
 // получить устройство по сетевому адресу
 std::shared_ptr<zigbee::EndDevice> Controller::get_device_by_short_addr(zigbee::NetworkAddress network_address)
 {
@@ -601,7 +502,7 @@ zigbee::NetworkAddress Controller::getShortAddrByMacAddr(zigbee::IEEEAddress mac
     {
         ed = devices_.at(mac_address);
         if (ed)
-            return ed->getNetworkAddress();
+            return ed->get_network_address();
     }
     catch (std::out_of_range &e)
     {
@@ -616,7 +517,7 @@ void Controller::on_attribute_report(zigbee::Endpoint endpoint, Cluster cluster,
     std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(endpoint.address);
     if (!ed)
         return;
-    uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
+    uint64_t macAddress = (uint64_t)ed->get_ieee_address();
 
     switch (cluster)
     {
@@ -723,7 +624,7 @@ bool Controller::configureReporting(zigbee::NetworkAddress address,
                                     zcl::Attribute::DataType attribute_data_type,
                                     uint16_t reportable_change)
 {
-#ifdef TEST
+#ifdef DEBUG
     gsbutils::dprintf(1, "Configure Reporting \n");
 #endif
     // default
@@ -740,16 +641,11 @@ bool Controller::configureReporting(zigbee::NetworkAddress address,
     frame.frame_control.manufacturer_specific = false;
     frame.transaction_sequence_number = generateTransactionSequenceNumber();
     frame.command = zigbee::zcl::GlobalCommands::CONFIGURE_REPORTING; // 0x06
-// end ZCL Header
+                                                                      // end ZCL Header
 
-// Интервал идет в секундах!
-#ifdef TEST
-    uint16_t min_interval = 180; // 3 min
-    uint16_t max_interval = 600; // 10 min
-#else
+    // Интервал идет в секундах!
     uint16_t min_interval = 60;   // 1 minutes
     uint16_t max_interval = 3600; // 1 hours
-#endif
 
     std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(address);
 
@@ -782,13 +678,10 @@ bool Controller::setDevicesMapToFile()
 {
     std::string prefix = "/usr/local";
 
-    int dbg = 4;
-#ifdef TEST
-    dbg = 2;
-    std::string filename = prefix + "/etc/zhub2/map_addr_test.cfg";
-#else
-    std::string filename = prefix + "/etc/zhub2/map_addr.cfg";
-#endif
+    int dbg = 3;
+
+    std::string filename = app.config.MapPath;
+
     std::FILE *fd = std::fopen(filename.c_str(), "w");
     if (!fd)
     {
@@ -833,11 +726,9 @@ std::map<uint16_t, uint64_t> Controller::readMapFromFile()
 {
 
     std::map<uint16_t, uint64_t> item_data{};
-#ifdef TEST
-    std::string filename = "/usr/local/etc/zhub2/map_addr_test.cfg";
-#else
-    std::string filename = "/usr/local/etc/zhub2/map_addr.cfg";
-#endif
+
+    std::string filename = app.config.MapPath;
+
     std::FILE *fd = std::fopen(filename.c_str(), "r");
 
     if (fd)
@@ -884,10 +775,10 @@ void Controller::join_device(zigbee::NetworkAddress network_address, zigbee::IEE
             gsbutils::dprintf(3, "Device exists\n");
             // устройство есть в списке устройств
             ed = device->second;
-            zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
+            zigbee::NetworkAddress shortAddr = ed->get_network_address();
             if (shortAddr != network_address)
             {
-                ed->setNetworkAddress(network_address);
+                ed->set_network_address(network_address);
                 {
                     while (end_devices_address_map_.count(shortAddr))
                     {
@@ -1099,16 +990,16 @@ std::string Controller::showDeviceInfo(zigbee::NetworkAddress network_address)
     if (mac_address != end_devices_address_map_.end())
     {
         std::shared_ptr<zigbee::EndDevice> ed = get_device_by_mac(mac_address->second);
-        if (ed && !ed->getModelIdentifier().empty())
+        if (ed && !ed->get_model_identifier().empty())
         {
-            result = result + ed->getModelIdentifier();
-            if (!ed->getManufacturer().empty())
+            result = result + ed->get_model_identifier();
+            if (!ed->get_manufacturer().empty())
             {
-                result = result + " | " + ed->getManufacturer();
+                result = result + " | " + ed->get_manufacturer();
             }
-            if (!ed->getProductCode().empty())
+            if (!ed->get_product_code().empty())
             {
-                result = result + " | " + ed->getProductCode();
+                result = result + " | " + ed->get_product_code();
             }
             result = result + "\n";
         }

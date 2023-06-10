@@ -36,22 +36,7 @@
 #include <termios.h>
 
 #include "version.h"
-
-#include "../telebot32/src/tlg32.h"
 #include "../gsb_utils/gsbutils.h"
-#include "comport/unix.h"
-#include "comport/serial.h"
-#include "common.h"
-#include "zigbee/zigbee.h"
-#include "exposer.h"
-#include "pi4-gpio.h"
-#include "modem.h"
-
-#include "httpserver.h"
-#include "http.h"
-extern std::unique_ptr<HttpServer> http;
-
-#include "exposer.h"
 #include "app.h"
 #include "main.h"
 
@@ -80,7 +65,6 @@ static void closeAll()
 {
 }
 
-
 ///////////////////////////////////////////////////////////
 int main(int argc, char *argv[])
 {
@@ -90,42 +74,26 @@ int main(int argc, char *argv[])
     signal_init();
 #ifdef DEBUG
     gsbutils::init(0, (const char *)"zhub2");
-    gsbutils::set_debug_level(3); // 0 - Отключение любого дебагового вывода
 #else
     gsbutils::init(1, (const char *)"zhub2");
-    gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
 #endif
+    gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
 
     gsbutils::dprintf(1, "Start zhub2 v%s.%s.%s \n", Project_VERSION_MAJOR, Project_VERSION_MINOR, Project_VERSION_PATCH);
+    if (!app.parse_config())
+    {
+        gsbutils::stop(); // остановка вывода сообщений
+        return -100;
+    }
+    if (app.config.Mode == "debug" || app.config.Mode == "test")
+        gsbutils::set_debug_level(3);
+
     if (app.object_create())
-        app.startApp();
+        app.start_app();
 
-    try
-    {
-        if (!app.noAdapter)
-        {
+    app.stop_app();
 
-#ifdef IS_PI
-            std::thread pwr_thread(power_detect);           // поток определения наличия 220В
-            std::thread tempr_thread(get_main_temperature); // поток определения температуры платы Raspberry
-#endif
-
-#ifdef IS_PI
-            pwr_thread.join();
-            tempr_thread.join();
-#endif
-        }
-        ret = 0;
-    }
-    catch (std::exception &e)
-    {
-        std::cerr << e.what() << std::endl;
-        ret = 1;
-    }
-    if (app.cmdThread.joinable())
-        app.cmdThread.join();
-
-    app.stopApp();
+    gsbutils::stop(); // остановка вывода сообщений
     return ret;
 }
 

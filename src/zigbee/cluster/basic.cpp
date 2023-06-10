@@ -11,11 +11,11 @@
 #include <any>
 #include <sstream>
 #include <termios.h>
-
+#include "../../../gsb_utils/gsbutils.h"
+#include "../../../telebot32/src/tlg32.h"
 #include "../../version.h"
 #include "../../comport/unix.h"
 #include "../../comport/serial.h"
-#include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
 
 #include "../zigbee.h"
@@ -43,7 +43,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                 std::string identifier = any_cast<std::string>(attribute.value);
                 if (!identifier.empty())
                 {
-                    ed->setManufacturer(identifier);
+                    ed->set_manufacturer(identifier);
                     gsbutils::dprintf(dbg, "MANUFACTURER_NAME: 0x%02x %s \n\n", endpoint.address, identifier.c_str());
                 }
                 break;
@@ -53,7 +53,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                 std::string identifier = any_cast<std::string>(attribute.value);
                 if (!identifier.empty())
                 {
-                    ed->setModelIdentifier(identifier);
+                    ed->set_model_identifier(identifier);
                     gsbutils::dprintf(dbg, "MODEL_IDENTIFIER: 0x%02x %s \n\n", endpoint.address, identifier.c_str());
                 }
                 break;
@@ -63,7 +63,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                 std::string identifier = any_cast<std::string>(attribute.value);
                 if (!identifier.empty())
                 {
-                    ed->setProductCode(identifier);
+                    ed->set_product_code(identifier);
                     gsbutils::dprintf(dbg, "PRODUCT_CODE: 0x%02x %s \n\n", endpoint.address, identifier.c_str());
                 }
             }
@@ -85,7 +85,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
 
                 if (ed && val > 0 && val < 0x8f)
                 {
-                    ed->setPowerSource(val);
+                    ed->set_power_source(val);
                 }
 
                 break;
@@ -101,7 +101,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                 // с умных розеток идет примерно каждые 300 секунд
                 if (ed->get_device_type() == 10) // умные розетки
                 {
-                    zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
+                    zigbee::NetworkAddress shortAddr = ed->get_network_address();
                     // запрос тока и напряжения, работает!
                     std::vector<uint16_t> idsAV{0x0505, 0x508};
                     app.zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
@@ -257,7 +257,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                             float fnum;
                         } my_union;
                         my_union.num = input.at(i + 2) + (input.at(i + 3) << 8) + (input.at(i + 4) << 16) + (input.at(i + 5) << 24);
-                        ed->setPowerSource(0x01);
+                        ed->set_power_source(0x01);
                         ed->set_mains_voltage(my_union.fnum / 10);
                         gsbutils::dprintf(dbg, "Voltage  %0.2f\n", my_union.fnum / 10);
                         i = i + 5;
@@ -317,7 +317,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
             break;
             case zigbee::zcl::Attributes::Basic::PHYSICAL_ENVIRONMENT: // 0x0011, enum8
             {
-#ifdef TEST
+#ifdef DEBUG
                 uint8_t val = any_cast<uint8_t>(attribute.value);
                 gsbutils::dprintf(1, "PHYSICAL_ENVIRONMENT: 0x%04x 0x%02x \n\n", endpoint.address, val);
 #endif
@@ -325,7 +325,7 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
             break;
             case zigbee::zcl::Attributes::Basic::DEVICE_ENABLED: // 0x0012, uint8
             {
-#ifdef TEST
+#ifdef DEBUG
                 uint8_t val = any_cast<uint8_t>(attribute.value);
                 gsbutils::dprintf(1, "DEVICE_ENABLED: 0x%04x %s \n\n", endpoint.address, val ? "Enabled" : "Disabled");
 #endif

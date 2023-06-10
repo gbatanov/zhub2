@@ -23,8 +23,10 @@
 #include "../comport/serial.h"
 #include "../common.h"
 #include "command.h"
+
 #include "zigbee.h"
 #include "../modem.h"
+
 #include "../app.h"
 
 using zigbee::IEEEAddress;
@@ -48,19 +50,10 @@ using namespace zigbee;
 
 Zhub::Zhub() : Controller()
 {
-    tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
-    tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
-    tlg32 = std::make_shared<Tlg32>(BOT_NAME, tlg_in, tlg_out);
-    tlgInThread = new std::thread(&Zhub::handle, this);
+
 }
 Zhub::~Zhub()
 {
-
-    tlg_in->stop();
-    tlg_out->stop();
-    if (tlgInThread->joinable())
-        tlgInThread->join();
-
     disconnect();
 }
 
@@ -78,7 +71,7 @@ void Zhub::start(std::vector<uint8_t> rfChannels)
     if (!app.Flag.load())
         return;
 
-#ifdef TEST
+#ifdef DEBUG
     // Датчик движения ИКЕА
     std::vector<uint16_t> idsOnoff{0x0000};
     uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0x0c4314fffe17d8a8);
@@ -151,7 +144,7 @@ void Zhub::ias_zone_command(uint8_t cmnd, uint16_t one)
     {
         // одно устройство, команда из веб-апи
         auto device = devices_.find(0x54ef441000193352); // реле контактора стиралки
-        if (device != devices_.end() && device->second->getNetworkAddress() == one)
+        if (device != devices_.end() && device->second->get_network_address() == one)
         {
             cmd = cmd == 0 ? 0x1 : 0x0;
         }
@@ -177,8 +170,8 @@ void Zhub::ias_zone_command(uint8_t cmnd, uint16_t one)
                 // это бывает крайне редко, исключительный случай, поэтому потоки можно детачить
                 std::thread of_action([this, cmd1, device]
                                       {
-                                                        this->sendCommandToOnOffDevice(device->second->getNetworkAddress(), cmd1);
-                                                        gsbutils::dprintf(1, "Control device 0x%04x\n", device->second->getNetworkAddress()); });
+                                                        this->sendCommandToOnOffDevice(device->second->get_network_address(), cmd1);
+                                                        gsbutils::dprintf(1, "Control device 0x%04x\n", device->second->get_network_address()); });
                 of_action.detach();
                 std::this_thread::sleep_for(std::chrono::seconds(2));
             }
@@ -193,7 +186,7 @@ void Zhub::ias_zone_command(uint8_t cmnd, uint64_t mac_addr)
     {
         auto shortAddr = devices_.find(mac_addr);
         if (shortAddr != devices_.end())
-            ias_zone_command(cmnd, static_cast<uint16_t>(shortAddr->second->getNetworkAddress()));
+            ias_zone_command(cmnd, static_cast<uint16_t>(shortAddr->second->get_network_address()));
     }
 }
 
@@ -203,22 +196,22 @@ void Zhub::handle_sonoff_door(std::shared_ptr<zigbee::EndDevice> ed, uint8_t cmd
     std::time_t ts = std::time(0); // get time now
     ed->set_last_action((uint64_t)ts);
 
-    if (ed->getIEEEAddress() == 0x00124b002512a60b) // sensor2
+    if (ed->get_ieee_address() == 0x00124b002512a60b) // sensor2
     {
         ed->set_current_state(cmd ? "Opened" : "Closed");
         // управляем реле 3, включаем подсветку в большой комнате в шкафу
         switch_relay(0x54ef44100018b523, cmd);
     }
-    else if (ed->getIEEEAddress() == 0x00124b00250bba63) // sensor 3
+    else if (ed->get_ieee_address() == 0x00124b00250bba63) // sensor 3
     {
         ed->set_current_state(cmd ? "Opened" : "Closed");
         std::string alarm_msg = "Закрыт ящик ";
         // информируем об открытии верхнего ящика
         if (cmd == 0x01)
             alarm_msg = "Открыт ящик ";
-        tlg32->send_message(alarm_msg);
+        send_tlg_message(alarm_msg);
     }
-    else if (ed->getIEEEAddress() == 0x00124b0025485ee6) // sensor 1 датчик света в туалете
+    else if (ed->get_ieee_address() == 0x00124b0025485ee6) // sensor 1 датчик света в туалете
     {
         // с версии 2.22.517 логику инвертируем
         ed->set_current_state(cmd ? "Closed" : "Opened");
@@ -276,7 +269,7 @@ void Zhub::handle_motion(std::shared_ptr<zigbee::EndDevice> ed, uint8_t cmd)
     ed->set_motion_state(cmd);                           // числовое значение
     ed->set_current_state(cmd ? "Motion" : "No motion"); // текстовое значение
 
-    uint64_t mac_address = (uint64_t)ed->getIEEEAddress();
+    uint64_t mac_address = (uint64_t)ed->get_ieee_address();
 
     if (mac_address == 0x00124b0025137475) // датчик движения 1 (коридор) Sonoff
     {
@@ -424,7 +417,7 @@ void Zhub::onoff_command(zigbee::Message message)
         gsbutils::dprintf(1, "Незарегистрированное устройство\n");
         return;
     }
-    uint64_t mac_address = (uint64_t)ed->getIEEEAddress();
+    uint64_t mac_address = (uint64_t)ed->get_ieee_address();
     uint8_t cmd = (uint8_t)message.zcl_frame.command;
     ed->set_current_state(cmd ? "On" : "Off");
     std::time_t ts = std::time(0); // get time now
@@ -481,10 +474,8 @@ void Zhub::onoff_command(zigbee::Message message)
         {
             ed->set_current_state("Double click"); // 1 - double , 2 - single, 0 - long
             std::string alarm_msg = "Вызов с кнопки ";
-            ringer();
-#ifdef WITH_TELEGA
-            tlg32->send_message(alarm_msg);
-#endif
+            app.ringer();
+            send_tlg_message(alarm_msg);
         }
         break;
         case 2:
@@ -597,7 +588,10 @@ std::string Zhub::get_motion_state()
 }
 
 // Если на момент опроса есть хотя бы один датчик движения в статусе Motion,
-// фиксируем факт наличия движения
+// фиксируем факт наличия движения. Это необходимо для того, что можно находиться возле датчика,
+// он сработает в начале, я через 20 минут сработает условие - Никого нет дома.
+// Чтобы это не происходило, каждую минуту проверяю состояние датчиков движения 
+// и обновляю переменную lastMotionSensorActivity
 // Кухню пока исключаю из процесса из-за нестабильности работы датчика
 void Zhub::check_motion_activity()
 {
@@ -615,7 +609,7 @@ void Zhub::check_motion_activity()
     if (as_html)  \
         result = result + "<tr class='empty'><td colspan='8'><hr></td></tr>";
 
-#ifdef TEST
+#ifdef DEBUG
 #define EDCHECK (ed && ed->deviceInfo.test)
 #else
 #define EDCHECK (ed && ed->deviceInfo.available)
@@ -708,20 +702,17 @@ std::string Zhub::show_device_statuses(bool as_html)
         }
 
         // Дальше выводится только в телеграм
-       
-        float temp = get_board_temperature();
+
+        float temp = app.get_board_temperature();
         if (temp)
         {
             size_t len = snprintf(buff, 1024, "Температура платы управления: %0.1f \n", temp);
             buff[len] = 0;
             result = result + std::string(buff);
         }
-       
-        std::time_t lastMotionSensorAction = getLastMotionSensorActivity();
-        std::tm tm = *std::localtime(&lastMotionSensorAction);
-        size_t len = std::strftime(buff, sizeof(buff) / sizeof(buff[0]), " %Y-%m-%d %H:%M:%S", &tm);
-        buff[len] = 0;
-        result = result + "Последнее движение в " + std::string(buff) + "\n";
+
+        result = result + "Последнее движение в " +
+                 gsbutils::DDate::timestamp_to_string(getLastMotionSensorActivity()) + "\n";
     }
     catch (std::exception &e)
     {
@@ -739,7 +730,7 @@ std::string Zhub::show_one_type(std::shared_ptr<zigbee::EndDevice> ed, bool as_h
     {
         result = result + "<tr>";
     }
-    size_t len = snprintf(buff, 1024, "0x%04x", ed->getNetworkAddress());
+    size_t len = snprintf(buff, 1024, "0x%04x", ed->get_network_address());
     buff[len] = 0;
     if (as_html)
     {
@@ -848,59 +839,8 @@ inline void Zhub::switch_off_with_list()
             switch_relay(mac_addr, 0, 2);
     }
 }
-// используется в телеграм
-std::string Zhub::show_statuses()
+void Zhub::send_tlg_message(std::string msg)
 {
-    std::string statuses = show_device_statuses(false);
-    if (statuses.empty())
-        return "Нет активных устройств\n";
-    else
-        return "Статусы устройств:\n" + statuses + "\n";
-}
-
-// Здесь реализуется вся логика обработки принятых сообщений из телеграм
-void Zhub::handle()
-{
-    while (app.Flag.load())
-    {
-        TlgMessage msg = tlg_in->read();
-        if (!msg.text.empty())
-        {
-            TlgMessage answer{};
-            answer.chat.id = msg.from.id;
-
-            DBGLOG("Входное сообщение %s: %s \n", msg.from.firstName.c_str(), msg.text.c_str());
-            if (!tlg32->client_valid(msg.from.id))
-            {
-                answer.text = "Я не понял Вас.\n";
-                bool ret = tlg32->send_message(answer);
-            }
-            if (msg.text.starts_with("/start"))
-                answer.text = "Привет, " + msg.from.firstName;
-            else if (msg.text.starts_with("/stat"))
-            {
-                std::string stat = show_statuses();
-                if (stat.size() == 0)
-                    answer.text = "Нет ответа\n";
-                else
-                    answer.text = stat;
-            }
-            else if (msg.text.starts_with("/balance"))
-            {
-                if (app.with_sim800)
-                {
-                    if (app.gsmModem->get_balance())
-                        answer.text = "Запрос баланса отправлен\n";
-                }
-                else
-                {
-                    answer.text = "SIM800 не подключен\n";
-                }
-            }
-            else
-                answer.text = "Я не понял Вас.\n";
-
-            tlg_out->write(answer);
-        }
-    }
+    if (app.withTlg)
+    app.tlg32->send_message(msg);
 }

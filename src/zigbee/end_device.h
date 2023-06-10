@@ -1,5 +1,5 @@
-#ifndef end_device_h
-#define end_device_h
+#ifndef GSB_END_DEVICE_H
+#define GSB_END_DEVICE_H
 
 struct DeviceInfo
 {
@@ -32,27 +32,24 @@ public:
     static const std::vector<uint64_t> PROM_DOOR_LIST;
 
     EndDevice(zigbee::NetworkAddress shortAddr, zigbee::IEEEAddress IEEEAddress);
+    EndDevice() = delete;
     ~EndDevice();
 
-    void setProductCode(std::string productCode) { deviceInfo.productCode = productCode; };
-    std::string getProductCode() { return deviceInfo.productCode; };
-    void setManufacturer(std::string manufacturer) { deviceInfo.manufacturer = manufacturer; };
-    std::string getManufacturer() { return deviceInfo.manufacturer; };
-    void setModelIdentifier(std::string model) { modelIdentifier_ = model; };
-    std::string getModelIdentifier() { return modelIdentifier_; };
-    zigbee::NetworkAddress getNetworkAddress() { return shortAddr_; };
-    zigbee::IEEEAddress getIEEEAddress() { return IEEEAddress_; };
-    void setNetworkAddress(zigbee::NetworkAddress shortAddr) { shortAddr_ = shortAddr; };
-    void setIEEEAddress(zigbee::IEEEAddress IEEEAddress) { IEEEAddress_ = IEEEAddress; };
-    bool isBatteryPowered() { return deviceInfo.powerSource == zigbee::zcl::Attributes::PowerSource::BATTERY; };
-    bool isACPowered() { return deviceInfo.powerSource == zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE; };
-    void setPowerSource(uint8_t powerSource);
-    std::string showPowerSource();
+    void init();
+    void set_product_code(std::string productCode) { deviceInfo.productCode = productCode; };
+    std::string get_product_code() { return deviceInfo.productCode; };
+    void set_manufacturer(std::string manufacturer) { deviceInfo.manufacturer = manufacturer; };
+    std::string get_manufacturer() { return deviceInfo.manufacturer; };
+    void set_model_identifier(std::string model) { modelIdentifier_ = model; };
+    std::string get_model_identifier() { return modelIdentifier_; };
+    void set_network_address(zigbee::NetworkAddress shortAddr) { shortAddr_ = shortAddr; };
+    zigbee::NetworkAddress get_network_address() { return shortAddr_; };
+    zigbee::IEEEAddress get_ieee_address() { return IEEEAddress_; };
+    void set_power_source(uint8_t powerSource);
+    std::string show_power_source();
     void set_battery_params(uint8_t battery_remain_percent, double battery_voltage);
     std::string show_battery_remain();
     std::string show_battery_voltage();
-    virtual void actionHandle(){};
-    void init();
     std::string get_current_state(uint8_t channel = 1);
     void set_current_state(std::string state, uint8_t channel = 1);
     std::string get_human_name() { return deviceInfo.humanName.empty() ? "Unknown" : deviceInfo.humanName; }
@@ -93,14 +90,13 @@ public:
     }
     int8_t get_motion_state() { return motion_; }
     std::vector<uint8_t> get_endpoints() { return ep_; }
-
     uint8_t get_device_type() { return deviceInfo.deviceType; }
-
     std::string get_prom_motion_string();
     std::string get_prom_relay_string();
     std::string get_prom_door_string();
     std::string get_prom_pressure();
     bool check_last_power_query();
+
     DeviceInfo deviceInfo;
 
 protected:
@@ -126,7 +122,6 @@ protected:
 
 private:
     time_t lastPowerQuery = 0;
-    std::atomic<bool> flag;
     uint64_t last_seen_ = 0;   // время последнего ответа устройства
     uint64_t last_action_ = 0; // время последней активности устройства (может не совпадать со временем последнего ответа)
     // только для TEST конфигурации

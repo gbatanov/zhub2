@@ -17,6 +17,7 @@ public:
     HttpServer();
     ~HttpServer();
     bool start();
+    void stop_http();
 
     int open_tcp_socket(int port);
     void send_error(int client_sockfd, int status, char *text);
@@ -35,6 +36,7 @@ public:
     int http_sockfd = -1;
     int http_server_port = 8054;
     int client_sockfd = -1;
+    std::atomic<bool> flag;
 
 };
 

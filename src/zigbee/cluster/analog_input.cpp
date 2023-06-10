@@ -26,7 +26,7 @@ using AnalogInput = zigbee::clusters::AnalogInput;
 
 void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 4;
@@ -56,7 +56,7 @@ void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attribut
             // единица измерения(для двухканального реле не приходит)
             unit = (any_cast<std::string>(attribute.value));
             unit = gsbutils::SString::remove_after(unit, ",");
-#ifdef TEST
+#ifdef DEBUG
             gsbutils::dprintf(1, "Device 0x%04x endpoint %d Analog Input Unit =  %s \n", endpoint.address, endpoint.number, unit.c_str());
 #endif
         }
@@ -91,7 +91,7 @@ void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attribut
     else if ((ed->get_device_type() == 11 || ed->get_device_type() == 9 || ed->get_device_type() == 10) && (value > -100.0))
     {
         ed->set_current(value / 100);
-#ifdef TEST
+#ifdef DEBUG
         gsbutils::dprintf(1, "Device 0x%04x endpoint %d Full Current %0.3fA \n", endpoint.address, endpoint.number, value / 100);
 #endif
     }

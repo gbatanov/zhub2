@@ -26,7 +26,7 @@ using Xiaomi = zigbee::clusters::Xiaomi;
 
 void Xiaomi::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 3;
@@ -123,7 +123,7 @@ void Xiaomi::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, z
                     my_union.num = input.at(i + 2) + (input.at(i + 3) << 8) + (input.at(i + 4) << 16) + (input.at(i + 5) << 24);
                     if (ed)
                     {
-                        ed->setPowerSource(0x01);
+                        ed->set_power_source(0x01);
                         ed->set_mains_voltage(my_union.fnum / 10);
                     }
                     gsbutils::dprintf(dbg, "Напряжение  %0.2f\n", my_union.fnum / 10);

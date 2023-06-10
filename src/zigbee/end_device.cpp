@@ -20,10 +20,6 @@
 #include "../../gsb_utils/gsbutils.h"
 #include "../common.h"
 #include "zigbee.h"
-#include "../modem.h"
-#include "../app.h"
-
-extern App app;
 
 using gsb_utils = gsbutils::SString;
 using namespace zigbee;
@@ -108,16 +104,12 @@ const std::vector<uint64_t> EndDevice::OFF_LIST = {
 
 // Список устройств для отображения в Графане
 const std::vector<uint64_t> EndDevice::PROM_MOTION_LIST = {
-#ifdef TEST
-    0x0c4314fffe17d8a8
-#else
     0x00124b0025137475, // коридор
     0x00124b0014db2724, // прихожая
     0x00124b0009451438, // кухня
     0x00124b0024455048, // комната
     0x00124b002444d159, // детская
     0x00124b0007246963  // балкон
-#endif
 };
 const std::vector<uint64_t> EndDevice::PROM_DOOR_LIST = {
     0x00124b0025485ee6 // туалет
@@ -131,17 +123,12 @@ extern std::atomic<bool> Flag;
 
 EndDevice::EndDevice(zigbee::NetworkAddress shortAddr, zigbee::IEEEAddress IEEEAddress) : shortAddr_(shortAddr), IEEEAddress_(IEEEAddress) {}
 
-EndDevice::~EndDevice()
-{
-    flag.store(false);
-};
+EndDevice::~EndDevice(){};
 
-// запускаем процессы получения своих параметров
 void EndDevice::init()
 {
     try
     {
-        flag.store(true);
         DeviceInfo di = KNOWN_DEVICES.at(static_cast<const uint64_t>(IEEEAddress_));
         deviceInfo = di;
         modelIdentifier_ = DEVICE_TYPES.at(di.deviceType);
@@ -161,13 +148,13 @@ void EndDevice::set_battery_params(uint8_t battery_remain_percent, double batter
         battery_voltage_ = battery_voltage;
 };
 
-void EndDevice::setPowerSource(uint8_t power_source)
+void EndDevice::set_power_source(uint8_t power_source)
 {
     if (power_source > 0)
         deviceInfo.powerSource = static_cast<zigbee::zcl::Attributes::PowerSource>(power_source);
 };
 
-std::string EndDevice::showPowerSource()
+std::string EndDevice::show_power_source()
 {
     std::string result = "";
     uint8_t ps = static_cast<uint8_t>(deviceInfo.powerSource);
@@ -378,7 +365,8 @@ std::string EndDevice::get_prom_relay_string()
         strState2 = "zhub2_metrics{device=\"" + name2 + "\",type=\"relay\"} " + strState2 + "\n";
     return strState + strState2;
 }
-
+/// @brief Возвращает строку для Prometheus с давлением
+/// @return
 std::string EndDevice::get_prom_pressure()
 {
     double pressure = get_pressure();
@@ -396,6 +384,7 @@ void EndDevice::set_linkquality(uint8_t lq)
         state_ = "On";
 }
 
+// Запрашиваем питание каждый час для устройств, не отдающих этот параметр в репорте
 bool EndDevice::check_last_power_query()
 {
     std::time_t ts = std::time(0); // get time now

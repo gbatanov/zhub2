@@ -12,12 +12,12 @@
 #include <sstream>
 #include <termios.h>
 
+#include "../../../gsb_utils/gsbutils.h"
+#include "../../../telebot32/src/tlg32.h"
 #include "../../version.h"
 #include "../../comport/unix.h"
 #include "../../comport/serial.h"
-#include "../../../gsb_utils/gsbutils.h"
 #include "../../common.h"
-
 #include "../zigbee.h"
 #include "cluster.h"
 #include "../../modem.h"
@@ -29,7 +29,7 @@ extern App app;
 
 void PowerConfiguration::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 3;
@@ -63,7 +63,7 @@ void PowerConfiguration::attribute_handler(std::vector<zigbee::zcl::Attribute> a
             // Кнопка ИКЕА не поддерживает этот аттрибут
         case zigbee::zcl::Attributes::PowerConfiguration::BATTERY_SIZE:
         {
-#ifdef TEST
+#ifdef DEBUG
             uint8_t val = static_cast<uint8_t>(any_cast<uint8_t>(attribute.value));
             gsbutils::dprintf(dbg, "Device: 0x%04x BATTERY_SIZE:  0x%02x \n", endpoint.address, val);
 #endif

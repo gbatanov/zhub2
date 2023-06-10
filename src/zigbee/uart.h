@@ -2,6 +2,9 @@
 #ifndef UART_H
 #define UART_H
 
+#include "../comport/unix.h"
+#include "../comport/serial.h"
+
 #define SOF 0xFE
 
 #define RX_BUFFER_SIZE 512
@@ -31,6 +34,8 @@ private:
   std::vector<uint8_t> tx_buff_;
   std::vector<uint8_t> rx_buff_;
   std::mutex transmit_mutex_;
+
+  std::atomic<bool>flag;
 };
 
 #endif

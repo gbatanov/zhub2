@@ -26,7 +26,7 @@ using Tuya = zigbee::clusters::Tuya;
 
 void Tuya::attribute_handler_private(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 3;
@@ -35,7 +35,7 @@ void Tuya::attribute_handler_private(std::vector<zigbee::zcl::Attribute> attribu
     for (auto attribute : attributes)
     {
         gsbutils::dprintf(dbg, "Zhub::on_attribute_report Device 0x%04x Cluster::TUYA_ELECTRICIAN_PRIVATE_CLUSTER , attribute.id = 0x%04x\n", endpoint.address, attribute.id);
-#ifdef TEST
+#ifdef DEBUG
         switch (attribute.id)
         {
         case 0xd010: // PowerOnBehavior enum8 defaultValue: "2", options:  ['0': 'closed', '1': 'open', '2': 'last state']]
@@ -61,7 +61,7 @@ void Tuya::attribute_handler_private(std::vector<zigbee::zcl::Attribute> attribu
 
 void Tuya::attribute_handler_switch_mode(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 3;

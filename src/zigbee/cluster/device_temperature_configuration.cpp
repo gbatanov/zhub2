@@ -16,6 +16,7 @@
 #include "../../comport/unix.h"
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
+#include "../../../telebot32/src/tlg32.h"
 #include "../../common.h"
 #include "../zigbee.h"
 #include "cluster.h"
@@ -28,7 +29,7 @@ extern App app;
 
 void DeviceTemperatureConfiguration::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
     int dbg = 1;
 #else
     int dbg = 4;

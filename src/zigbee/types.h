@@ -68,8 +68,8 @@ struct NetworkConfiguration
 class Device
 {
 public:
-	virtual zigbee::NetworkAddress getNetworkAddress() = 0;
-	virtual zigbee::IEEEAddress getIEEEAddress() = 0;
+	virtual zigbee::NetworkAddress get_network_address() = 0;
+	virtual zigbee::IEEEAddress get_ieee_address() = 0;
 	Device(){};
 	virtual ~Device(){};
 };

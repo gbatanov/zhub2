@@ -113,8 +113,8 @@ public:
     std::optional<int> setTransmitPower(int requestedPower); // Range: -22 ... 3 dBm.
     void sendMessage(zigbee::Endpoint endpoint, zigbee::zcl::Cluster cluster, zigbee::zcl::Frame frame, std::chrono::duration<int, std::milli> timeout = 3s);
 
-    zigbee::NetworkAddress getNetworkAddress() { return network_address_; }
-    zigbee::IEEEAddress getIEEEAddress() { return mac_address_; }
+    zigbee::NetworkAddress get_network_address() { return network_address_; }
+    zigbee::IEEEAddress get_ieee_address() { return mac_address_; }
 
     std::vector<uint8_t> read_rf_channels();
     bool write_rf_channels(std::vector<uint8_t> rf);
@@ -141,7 +141,7 @@ public:
     std::array<unsigned, 3> version_{0, 0, 0};
     zigbee::NetworkAddress network_address_ = 0;
     zigbee::IEEEAddress mac_address_ = 0;
-    zigbee::EventCommand event_command_;
+    zigbee::EventCommand eventCommand_;
 
     void get_attribute_RSSI_Power(zigbee::NetworkAddress address);
     std::string getCommandStr(Command &command);
@@ -149,12 +149,14 @@ public:
     std::shared_ptr<gsbutils::Channel<Command>> chan_out, chan_in;
     std::shared_ptr<Uart> uart_;
     void on_command();
-    static void on_command(void*);
+    static void on_command(void *);
 
 protected:
     uint8_t generateTransactionSequenceNumber();
-    std::thread *thr_cmdin;
+    std::thread *thr_cmdin = nullptr;
     std::shared_ptr<gsbutils::ThreadPool<Command>> tp;
+    bool stopped = false;
+    void stop_zdo();
 };
 
 #endif

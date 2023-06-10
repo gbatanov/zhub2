@@ -4,6 +4,10 @@
 
 #define PI_RX_BUFFER_SIZE 1024
 #define PI_TX_BUFFER_SIZE 256
+
+#include <any>
+#include "comport/unix.h"
+#include "comport/serial.h"
 #include "zigbee/zigbee.h"
 
 class GsmModem

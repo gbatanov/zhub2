@@ -1,6 +1,8 @@
 #ifndef SERIAL_IMPL_UNIX_H
 #define SERIAL_IMPL_UNIX_H
 
+#include <termios.h>
+
 namespace serial
 {
 

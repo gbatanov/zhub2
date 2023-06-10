@@ -16,6 +16,7 @@
 #include "../../comport/unix.h"
 #include "../../comport/serial.h"
 #include "../../../gsb_utils/gsbutils.h"
+#include "../../../telebot32/src/tlg32.h"
 #include "../../common.h"
 
 #include "../zigbee.h"
@@ -29,7 +30,7 @@ extern App app;
 
 void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
-#ifdef TEST
+#ifdef DEBUG
         int dbg = 1;
 #else
         int dbg = 4;
@@ -53,7 +54,7 @@ void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
             {
                 b_val = (any_cast<bool>(attribute.value));
                 gsbutils::dprintf(dbg, "Zhub::on_attribute_report: +Device 0x%04x endpoint %d Level %s \n", endpoint.address, endpoint.number, b_val ? "High" : "Low");
-                uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
+                uint64_t macAddress = (uint64_t)ed->get_ieee_address();
                 if (macAddress == 0x00124b0014db2724)
                 {
                     // custom2 коридор
@@ -160,7 +161,7 @@ void OnOff::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
         break;
         case zigbee::zcl::Attributes::OnOffSwitch::_00F7: // какие то наборы символов
         {
-#ifdef TEST
+#ifdef DEBUG
             for (uint8_t b : any_cast<std::string>(attribute.value))
             {
                 gsbutils::dprintf_c(dbg, " 0x%02x", b);

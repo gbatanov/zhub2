@@ -21,12 +21,13 @@
 #include <any>
 #include <sstream>
 #include <termios.h>
-
+#include "../gsb_utils/gsbutils.h"
+#include "../telebot32/src/tlg32.h"
 #include "version.h"
 #include "pi4-gpio.h"
 #include "comport/unix.h"
 #include "comport/serial.h"
-#include "../gsb_utils/gsbutils.h"
+
 #include "common.h"
 #include "zigbee/zigbee.h"
 
@@ -44,6 +45,12 @@ void http_server()
 {
     http = std::make_unique<HttpServer>();
     http->start(); // поток приема http-запросов
+}
+
+void http_stop()
+{
+    if (http)
+        http->stop_http();
 }
 
 // Функция-обработчик входящих запросов
@@ -167,7 +174,7 @@ std::string create_device_list()
     std::string result = "";
 
 #if !defined __MACH__
-    float board_temperature = get_board_temperature();
+    float board_temperature = app.get_board_temperature();
     if (board_temperature > -100.0)
     {
         char buff[128]{0};
@@ -177,13 +184,11 @@ std::string create_device_list()
         result = result + std::string(buff) + "</p>";
     }
 #endif
+    if (app.withSim800)
+        result = result + "<p>" + app.show_sim800_battery() + "</p>";
 
-#ifdef WITH_SIM800
-    result = result + "<p>" + app.zhub->show_sim800_battery() + "</p>";
-#endif
-
-    std::time_t lastMotionSensorAction = app.zhub->getLastMotionSensorActivity();
-    result = result + "<p>Время последнего срабатывания датчиков движения: " + gsbutils::DDate::timestamp_to_string(lastMotionSensorAction) + "</p>";
+    result = result + "<p>Время последнего срабатывания датчиков движения: " +
+             gsbutils::DDate::timestamp_to_string(app.zhub->getLastMotionSensorActivity()) + "</p>";
     result = result + "<p>Старт программы: " + app.startTime + "</p>";
 
     std::string list = app.zhub->show_device_statuses(true);
@@ -214,14 +219,16 @@ std::string command_list()
     result += "<p>Розетка 2&nbsp;<a href=\"/command?on=0x70b3d52b6001b5d9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b5d9\">Выключить</a></p>";
     result += "<p>Розетка 3&nbsp;<a href=\"/command?on=0x70b3d52b60022ac9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022ac9\">Выключить</a></p>";
     result += "<p>Розетка 4&nbsp;<a href=\"/command?on=0x70b3d52b60022cfd\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022cfd\">Выключить</a></p>";
-    result += "<p>----------- Двухканальные реле ---------------</p>";
+    result += "<p>----------- реле ---------------</p>";
+    result += "<p>Реле 6&nbsp;<a href=\"/command?on=0x54ef441000609dcc&ep=1\">Включить Реле6</a>&nbsp;<a href=\"/command?off=00x54ef441000609dcc&ep=1\">Выключить Реле6</a></p>";
     result += "<p>Реле 7&nbsp;<a href=\"/command?on=0x00158d0009414d7e&ep=1\">Включить 1</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=1\">Выключить1</a><a href=\"/command?on=0x00158d0009414d7e&ep=2\">Включить 2</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=2\">Выключить 2</a></p>";
     result += "<p></p>";
     result += "<p>-------------------------------</p>";
-#ifdef WITH_SIM800
-    result += "<p><a href=\"/balance\">Запросить баланс</a></p>";
-    result += "<p>-------------------------------</p>";
-#endif
+    if (app.withSim800)
+    {
+        result += "<p><a href=\"/balance\">Запросить баланс</a></p>";
+        result += "<p>-------------------------------</p>";
+    }
     result += "<p><a href=\"/join\">Разрешить спаривание</a></p>";
     result += "<p>-------------------------------</p>";
 
@@ -332,7 +339,7 @@ std::string send_cmd_to_device(char *url)
 
 std::string http_get_balance()
 {
-    if (app.with_sim800)
+    if (app.withSim800)
     {
         app.gsmModem->get_balance();
         std::this_thread::sleep_for(std::chrono::seconds(10));

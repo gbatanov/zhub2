@@ -12,12 +12,7 @@
                 "CMAKE_TOOLCHAIN_FILE": "",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
                 "DEBUG": "ON",
-                "SIM800": "ON",
-                "TELEGA": "ON",
-                "TEST":"ON",
-                "BOT_NAME": "TestGsbBot",
-                "HTTP":"ON",
-                "PROMETHEUS":"OFF"
+                "SIM800": "ON"
             }
         },
         {
@@ -32,11 +27,7 @@
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
                 "DEBUG": "ON",
                 "SIM800": "OFF",
-                "TELEGA": "ON",
-                "BOT_NAME": "GsbHomeBot",
-                "HTTP":"ON",
-                "GPIO": "ON",
-                "PROMETHEUS":"ON"
+                "GPIO": "ON"
             }
         },
         {
@@ -49,12 +40,7 @@
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_TOOLCHAIN_FILE": "",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "TELEGA": "ON",
-                "SIM800": "OFF",
-                "TEST":"ON",
-                "BOT_NAME": "TestGsbBot",
-                "HTTP":"ON",
-                "PROMETHEUS":"ON"
+                "SIM800": "OFF"
             }
         },
         {
@@ -68,11 +54,7 @@
                 "CMAKE_TOOLCHAIN_FILE": "",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
                 "SIM800":"ON",
-                "TELEGA": "ON",
-                "BOT_NAME": "GsbHomeBot",
-                "GPIO": "ON",
-                "HTTP":"ON",
-                "PROMETHEUS":"ON"
+                "GPIO": "ON"
             }
         },
         {
@@ -86,12 +68,7 @@
                 "CMAKE_TOOLCHAIN_FILE": "",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
                 "SIM800": "OFF",
-                "TELEGA": "ON",
-                "BOT_NAME": "TestGsbBot",
-                "GPIO": "OFF",
-                "HTTP":"ON",
-                "PROMETHEUS":"OFF",
-                "TEST":"ON"
+                "GPIO": "OFF"
             }
         },
         {
@@ -105,11 +82,7 @@
                 "CMAKE_TOOLCHAIN_FILE": "",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
                 "SIM800": "OFF",
-                "TELEGA": "ON",
-                "BOT_NAME": "TestGsbBot",
-                "GPIO": "OFF",
-                "HTTP":"ON",
-                "PROMETHEUS":"ON"
+                "GPIO": "OFF"
             }
         }
     ],
