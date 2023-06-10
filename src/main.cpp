@@ -89,9 +89,9 @@ int main(int argc, char *argv[])
         gsbutils::set_debug_level(3);
 
     if (app.object_create())
-        app.startApp();
+        app.start_app();
 
-    app.stopApp();
+    app.stop_app();
 
     gsbutils::stop(); // остановка вывода сообщений
     return ret;

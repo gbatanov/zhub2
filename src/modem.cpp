@@ -48,7 +48,7 @@ void GsmModem::disconnect()
 {
   connected = false;
   execute_flag_.store(false);
-  app.with_sim800 = false;
+  app.withSim800 = false;
   if (receiver_thread_.joinable())
     receiver_thread_.join();
 
@@ -106,7 +106,7 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
 // Очищаем очередь смс-сообщений
 bool GsmModem::init_modem()
 {
-  if (app.with_sim800)
+  if (app.withSim800)
   {
     send_command("AT\r", "At");
     set_echo(true);
@@ -515,7 +515,7 @@ void GsmModem::OnDisconnect()
   gsbutils::dprintf(1, "GsmModem::OnDisconnect.\n");
   if (app.Flag.load())
   {
-    app.with_sim800 = false;
+    app.withSim800 = false;
     app.zhub->send_tlg_message("Модем отключился.");
   }
 }

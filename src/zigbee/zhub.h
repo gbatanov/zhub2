@@ -36,7 +36,7 @@ public:
     inline void switch_off_with_list();
     /*
         std::shared_ptr<Tlg32> tlg32;
-        std::shared_ptr<gsbutils::Channel<TlgMessage>> tlg_in, tlg_out;
+        std::shared_ptr<gsbutils::Channel<TlgMessage>> tlgIn, tlgOut;
         std::thread *tlgInThread;
         void handle();
         std::string show_statuses();

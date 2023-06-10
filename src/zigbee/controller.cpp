@@ -270,7 +270,7 @@ void Controller::on_message(zigbee::Command command)
 
                     send_tlg_message(alarm_msg);
 
-                    if (app.with_sim800)
+                    if (app.withSim800)
                     {
                         gsbutils::dprintf(1, "Phone number call \n");
                         app.gsmModem->master_call();
@@ -296,50 +296,53 @@ void Controller::on_message(zigbee::Command command)
 }
 
 // Блок выполняемый после всех действий
+// Играет функцию таймера, поскольку точность в данной системе не важна,
+// а выделенные таймеры отъедают потоки, что для Raspberry плохо
 void Controller::after_message_action()
 {
     // Выполнять каждую минуту для устройств, которым нужен более частый контроль состояния
     std::vector<uint64_t> smartPlugDevices{0x70b3d52b6001b5d9};
+
+    std::time_t ts = std::time(0); // get time now
+    if (ts - smartPlugTime > 60)
     {
-        std::time_t ts = std::time(0); // get time now
-        if (ts - smartPlugTime > 60)
+        smartPlugTime = ts;
+        
+        app.zhub->check_motion_activity();
+
+        for (uint64_t &di : smartPlugDevices)
         {
-            smartPlugTime = ts;
-
-            for (uint64_t &di : smartPlugDevices)
+            std::shared_ptr<EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)di);
+            if (ed)
             {
-                std::shared_ptr<EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)di);
-                if (ed)
-                {
-                    zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
-                    // запрос тока и напряжения
-                    std::vector<uint16_t> idsAV{0x0505, 0x508};
-                    read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
+                zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
+                // запрос тока и напряжения
+                std::vector<uint16_t> idsAV{0x0505, 0x508};
+                read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
 
-                    if (ed->get_current_state(1) != "On" && ed->get_current_state(1) != "Off")
-                    {
-                        std::vector<uint16_t> idsAV{0x0000};
-                        read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
-                    }
+                if (ed->get_current_state(1) != "On" && ed->get_current_state(1) != "Off")
+                {
+                    std::vector<uint16_t> idsAV{0x0000};
+                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
                 }
             }
-            // краны
+        }
+        // краны
+        {
+            // Получим состояние кранов, если не было получено при старте
+            std::shared_ptr<EndDevice> ed1 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
+            if (ed1 && ed1->get_current_state(1) != "On" && ed1->get_current_state(1) != "Off")
             {
-                // Получим состояние кранов, если не было получено при старте
-                std::shared_ptr<EndDevice> ed1 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
-                if (ed1 && ed1->get_current_state(1) != "On" && ed1->get_current_state(1) != "Off")
-                {
-                    uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
-                    std::vector<uint16_t> idsAV{0x0000};
-                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
-                }
-                std::shared_ptr<EndDevice> ed2 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138373e89d731);
-                if (ed2 && ed2->get_current_state(1) != "On" && ed2->get_current_state(1) != "Off")
-                {
-                    std::vector<uint16_t> idsAV{0x0000};
-                    uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
-                    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
-                }
+                uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138d9758e1dcd);
+                std::vector<uint16_t> idsAV{0x0000};
+                read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
+            }
+            std::shared_ptr<EndDevice> ed2 = get_device_by_mac((zigbee::IEEEAddress)0xa4c138373e89d731);
+            if (ed2 && ed2->get_current_state(1) != "On" && ed2->get_current_state(1) != "Off")
+            {
+                std::vector<uint16_t> idsAV{0x0000};
+                uint16_t shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
+                read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
             }
         }
     }

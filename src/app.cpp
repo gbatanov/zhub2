@@ -13,10 +13,10 @@ bool App::object_create()
     try
     {
         // канал приема команд из теоеграм
-        tlg_in = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+        tlgIn = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
         // канал отправки сообщений в телеграм
-        tlg_out = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
-        tlg32 = std::make_shared<Tlg32>(config.BotName, tlg_in, tlg_out);
+        tlgOut = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
+        tlg32 = std::make_shared<Tlg32>(config.BotName, tlgIn, tlgOut);
         tlgInThread = new std::thread(&App::handle, this);
         tlg32->add_id(config.MyId);
         if (tlg32->run())
@@ -44,7 +44,7 @@ bool App::object_create()
 
     return true;
 }
-bool App::startApp()
+bool App::start_app()
 {
     startTime = gsbutils::DDate::current_time();
     if (!noAdapter)
@@ -52,10 +52,6 @@ bool App::startApp()
         zhub->start(config.Channels);
         httpThread = std::thread(http_server);
         exposerThread = std::thread(&App::exposer_handler, this);
-        timer1Min = std::make_shared<gsbutils::CycleTimer>(60, &App::timer1min);
-
-        timer1Min->run();
-
         tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы Raspberry
 
         return true;
@@ -159,16 +155,16 @@ bool App::init_modem()
     {
         try
         {
-            with_sim800 = gsmModem->connect(config.PortModem, 9600); // 115200  19200 9600 7200
-            if (!with_sim800)
+            withSim800 = gsmModem->connect(config.PortModem, 9600); // 115200  19200 9600 7200
+            if (!withSim800)
             {
                 tlg32->send_message("Модем SIM800 не обнаружен.\n");
                 return false;
             }
             else
             {
-                with_sim800 = gsmModem->init_modem();
-                if (!with_sim800)
+                withSim800 = gsmModem->init_modem();
+                if (!withSim800)
                     return false;
                 tlg32->send_message("Модем SIM800 активирован.\n");
                 gsmModem->get_battery_level(true);
@@ -177,7 +173,7 @@ bool App::init_modem()
         }
         catch (std::exception &e)
         {
-            with_sim800 = false;
+            withSim800 = false;
             tlg32->send_message("Модем SIM800 не обнаружен.\n");
         }
 
@@ -185,18 +181,14 @@ bool App::init_modem()
     }
     else
     {
-        with_sim800 = false;
+        withSim800 = false;
         return false;
     }
 }
-// timer 1 min - callback function
-void App::timer1min()
-{
-    app.zhub->check_motion_activity();
-}
+
 
 // Остановка приложения
-void App::stopApp()
+void App::stop_app()
 {
     if (cmdThread.joinable())
         cmdThread.join();
@@ -222,8 +214,8 @@ void App::stopApp()
     zhub->stop(); // остановка пулла потоков, длится дольше всего
 
     tlg32->stop();
-    tlg_in->stop();
-    tlg_out->stop();
+    tlgIn->stop();
+    tlgOut->stop();
     if (tlgInThread->joinable())
         tlgInThread->join();
 }
@@ -231,7 +223,7 @@ void App::stopApp()
 // Параметры питания модема
 std::string App::show_sim800_battery()
 {
-    if (with_sim800)
+    if (withSim800)
     {
         static uint8_t counter = 0;
         char answer[256]{};
@@ -383,7 +375,7 @@ void App::handle()
 {
     while (Flag.load())
     {
-        TlgMessage msg = tlg_in->read();
+        TlgMessage msg = tlgIn->read();
         if (!msg.text.empty())
         {
             TlgMessage answer{};
@@ -407,7 +399,7 @@ void App::handle()
             }
             else if (msg.text.starts_with("/balance"))
             {
-                if (app.with_sim800)
+                if (app.withSim800)
                 {
                     if (app.gsmModem->get_balance())
                         answer.text = "Запрос баланса отправлен\n";
@@ -420,7 +412,7 @@ void App::handle()
             else
                 answer.text = "Я не понял Вас.\n";
 
-            tlg_out->write(answer);
+            tlgOut->write(answer);
         }
     }
 }
