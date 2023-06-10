@@ -1,9 +1,8 @@
 #ifndef COORDINATOR_H
 #define COORDINATOR_H
 
-#include "../telebot32/src/tlg32.h"
-
 class Zdo;
+class Controller;
 
 class Zhub : public Controller
 {
@@ -34,13 +33,6 @@ public:
     void check_motion_activity();
     std::string show_one_type(std::shared_ptr<zigbee::EndDevice> d, bool as_html);
     inline void switch_off_with_list();
-    /*
-        std::shared_ptr<Tlg32> tlg32;
-        std::shared_ptr<gsbutils::Channel<TlgMessage>> tlgIn, tlgOut;
-        std::thread *tlgInThread;
-        void handle();
-        std::string show_statuses();
-    */
     virtual void send_tlg_message(std::string msg);
 
 private:

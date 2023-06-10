@@ -72,23 +72,24 @@ private:
     std::string show_statuses();
 
 public:
-    std::string startTime{};
-    GlobalConfig config;
-    std::atomic<bool> Flag{true};
-    std::shared_ptr<zigbee::Zhub> zhub;
-    std::shared_ptr<GsmModem> gsmModem;
-    bool withSim800 = false;
-    std::shared_ptr<Tlg32> tlg32;
-    std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> tpm;
+    std::string startTime{}; // таймштамп старта программы
+    GlobalConfig config; // глобальная конфигурация системы
+    std::atomic<bool> Flag{true}; // флаг разрешения работы системы
+    std::shared_ptr<zigbee::Zhub> zhub; // модуль zigbee верхнего уровня
+    std::shared_ptr<GsmModem> gsmModem; // GSM-модем
+    bool withSim800 = false; // признак присутствия GSM-модема 
+    bool withTlg = false; // признак работы с телеграм
+    std::shared_ptr<Tlg32> tlg32; // телеграм бот
+    std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> tpm; //пул потоков работы с модемом
 
 private:
-    std::shared_ptr<Pi4Gpio> gpio;
-    std::shared_ptr<gsbutils::Channel<TlgMessage>> tlgIn, tlgOut;
-    std::thread *tlgInThread;
-    std::thread tempr_thread;
-    bool noAdapter;
+    std::shared_ptr<Pi4Gpio> gpio; // порты малинки
+    std::shared_ptr<gsbutils::Channel<TlgMessage>> tlgIn, tlgOut; // каналы обмена с телеграм
+    std::thread *tlgInThread; // поток приема команд с телеграм
+    std::thread tempr_thread; // поток определения температуры управляющей платы
+    bool noAdapter; // признак отсутствия адаптера координатора
     std::thread cmdThread;     // поток приема команд с клавиатуры
     std::thread exposerThread; // поток ответа прометею
-    std::thread httpThread;
+    std::thread httpThread; // поток HTTP-сервера
 };
 #endif

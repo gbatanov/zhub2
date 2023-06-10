@@ -34,17 +34,13 @@ std::mutex trans_mutex;
 
 Zdo::Zdo()
 {
-    chan_out = std::make_shared<gsbutils::Channel<Command>>(16); // канал вывода емкостью 8 команд
-    chan_in = std::make_shared<gsbutils::Channel<Command>>(24);  // канал ввода емкостью 16 команд
-    uart_ = std::make_shared<Uart>(chan_out, chan_in);
+    stopped = false;
 }
 
 Zdo::~Zdo()
 {
-    chan_out->stop();
-    chan_in->stop();
-    if (thr_cmdin->joinable())
-        thr_cmdin->join();
+
+    stop_zdo();
 }
 
 // Инициализация потока приема команд с последовательного порта
@@ -61,6 +57,41 @@ void Zdo::init()
         Command cmd = chan_in->read();
         tp->add_command(cmd);
     } });
+}
+void Zdo::stop_zdo()
+{
+    if (!stopped)
+    {
+        chan_out->stop();
+        chan_in->stop();
+        if (thr_cmdin && thr_cmdin->joinable())
+            thr_cmdin->join();
+    }
+}
+// Коннект к компорту адаптера
+bool Zdo::connect(std::string port, unsigned int baud_rate)
+{
+    chan_out = std::make_shared<gsbutils::Channel<Command>>(16); // канал вывода емкостью 8 команд
+    chan_in = std::make_shared<gsbutils::Channel<Command>>(24);  // канал ввода емкостью 16 команд
+    uart_ = std::make_shared<Uart>(chan_out, chan_in);
+
+    if (uart_->connect(port, baud_rate))
+        return uart_->start();
+    else
+    {
+        stop_zdo();
+        return false;
+    }
+}
+
+// отправка компорту адаптера на отключение
+void Zdo::disconnect()
+{
+    uart_->disconnect();
+}
+
+void Zdo::on_disconnect()
+{
 }
 
 // Статическая функция для обработки входящих команд в потоке
@@ -853,25 +884,6 @@ bool Zdo::asyncRequest(Command &request, std::chrono::duration<int, std::milli> 
         return true;
     else
         return false;
-}
-
-// Коннект к компорту адаптера
-bool Zdo::connect(std::string port, unsigned int baud_rate)
-{
-    if (uart_->connect(port, baud_rate))
-        return uart_->start();
-    else
-        return false;
-}
-
-// отправка компорту адаптера на отключение
-void Zdo::disconnect()
-{
-    uart_->disconnect();
-}
-
-void Zdo::on_disconnect()
-{
 }
 
 // Получить ендпойнты с устройства

@@ -12,7 +12,9 @@ bool App::object_create()
 
     try
     {
-        // канал приема команд из теоеграм
+        withTlg = false;
+
+        // канал приема команд из телеграм
         tlgIn = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
         // канал отправки сообщений в телеграм
         tlgOut = std::make_shared<gsbutils::Channel<TlgMessage>>(2);
@@ -20,7 +22,9 @@ bool App::object_create()
         tlgInThread = new std::thread(&App::handle, this);
         tlg32->add_id(config.MyId);
         if (tlg32->run())
-        { // Здесь будет выброшено исключение при отсутствии корректного токена
+        {
+            // Здесь будет выброшено исключение при отсутствии корректного токена
+            withTlg = true;
             tlg32->send_message("Программа перезапущена.\n");
         }
 
@@ -28,16 +32,22 @@ bool App::object_create()
         zhub = std::make_shared<zigbee::Zhub>();
 
         noAdapter = zhub->init_adapter();
+        if (noAdapter)
+        {
+            Flag.store(false);
+            return false;
+        }
 
         tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
         uint8_t max_threads = 2;
         tpm->init_threads(&GsmModem::on_command, max_threads);
+        init_modem();
 
         gpio = std::make_shared<Pi4Gpio>(&App::handle_power_off);
-        init_modem();
     }
     catch (std::exception &e)
     {
+        withTlg = false;
         noAdapter = true;
         return false;
     }
@@ -158,7 +168,8 @@ bool App::init_modem()
             withSim800 = gsmModem->connect(config.PortModem, 9600); // 115200  19200 9600 7200
             if (!withSim800)
             {
-                tlg32->send_message("Модем SIM800 не обнаружен.\n");
+                if (withTlg)
+                    tlg32->send_message("Модем SIM800 не обнаружен.\n");
                 return false;
             }
             else
@@ -166,7 +177,8 @@ bool App::init_modem()
                 withSim800 = gsmModem->init_modem();
                 if (!withSim800)
                     return false;
-                tlg32->send_message("Модем SIM800 активирован.\n");
+                if (withTlg)
+                    tlg32->send_message("Модем SIM800 активирован.\n");
                 gsmModem->get_battery_level(true);
                 gsmModem->get_balance(); // для индикации корректной работы обмена по смс
             }
@@ -174,7 +186,8 @@ bool App::init_modem()
         catch (std::exception &e)
         {
             withSim800 = false;
-            tlg32->send_message("Модем SIM800 не обнаружен.\n");
+            if (withTlg)
+                tlg32->send_message("Модем SIM800 не обнаружен.\n");
         }
 
         return true;
@@ -186,7 +199,6 @@ bool App::init_modem()
     }
 }
 
-
 // Остановка приложения
 void App::stop_app()
 {
@@ -194,11 +206,16 @@ void App::stop_app()
         cmdThread.join();
     Flag.store(false);
 
-#ifdef IS_PI
-    close_gpio();
-#endif
+    if (!noAdapter)
+    {
+        tpm->stop_threads();
+        gsmModem->disconnect();
 
-    gsmModem->disconnect();
+#ifdef IS_PI
+        gpio->close_gpio();
+#endif
+        zhub->stop(); // остановка пулла потоков, длится дольше всего
+    }
 
     if (tempr_thread.joinable())
         tempr_thread.join();
@@ -209,15 +226,13 @@ void App::stop_app()
     if (httpThread.joinable())
         httpThread.join();
 
-    tpm->stop_threads();
-
-    zhub->stop(); // остановка пулла потоков, длится дольше всего
-
     tlg32->stop();
     tlgIn->stop();
     tlgOut->stop();
     if (tlgInThread->joinable())
         tlgInThread->join();
+
+    std::this_thread::sleep_for(std::chrono::seconds(10));
 }
 
 // Параметры питания модема
@@ -312,7 +327,8 @@ float App::get_board_temperature()
 #endif
 }
 
-// обработчик пропажи 220В
+/// static function
+/// обработчик пропажи 220В
 void App::handle_power_off(int value)
 {
     std::string alarm_msg = "";
@@ -323,8 +339,8 @@ void App::handle_power_off(int value)
     else
         return;
     gsbutils::dprintf(1, alarm_msg);
-
-    app.tlg32->send_message(alarm_msg);
+    if (app.withTlg)
+        app.tlg32->send_message(alarm_msg);
 }
 
 // Обработчик показаний температуры корпуса
@@ -373,7 +389,7 @@ std::string App::show_statuses()
 // Здесь реализуется вся логика обработки принятых сообщений из телеграм
 void App::handle()
 {
-    while (Flag.load())
+    while (Flag.load() && withTlg)
     {
         TlgMessage msg = tlgIn->read();
         if (!msg.text.empty())

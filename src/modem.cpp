@@ -267,7 +267,8 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
         balance_ = res;
 
         // отправляем баланс в телеграм
-        app.tlg32->send_message("Баланс: " + res + " руб.");
+        if (app.withTlg)
+          app.tlg32->send_message("Баланс: " + res + " руб.");
 
         // если была команда запроса баланса с тонового набора
         if (balance_to_sms)

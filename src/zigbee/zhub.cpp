@@ -23,8 +23,10 @@
 #include "../comport/serial.h"
 #include "../common.h"
 #include "command.h"
+
 #include "zigbee.h"
 #include "../modem.h"
+
 #include "../app.h"
 
 using zigbee::IEEEAddress;
@@ -142,7 +144,7 @@ void Zhub::ias_zone_command(uint8_t cmnd, uint16_t one)
     {
         // одно устройство, команда из веб-апи
         auto device = devices_.find(0x54ef441000193352); // реле контактора стиралки
-        if (device != devices_.end() && device->second->getNetworkAddress() == one)
+        if (device != devices_.end() && device->second->get_network_address() == one)
         {
             cmd = cmd == 0 ? 0x1 : 0x0;
         }
@@ -168,8 +170,8 @@ void Zhub::ias_zone_command(uint8_t cmnd, uint16_t one)
                 // это бывает крайне редко, исключительный случай, поэтому потоки можно детачить
                 std::thread of_action([this, cmd1, device]
                                       {
-                                                        this->sendCommandToOnOffDevice(device->second->getNetworkAddress(), cmd1);
-                                                        gsbutils::dprintf(1, "Control device 0x%04x\n", device->second->getNetworkAddress()); });
+                                                        this->sendCommandToOnOffDevice(device->second->get_network_address(), cmd1);
+                                                        gsbutils::dprintf(1, "Control device 0x%04x\n", device->second->get_network_address()); });
                 of_action.detach();
                 std::this_thread::sleep_for(std::chrono::seconds(2));
             }
@@ -184,7 +186,7 @@ void Zhub::ias_zone_command(uint8_t cmnd, uint64_t mac_addr)
     {
         auto shortAddr = devices_.find(mac_addr);
         if (shortAddr != devices_.end())
-            ias_zone_command(cmnd, static_cast<uint16_t>(shortAddr->second->getNetworkAddress()));
+            ias_zone_command(cmnd, static_cast<uint16_t>(shortAddr->second->get_network_address()));
     }
 }
 
@@ -194,13 +196,13 @@ void Zhub::handle_sonoff_door(std::shared_ptr<zigbee::EndDevice> ed, uint8_t cmd
     std::time_t ts = std::time(0); // get time now
     ed->set_last_action((uint64_t)ts);
 
-    if (ed->getIEEEAddress() == 0x00124b002512a60b) // sensor2
+    if (ed->get_ieee_address() == 0x00124b002512a60b) // sensor2
     {
         ed->set_current_state(cmd ? "Opened" : "Closed");
         // управляем реле 3, включаем подсветку в большой комнате в шкафу
         switch_relay(0x54ef44100018b523, cmd);
     }
-    else if (ed->getIEEEAddress() == 0x00124b00250bba63) // sensor 3
+    else if (ed->get_ieee_address() == 0x00124b00250bba63) // sensor 3
     {
         ed->set_current_state(cmd ? "Opened" : "Closed");
         std::string alarm_msg = "Закрыт ящик ";
@@ -209,7 +211,7 @@ void Zhub::handle_sonoff_door(std::shared_ptr<zigbee::EndDevice> ed, uint8_t cmd
             alarm_msg = "Открыт ящик ";
         send_tlg_message(alarm_msg);
     }
-    else if (ed->getIEEEAddress() == 0x00124b0025485ee6) // sensor 1 датчик света в туалете
+    else if (ed->get_ieee_address() == 0x00124b0025485ee6) // sensor 1 датчик света в туалете
     {
         // с версии 2.22.517 логику инвертируем
         ed->set_current_state(cmd ? "Closed" : "Opened");
@@ -267,7 +269,7 @@ void Zhub::handle_motion(std::shared_ptr<zigbee::EndDevice> ed, uint8_t cmd)
     ed->set_motion_state(cmd);                           // числовое значение
     ed->set_current_state(cmd ? "Motion" : "No motion"); // текстовое значение
 
-    uint64_t mac_address = (uint64_t)ed->getIEEEAddress();
+    uint64_t mac_address = (uint64_t)ed->get_ieee_address();
 
     if (mac_address == 0x00124b0025137475) // датчик движения 1 (коридор) Sonoff
     {
@@ -415,7 +417,7 @@ void Zhub::onoff_command(zigbee::Message message)
         gsbutils::dprintf(1, "Незарегистрированное устройство\n");
         return;
     }
-    uint64_t mac_address = (uint64_t)ed->getIEEEAddress();
+    uint64_t mac_address = (uint64_t)ed->get_ieee_address();
     uint8_t cmd = (uint8_t)message.zcl_frame.command;
     ed->set_current_state(cmd ? "On" : "Off");
     std::time_t ts = std::time(0); // get time now
@@ -728,7 +730,7 @@ std::string Zhub::show_one_type(std::shared_ptr<zigbee::EndDevice> ed, bool as_h
     {
         result = result + "<tr>";
     }
-    size_t len = snprintf(buff, 1024, "0x%04x", ed->getNetworkAddress());
+    size_t len = snprintf(buff, 1024, "0x%04x", ed->get_network_address());
     buff[len] = 0;
     if (as_html)
     {
@@ -839,5 +841,6 @@ inline void Zhub::switch_off_with_list()
 }
 void Zhub::send_tlg_message(std::string msg)
 {
+    if (app.withTlg)
     app.tlg32->send_message(msg);
 }

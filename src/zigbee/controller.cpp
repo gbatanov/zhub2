@@ -65,6 +65,7 @@ Controller::~Controller()
 
 bool Controller::init_adapter()
 {
+    gsbutils::dprintf(1, "Controller init_adapter\n");
     bool noAdapter = false;
     try
     {
@@ -155,7 +156,7 @@ void Controller::on_message(zigbee::Command command)
         gsbutils::dprintf(1, "Сообщение от устройства, незарегистрированного в моей рабочей системе\n");
         return;
     }
-    uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
+    uint64_t macAddress = (uint64_t)ed->get_ieee_address();
 
 #ifdef DEBUG
     int dbg = 3;
@@ -315,7 +316,7 @@ void Controller::after_message_action()
             std::shared_ptr<EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)di);
             if (ed)
             {
-                zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
+                zigbee::NetworkAddress shortAddr = ed->get_network_address();
                 // запрос тока и напряжения
                 std::vector<uint16_t> idsAV{0x0505, 0x508};
                 read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
@@ -395,7 +396,7 @@ void Controller::switch_relay(uint64_t mac_addr, uint8_t cmd, uint8_t ep)
     std::shared_ptr<EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)mac_addr);
     if (ed)
     {
-        sendCommandToOnOffDevice(ed->getNetworkAddress(), cmd, ep);
+        sendCommandToOnOffDevice(ed->get_network_address(), cmd, ep);
         std::time_t ts = std::time(0); // get time now
         ed->set_last_action((uint64_t)ts);
     }
@@ -501,7 +502,7 @@ zigbee::NetworkAddress Controller::getShortAddrByMacAddr(zigbee::IEEEAddress mac
     {
         ed = devices_.at(mac_address);
         if (ed)
-            return ed->getNetworkAddress();
+            return ed->get_network_address();
     }
     catch (std::out_of_range &e)
     {
@@ -516,7 +517,7 @@ void Controller::on_attribute_report(zigbee::Endpoint endpoint, Cluster cluster,
     std::shared_ptr<zigbee::EndDevice> ed = get_device_by_short_addr(endpoint.address);
     if (!ed)
         return;
-    uint64_t macAddress = (uint64_t)ed->getIEEEAddress();
+    uint64_t macAddress = (uint64_t)ed->get_ieee_address();
 
     switch (cluster)
     {
@@ -774,10 +775,10 @@ void Controller::join_device(zigbee::NetworkAddress network_address, zigbee::IEE
             gsbutils::dprintf(3, "Device exists\n");
             // устройство есть в списке устройств
             ed = device->second;
-            zigbee::NetworkAddress shortAddr = ed->getNetworkAddress();
+            zigbee::NetworkAddress shortAddr = ed->get_network_address();
             if (shortAddr != network_address)
             {
-                ed->setNetworkAddress(network_address);
+                ed->set_network_address(network_address);
                 {
                     while (end_devices_address_map_.count(shortAddr))
                     {
@@ -989,16 +990,16 @@ std::string Controller::showDeviceInfo(zigbee::NetworkAddress network_address)
     if (mac_address != end_devices_address_map_.end())
     {
         std::shared_ptr<zigbee::EndDevice> ed = get_device_by_mac(mac_address->second);
-        if (ed && !ed->getModelIdentifier().empty())
+        if (ed && !ed->get_model_identifier().empty())
         {
-            result = result + ed->getModelIdentifier();
-            if (!ed->getManufacturer().empty())
+            result = result + ed->get_model_identifier();
+            if (!ed->get_manufacturer().empty())
             {
-                result = result + " | " + ed->getManufacturer();
+                result = result + " | " + ed->get_manufacturer();
             }
-            if (!ed->getProductCode().empty())
+            if (!ed->get_product_code().empty())
             {
-                result = result + " | " + ed->getProductCode();
+                result = result + " | " + ed->get_product_code();
             }
             result = result + "\n";
         }
