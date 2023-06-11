@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(zhub2 LANGUAGES CXX VERSION 2.27.611)
+project(zhub2 LANGUAGES CXX VERSION 2.27.613)
 
 message(STATUS "${PROJECT_NAME} version ${PROJECT_VERSION}")
 
@@ -9,9 +9,9 @@ else()
   set(PROJECT_DEFAULT_BUILD_TYPE "Release")
 endif()
 
-if(GPIO)
+#if(GPIO)
   set(WITH_PI "#define IS_PI 1")
-endif()
+#endif()
 
 add_subdirectory(src)
 add_subdirectory(gsb_utils)

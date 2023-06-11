@@ -62,7 +62,8 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
+                "GPIO":"ON"
             }
         },
         {

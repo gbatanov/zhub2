@@ -24,6 +24,7 @@
 #include "../gsb_utils/gsbutils.h"
 #include "version.h"
 #ifdef IS_PI
+// #ifdef __linux__
 #include "gpiod.h"
 #endif
 #include "pi4-gpio.h"
@@ -39,16 +40,16 @@ Pi4Gpio::~Pi4Gpio()
 
 bool Pi4Gpio::initialize_gpio(power_func power)
 {
-#ifdef IS_PI
+#ifdef __linux__
+	{
+		power_ = power;
+		flag.store(true);
 
-	power_ = power;
-	flag.store(true);
-
-	pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
-	// Открываем устройство
-	chip = gpiod_chip_open("/dev/gpiochip0");
-	return true;
-//	}
+//		pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
+		// Открываем устройство
+		chip = gpiod_chip_open("/dev/gpiochip0");
+		return true;
+	}
 #endif
 	return false;
 }

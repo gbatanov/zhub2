@@ -81,7 +81,9 @@ else()
 target_link_libraries(${PROJECT_NAME} PUBLIC curl)  
 endif()
 
-if(GPIO)
+#if(GPIO)
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+
   target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
 endif()
 
