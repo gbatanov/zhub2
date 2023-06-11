@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
 project(zhub LANGUAGES CXX VERSION ${PROJECT_VERSION})
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -I. -Wno-unused-result -Wno-unused-variable")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -I. -Wno-unused-result -Wno-unused-variable ")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O2 -pthread")
@@ -81,9 +81,9 @@ else()
 target_link_libraries(${PROJECT_NAME} PUBLIC curl)  
 endif()
 
-#if(GPIO)
-#  target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
-#endif()
+if(GPIO)
+  target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
+endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/local/bin)

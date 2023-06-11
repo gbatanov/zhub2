@@ -1,6 +1,8 @@
 #ifndef GSB_APP_H
 #define GSB_APP_H
 
+#include <stddef.h>
+#include <cstddef>
 #include <array>
 #include <memory>
 #include <sstream>

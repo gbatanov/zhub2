@@ -1,5 +1,7 @@
 
 #include "version.h"
+#include <cstdio>
+#include <cstdlib>
 #include "app.h"
 
 using gsb_utils = gsbutils::SString;
@@ -43,7 +45,14 @@ bool App::object_create()
         tpm->init_threads(&GsmModem::on_command, max_threads);
         init_modem();
 
-        gpio = std::make_shared<Pi4Gpio>();
+        withGpio = false;
+#ifdef IS_PI
+        if (config.Gpio)
+        {
+            gpio = std::make_shared<Pi4Gpio>();
+            withGpio = true;
+        }
+#endif
     }
     catch (std::exception &e)
     {
@@ -59,7 +68,8 @@ bool App::start_app()
     startTime = gsbutils::DDate::current_time();
     if (!noAdapter)
     {
-       withGpio =  gpio->initialize_gpio(&App::handle_power_off);
+        if (withGpio)
+            withGpio = gpio->initialize_gpio(&App::handle_power_off);
         zhub->start(config.Channels);
         httpThread = std::thread(http_server);
         exposerThread = std::thread(&App::exposer_handler, this);
@@ -211,8 +221,8 @@ void App::stop_app()
     {
         tpm->stop_threads();
         gsmModem->disconnect();
-
-        gpio->close_gpio();
+        if (withGpio)
+            gpio->close_gpio();
         zhub->stop(); // остановка пулла потоков, длится дольше всего
     }
 
@@ -365,7 +375,7 @@ void App::handle_board_temperature(float temp)
 void App::ringer()
 {
     gpio->write_pin(26, 1);
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     gpio->write_pin(26, 0);
 }
 

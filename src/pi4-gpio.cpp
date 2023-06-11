@@ -23,8 +23,8 @@
 #include <dlfcn.h>
 #include "../gsb_utils/gsbutils.h"
 #include "version.h"
-#ifdef __linux__
-#include <gpiod.h>
+#ifdef IS_PI
+#include "gpio.h"
 #endif
 #include "pi4-gpio.h"
 
@@ -39,7 +39,7 @@ Pi4Gpio::~Pi4Gpio()
 
 bool Pi4Gpio::initialize_gpio(power_func power)
 {
-#ifdef __linux__
+#ifdef IS_PI
 	void *handle = dlopen("gpiod", RTLD_LAZY);
 	if (handle)
 	{
@@ -57,7 +57,7 @@ bool Pi4Gpio::initialize_gpio(power_func power)
 void Pi4Gpio::close_gpio()
 {
 	flag.store(false);
-#ifdef __linux__
+#ifdef IS_PI
 	if (pwr_thread.joinable())
 		pwr_thread.join();
 
@@ -72,7 +72,7 @@ void Pi4Gpio::close_gpio()
 int Pi4Gpio::read_pin(int pin)
 {
 	int value = -1;
-#ifdef __linux__
+#ifdef IS_PI
 	struct gpiod_line *line;
 	int req = -6;
 
@@ -95,7 +95,7 @@ int Pi4Gpio::read_pin(int pin)
 int Pi4Gpio::write_pin(int pin, int value)
 {
 	int req = -1;
-#ifdef __linux__
+#ifdef IS_PI
 	struct gpiod_line *line;
 	value = value == 0 ? 0 : 1;
 
@@ -119,7 +119,7 @@ int Pi4Gpio::write_pin(int pin, int value)
 // подается через реле, подключеннному к БП от 220В
 void Pi4Gpio::power_detect()
 {
-#ifdef __linux__
+#ifdef IS_PI
 	int value = -1; // -1 заведомо кривое значение, могут быть 0 или 1
 
 	static bool notify_off = false;

@@ -9,6 +9,10 @@ else()
   set(PROJECT_DEFAULT_BUILD_TYPE "Release")
 endif()
 
+if(GPIO)
+  set(WITH_PI "#define IS_PI 1")
+endif()
+
 add_subdirectory(src)
 add_subdirectory(gsb_utils)
 add_subdirectory(telebot32)
