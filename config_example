@@ -1,18 +1,30 @@
 // working mode, always before sections
-Mode   test 
-Port /dev/cu.usbmodem148201
-PhoneNumber +79020109365
+Mode   prod 
+Port /dev/ttyACM0
+PhoneNumber +71020109365
 Sim800 1
-PortModem /dev/ttyUSB0
-
+PortModem /dev/ttyAMA0
+MyId 536457770
 
 [prod]
 // telegram bot
-BotName DummyBot
-MyId 111111111
-TokenPath /usr/local/etc/telebot32/.tokenDummyBo/.token
+BotName ProdBot
+TokenPath /usr/local/etc/telebot32/.tokenProdBot/.token
 // map short address to mac address
-MapPath /usr/local/etc/zhub4/map_addr.cfg
+MapPath /usr/local/etc/zhub2/map_addr.cfg
+// RF channels
+Channels 11
+// using Prometheus
+Prometheus 1
+//using GPIO
+Gpio 1
+
+[debug]
+// telegram bot
+BotNameDebugBot
+TokenPath /usr/local/etc/telebot32/.tokenDebugBot/.token
+// map short address to mac address
+MapPath /usr/local/etc/zhub2/map_addr.cfg
 // RF channels
 Channels 11
 // using Prometheus

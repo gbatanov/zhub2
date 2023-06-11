@@ -24,7 +24,7 @@
 #include "../gsb_utils/gsbutils.h"
 #include "version.h"
 #ifdef IS_PI
-#include "gpio.h"
+#include "gpiod.h"
 #endif
 #include "pi4-gpio.h"
 
@@ -40,9 +40,7 @@ Pi4Gpio::~Pi4Gpio()
 bool Pi4Gpio::initialize_gpio(power_func power)
 {
 #ifdef IS_PI
-	//	void *handle = dlopen("gpiod", RTLD_LAZY);
-	//	if (handle)
-	//	{
+
 	power_ = power;
 	flag.store(true);
 
