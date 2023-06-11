@@ -1,4 +1,4 @@
-// Прога на основе libgpiod, работает
+// Модуль на основе libgpiod
 //  BCM / GPIO pin name GPIO20 - 38 pin на гребенке - датчик 220В
 //  GPIO16 - 36 пин на гребенке - управление вентилятором охлаждения
 //  GPIO26 - 37 пин - включение звонка
@@ -20,40 +20,44 @@
 #include <optional>
 #include <any>
 #include <termios.h>
-
+#include <dlfcn.h>
 #include "../gsb_utils/gsbutils.h"
 #include "version.h"
-#include "pi4-gpio.h"
-
-#ifdef IS_PI
+#ifdef __linux__
 #include <gpiod.h>
 #endif
+#include "pi4-gpio.h"
 
-Pi4Gpio::Pi4Gpio(power_func power)
+Pi4Gpio::Pi4Gpio()
 {
-	power_ = power;
-	flag.store(true);
-	initialize_gpio();
 }
 Pi4Gpio::~Pi4Gpio()
 {
-	flag.store(false);
-
-	close_gpio();
+	if (flag.load())
+		close_gpio();
 }
 
-void Pi4Gpio::initialize_gpio()
+bool Pi4Gpio::initialize_gpio(power_func power)
 {
-#ifdef IS_PI
-	pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
-	// Открываем устройство
-	chip = gpiod_chip_open("/dev/gpiochip0");
-#endif
-}
+#ifdef __linux__
+	void *handle = dlopen("gpiod", RTLD_LAZY);
+	if (handle)
+	{
+		power_ = power;
+		flag.store(true);
 
+		pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
+		// Открываем устройство
+		chip = gpiod_chip_open("/dev/gpiochip0");
+		return true;
+	}
+#endif
+	return false;
+}
 void Pi4Gpio::close_gpio()
 {
-#ifdef IS_PI
+	flag.store(false);
+#ifdef __linux__
 	if (pwr_thread.joinable())
 		pwr_thread.join();
 
@@ -68,7 +72,7 @@ void Pi4Gpio::close_gpio()
 int Pi4Gpio::read_pin(int pin)
 {
 	int value = -1;
-#ifdef IS_PI
+#ifdef __linux__
 	struct gpiod_line *line;
 	int req = -6;
 
@@ -91,7 +95,7 @@ int Pi4Gpio::read_pin(int pin)
 int Pi4Gpio::write_pin(int pin, int value)
 {
 	int req = -1;
-#ifdef IS_PI
+#ifdef __linux__
 	struct gpiod_line *line;
 	value = value == 0 ? 0 : 1;
 
@@ -115,7 +119,7 @@ int Pi4Gpio::write_pin(int pin, int value)
 // подается через реле, подключеннному к БП от 220В
 void Pi4Gpio::power_detect()
 {
-#ifdef IS_PI
+#ifdef __linux__
 	int value = -1; // -1 заведомо кривое значение, могут быть 0 или 1
 
 	static bool notify_off = false;

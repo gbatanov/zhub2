@@ -43,7 +43,7 @@ bool App::object_create()
         tpm->init_threads(&GsmModem::on_command, max_threads);
         init_modem();
 
-        gpio = std::make_shared<Pi4Gpio>(&App::handle_power_off);
+        gpio = std::make_shared<Pi4Gpio>();
     }
     catch (std::exception &e)
     {
@@ -59,6 +59,7 @@ bool App::start_app()
     startTime = gsbutils::DDate::current_time();
     if (!noAdapter)
     {
+       withGpio =  gpio->initialize_gpio(&App::handle_power_off);
         zhub->start(config.Channels);
         httpThread = std::thread(http_server);
         exposerThread = std::thread(&App::exposer_handler, this);
@@ -211,9 +212,7 @@ void App::stop_app()
         tpm->stop_threads();
         gsmModem->disconnect();
 
-#ifdef IS_PI
         gpio->close_gpio();
-#endif
         zhub->stop(); // остановка пулла потоков, длится дольше всего
     }
 

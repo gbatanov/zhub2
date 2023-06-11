@@ -81,9 +81,9 @@ else()
 target_link_libraries(${PROJECT_NAME} PUBLIC curl)  
 endif()
 
-if(GPIO)
-  target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
-endif()
+#if(GPIO)
+#  target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
+#endif()
 
 set_property(TARGET ${PROJECT_NAME} PROPERTY BUILD_WITH_INSTALL_RPATH TRUE)
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/local/bin)

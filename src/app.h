@@ -81,6 +81,7 @@ public:
     bool withTlg = false; // признак работы с телеграм
     std::shared_ptr<Tlg32> tlg32; // телеграм бот
     std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> tpm; //пул потоков работы с модемом
+    bool withGpio = false; // признак работы с портами малинки
 
 private:
     std::shared_ptr<Pi4Gpio> gpio; // порты малинки
