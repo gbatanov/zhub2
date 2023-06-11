@@ -40,17 +40,17 @@ Pi4Gpio::~Pi4Gpio()
 bool Pi4Gpio::initialize_gpio(power_func power)
 {
 #ifdef IS_PI
-	void *handle = dlopen("gpiod", RTLD_LAZY);
-	if (handle)
-	{
-		power_ = power;
-		flag.store(true);
+	//	void *handle = dlopen("gpiod", RTLD_LAZY);
+	//	if (handle)
+	//	{
+	power_ = power;
+	flag.store(true);
 
-		pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
-		// Открываем устройство
-		chip = gpiod_chip_open("/dev/gpiochip0");
-		return true;
-	}
+	pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
+	// Открываем устройство
+	chip = gpiod_chip_open("/dev/gpiochip0");
+	return true;
+//	}
 #endif
 	return false;
 }
