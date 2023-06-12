@@ -46,7 +46,7 @@ bool App::object_create()
         init_modem();
 
         withGpio = false;
-#ifdef IS_PI
+#ifdef __linux__
         if (config.Gpio)
         {
             gpio = std::make_shared<Pi4Gpio>();
@@ -457,7 +457,7 @@ bool App::parse_config()
     config.Sim800 = false;
     config.Gpio = false;
 
-    std::string filename = "/usr/local/etc/zhub2/config";
+    std::string filename = "/usr/local/etc/zhub2/config.txt";
     std::ifstream infile(filename.c_str());
     if (infile.is_open())
     {

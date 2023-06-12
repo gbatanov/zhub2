@@ -3,7 +3,7 @@
 #include <atomic>
 #include <thread>
 
-typedef void(*power_func)(int);
+typedef void (*power_func)(int);
 
 class Pi4Gpio
 {
@@ -13,7 +13,7 @@ public:
 
     bool initialize_gpio(power_func power);
     void close_gpio();
-   int read_pin(int pin);
+    int read_pin(int pin);
     int write_pin(int pin, int value);
     void power_detect();
 
@@ -21,7 +21,7 @@ private:
     struct gpiod_chip *chip = nullptr;
     std::atomic<bool> flag;
     power_func power_;
-        std::thread pwr_thread;
+    std::thread pwr_thread;
 };
 
 #endif

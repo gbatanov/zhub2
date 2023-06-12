@@ -81,9 +81,7 @@ else()
 target_link_libraries(${PROJECT_NAME} PUBLIC curl)  
 endif()
 
-#if(GPIO)
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-
   target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
 endif()
 
@@ -93,4 +91,4 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/local/bin)
 install(FILES gsb_style.css DESTINATION /usr/local/etc/zhub2/css/)
 install(FILES ../map_addr_test.cfg DESTINATION /usr/local/etc/zhub2/)
 install(FILES ../map_addr.cfg DESTINATION /usr/local/etc/zhub2/)
-install(FILES ../config DESTINATION /usr/local/etc/zhub2/)
+install(FILES ../config.txt DESTINATION /usr/local/etc/zhub2/)

@@ -10,8 +10,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "DEBUG": "ON"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
             }
         },
         {
@@ -24,8 +23,7 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_TOOLCHAIN_FILE": "",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "DEBUG": "ON",
-                "GPIO": "ON"
+                "DEBUG": "ON"
             }
         },
         {
@@ -49,8 +47,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "GPIO":"ON"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
             }
         },
         {
@@ -62,8 +59,7 @@
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "GPIO":"ON"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
             }
         },
         {

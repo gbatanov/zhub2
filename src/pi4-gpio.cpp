@@ -21,10 +21,11 @@
 #include <any>
 #include <termios.h>
 #include <dlfcn.h>
+#include <signal.h>
+
 #include "../gsb_utils/gsbutils.h"
 #include "version.h"
-#ifdef IS_PI
-// #ifdef __linux__
+#ifdef __linux__
 #include "gpiod.h"
 #endif
 #include "pi4-gpio.h"
@@ -41,14 +42,17 @@ Pi4Gpio::~Pi4Gpio()
 bool Pi4Gpio::initialize_gpio(power_func power)
 {
 #ifdef __linux__
+
 	{
+		gsbutils::dprintf(1, "initialize gpio\n");
 		power_ = power;
 		flag.store(true);
 
-//		pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
+		pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
 		// Открываем устройство
 		chip = gpiod_chip_open("/dev/gpiochip0");
-		return true;
+		if (chip)
+			return true;
 	}
 #endif
 	return false;
@@ -56,7 +60,7 @@ bool Pi4Gpio::initialize_gpio(power_func power)
 void Pi4Gpio::close_gpio()
 {
 	flag.store(false);
-#ifdef IS_PI
+#ifdef __linux__
 	if (pwr_thread.joinable())
 		pwr_thread.join();
 
@@ -71,22 +75,32 @@ void Pi4Gpio::close_gpio()
 int Pi4Gpio::read_pin(int pin)
 {
 	int value = -1;
-#ifdef IS_PI
-	struct gpiod_line *line;
-	int req = -6;
-
-	line = gpiod_chip_get_line(chip, pin);
-	if (!line)
-		return -2;
-
-	if (gpiod_line_is_free(line))
+#ifdef __linux__
+	if (flag.load())
 	{
-		req = gpiod_line_request_input(line, "gpio_pin_value");
-		if (req)
-			return -3;
-	}
+		try
+		{
+			struct gpiod_line *line;
+			int req = -6;
 
-	value = gpiod_line_get_value(line);
+			line = gpiod_chip_get_line(chip, pin);
+			if (!line)
+				return -2;
+
+			if (gpiod_line_is_free(line))
+			{
+				req = gpiod_line_request_input(line, "gpio_pin_value");
+				if (req)
+					return -3;
+			}
+
+			value = gpiod_line_get_value(line);
+		}
+		catch (std::exception &e)
+		{
+			gsbutils::dprintf(1, "%s\n", e.what());
+		}
+	}
 #endif
 	return value;
 }
@@ -94,21 +108,31 @@ int Pi4Gpio::read_pin(int pin)
 int Pi4Gpio::write_pin(int pin, int value)
 {
 	int req = -1;
-#ifdef IS_PI
-	struct gpiod_line *line;
-	value = value == 0 ? 0 : 1;
-
-	line = gpiod_chip_get_line(chip, pin);
-	if (!line)
-		return -2;
-
-	if (gpiod_line_is_free(line))
+#ifdef __linux__
+	if (flag.load())
 	{
-		int req = gpiod_line_request_output(line, "fun", 0);
-		if (req != 0)
-			return -3;
+		try
+		{
+			struct gpiod_line *line;
+			value = value == 0 ? 0 : 1;
+
+			line = gpiod_chip_get_line(chip, pin);
+			if (!line)
+				return -2;
+
+			if (gpiod_line_is_free(line))
+			{
+				int req = gpiod_line_request_output(line, "fun", 0);
+				if (req != 0)
+					return -3;
+			}
+			req = gpiod_line_set_value(line, value);
+		}
+		catch (std::exception &e)
+		{
+			gsbutils::dprintf(3, "%s\n", e.what());
+		}
 	}
-	req = gpiod_line_set_value(line, value);
 #endif
 	return req;
 }
@@ -118,33 +142,36 @@ int Pi4Gpio::write_pin(int pin, int value)
 // подается через реле, подключеннному к БП от 220В
 void Pi4Gpio::power_detect()
 {
-#ifdef IS_PI
-	int value = -1; // -1 заведомо кривое значение, могут быть 0 или 1
 
-	static bool notify_off = false;
-	static bool notify_on = true;
-
-	while (flag.load())
+#ifdef __linux__
+	if (flag.load())
 	{
-		value = read_pin(20);
-		gsbutils::dprintf(7, "GPIO 20 %d\n", value);
-		if (value == 0 && !notify_off)
-		{
-			notify_off = true;
-			notify_on = false;
-			//			app.handle_power_off(value);
-			power_(value);
-		}
-		else if (value == 1 && !notify_on)
-		{
-			notify_on = true;
-			notify_off = false;
-			//			app.handle_power_off(value);
-			power_(value);
-		}
+		int value = -1; // -1 заведомо кривое значение, могут быть 0 или 1
+		static bool notify_off = false;
+		static bool notify_on = true;
 
-		using namespace std::chrono_literals;
-		std::this_thread::sleep_for(10s);
+		while (flag.load())
+		{
+			value = read_pin(20);
+			//		gsbutils::dprintf(1, "GPIO 20 %d\n", value);
+			if (value == 0 && !notify_off)
+			{
+				notify_off = true;
+				notify_on = false;
+				//			app.handle_power_off(value);
+				power_(value);
+			}
+			else if (value == 1 && !notify_on)
+			{
+				notify_on = true;
+				notify_off = false;
+				//			app.handle_power_off(value);
+				power_(value);
+			}
+
+			using namespace std::chrono_literals;
+			std::this_thread::sleep_for(10s);
+		}
 	}
 #endif
 }

@@ -58,11 +58,13 @@ static void signal_init(void)
     signal(SIGHUP, sig_int);
     signal(SIGTERM, sig_int);
     signal(SIGKILL, sig_int);
-    //   signal(SIGSEGV, sig_int); приводит к зацикливанию!!!
+//    signal(SIGSEGV, sig_int);
+   // приводит к зацикливанию сервиса !!!
 }
 
 static void closeAll()
 {
+    app.stop_app();
 }
 
 ///////////////////////////////////////////////////////////
