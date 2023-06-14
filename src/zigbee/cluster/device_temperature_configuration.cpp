@@ -42,6 +42,6 @@ void DeviceTemperatureConfiguration::attribute_handler(std::vector<zigbee::zcl::
         ed->set_temperature(static_cast<double>(val));
         if (val > 60)
             app.zhub->height_temperature(endpoint.address);
-        gsbutils::dprintf(dbg, "Device 0x%04x temperature =  %d grad Celsius\n", endpoint.address, val);
+        gsbutils::dprintf(dbg, "Device 0x%04x endpoint %d temperature =  %d grad Celsius\n", endpoint.address, endpoint.number, val);
     }
 }
