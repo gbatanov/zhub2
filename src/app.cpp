@@ -244,6 +244,8 @@ void App::stop_app()
 #ifdef DEBUG
         gsbutils::dprintf(1, "Stop 2 \n");
 #endif
+        zhub->disconnect();
+        zhub->stop_zdo();
         zhub->stop(); // остановка пулла потоков, длится дольше всего
         if (config.Prometheus)
             exposer->stop_exposer();
@@ -281,7 +283,7 @@ void App::stop_app()
     gsbutils::dprintf(1, "Stop 7 \n");
 #endif
 
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+       std::this_thread::sleep_for(std::chrono::seconds(20));
 }
 
 // Параметры питания модема

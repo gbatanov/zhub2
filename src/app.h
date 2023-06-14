@@ -54,7 +54,7 @@ class App
 {
 public:
     App(){};
-    ~App(){};
+    ~App(){std::cout << "app destructor\n";}
     bool object_create();
     bool start_app();
     void stop_app();

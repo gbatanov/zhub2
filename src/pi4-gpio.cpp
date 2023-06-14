@@ -37,6 +37,7 @@ Pi4Gpio::~Pi4Gpio()
 {
 	if (flag.load())
 		close_gpio();
+	std::cout << "app destructor\n";
 }
 
 bool Pi4Gpio::initialize_gpio(power_func power)

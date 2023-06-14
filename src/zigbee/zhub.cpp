@@ -50,11 +50,10 @@ using namespace zigbee;
 
 Zhub::Zhub() : Controller()
 {
-
 }
 Zhub::~Zhub()
 {
-    disconnect();
+
 }
 
 // Старт приложения
@@ -590,7 +589,7 @@ std::string Zhub::get_motion_state()
 // Если на момент опроса есть хотя бы один датчик движения в статусе Motion,
 // фиксируем факт наличия движения. Это необходимо для того, что можно находиться возле датчика,
 // он сработает в начале, я через 20 минут сработает условие - Никого нет дома.
-// Чтобы это не происходило, каждую минуту проверяю состояние датчиков движения 
+// Чтобы это не происходило, каждую минуту проверяю состояние датчиков движения
 // и обновляю переменную lastMotionSensorActivity
 // Кухню пока исключаю из процесса из-за нестабильности работы датчика
 void Zhub::check_motion_activity()
@@ -609,8 +608,10 @@ void Zhub::check_motion_activity()
     if (as_html)  \
         result = result + "<tr class='empty'><td colspan='8'><hr></td></tr>";
 
-bool Zhub::edcheck(std::shared_ptr<zigbee::EndDevice> ed){
-    if (app.config.Mode == "test"){
+bool Zhub::edcheck(std::shared_ptr<zigbee::EndDevice> ed)
+{
+    if (app.config.Mode == "test")
+    {
         return ed && ed->deviceInfo.test;
     }
     return ed && ed->deviceInfo.available;
@@ -843,5 +844,5 @@ inline void Zhub::switch_off_with_list()
 void Zhub::send_tlg_message(std::string msg)
 {
     if (app.withTlg)
-    app.tlg32->send_message(msg);
+        app.tlg32->send_message(msg);
 }

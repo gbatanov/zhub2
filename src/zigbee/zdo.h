@@ -150,13 +150,13 @@ public:
     std::shared_ptr<Uart> uart_;
     void on_command();
     static void on_command(void *);
-
+    void stop_zdo();
 protected:
     uint8_t generateTransactionSequenceNumber();
     std::thread *thr_cmdin = nullptr;
     std::shared_ptr<gsbutils::ThreadPool<Command>> tp;
     bool stopped = false;
-    void stop_zdo();
+
 };
 
 #endif
