@@ -82,6 +82,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC curl)
 endif()
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
+message (STATUS "Librarty gpiod included")
   target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
 endif()
 

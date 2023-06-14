@@ -14,7 +14,7 @@ public:
     ~Exposer();
     void start();
     int open_tcp_socket(int port);
-
+void stop_exposer();
 private:
     void receive_http(int clientSockfd);
     void send_answer(int clientSockfd, std::string answer);

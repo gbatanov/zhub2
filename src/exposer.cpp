@@ -38,9 +38,12 @@ Exposer::~Exposer()
 {
     flag.store(false);
 }
+
+void Exposer::stop_exposer(){
+    flag.store(false);
+}
 void Exposer::start()
 {
-    flag.store(false);
 
     flag.store(true);
     // Попытка открыть TCP socket для HTTP-сервер

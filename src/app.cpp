@@ -2,6 +2,7 @@
 #include "version.h"
 #include <cstdio>
 #include <cstdlib>
+#include "exposer.h"
 #include "app.h"
 
 using gsb_utils = gsbutils::SString;
@@ -72,8 +73,9 @@ bool App::start_app()
             withGpio = gpio->initialize_gpio(&App::handle_power_off);
         zhub->start(config.Channels);
         httpThread = std::thread(http_server);
-        exposerThread = std::thread(&App::exposer_handler, this);
-        tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы Raspberry
+        if (config.Prometheus)
+            exposerThread = std::thread(&App::exposer_handler, this);
+        tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы
 
         return true;
     }
@@ -164,13 +166,14 @@ void App::exposer_handler()
     if (config.Prometheus)
     {
         // 2.18.450 - сейчас IP фактически не используется, слушает запросы с любого адреса
-        Exposer exposer(std::string("localhost"), 8092);
-        exposer.start();
+        exposer = std::make_shared<Exposer>(std::string("localhost"), 8092);
+        exposer->start();
     }
 }
 
 bool App::init_modem()
 {
+    gsbutils::dprintf(3, "Start init modem\n");
     gsmModem = std::make_shared<GsmModem>();
     if (config.Sim800)
     {
@@ -179,6 +182,9 @@ bool App::init_modem()
             withSim800 = gsmModem->connect(config.PortModem, 9600); // 115200  19200 9600 7200
             if (!withSim800)
             {
+#ifdef DEBUG
+                gsbutils::dprintf(1, "Модем SIM800 не обнаружен\n");
+#endif
                 if (withTlg)
                     tlg32->send_message("Модем SIM800 не обнаружен.\n");
                 return false;
@@ -187,7 +193,16 @@ bool App::init_modem()
             {
                 withSim800 = gsmModem->init_modem();
                 if (!withSim800)
+                {
+#ifdef DEBUG
+                    gsbutils::dprintf(1, "Модем SIM800 не активирован\n");
+#endif
                     return false;
+                }
+#ifdef DEBUG
+                gsbutils::dprintf(1, "Модем SIM800 активирован\n");
+#endif
+
                 if (withTlg)
                     tlg32->send_message("Модем SIM800 активирован.\n");
                 gsmModem->get_battery_level(true);
@@ -216,30 +231,55 @@ void App::stop_app()
     if (cmdThread.joinable())
         cmdThread.join();
     Flag.store(false);
-
+#ifdef DEBUG
+    gsbutils::dprintf(1, "Stop 1 \n");
+#endif
     if (!noAdapter)
     {
-        tpm->stop_threads();
         gsmModem->disconnect();
+        tpm->stop_threads();
+
         if (withGpio)
             gpio->close_gpio();
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stop 2 \n");
+#endif
         zhub->stop(); // остановка пулла потоков, длится дольше всего
+        if (config.Prometheus)
+            exposer->stop_exposer();
     }
+#ifdef DEBUG
+    gsbutils::dprintf(1, "Stop 3 \n");
+#endif
 
     if (tempr_thread.joinable())
         tempr_thread.join();
-    if (exposerThread.joinable())
-        exposerThread.join();
+#ifdef DEBUG
+    gsbutils::dprintf(1, "Stop 4 \n");
+#endif
+    if (config.Prometheus)
+        if (exposerThread.joinable())
+            exposerThread.join();
+#ifdef DEBUG
+    gsbutils::dprintf(1, "Stop 5 \n");
+#endif
 
     http_stop();
     if (httpThread.joinable())
         httpThread.join();
+
+#ifdef DEBUG
+    gsbutils::dprintf(1, "Stop 6 \n");
+#endif
 
     tlg32->stop();
     tlgIn->stop();
     tlgOut->stop();
     if (tlgInThread->joinable())
         tlgInThread->join();
+#ifdef DEBUG
+    gsbutils::dprintf(1, "Stop 7 \n");
+#endif
 
     std::this_thread::sleep_for(std::chrono::seconds(10));
 }
@@ -305,6 +345,9 @@ void App::get_main_temperature()
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(10s);
     }
+#ifdef DEBUG
+    gsbutils::dprintf(1, "Thread main temperature, end\n");
+#endif
 }
 // Получить значение температуры управляющей платы
 float App::get_board_temperature()
@@ -528,6 +571,11 @@ bool App::parse_config()
             {
                 // TODO: check valid
                 config.Port = value;
+            }
+            else if (key == "PortModem")
+            {
+                // TODO: check valid
+                config.PortModem = value;
             }
             else if (key == "PhoneNumber")
             {

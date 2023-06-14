@@ -208,7 +208,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
   // Удалить ответ из одних пробелов
   if (res.size())
   {
-    //    gsbutils::dprintf(1, "Принята команда %s \n", res.c_str());
+    gsbutils::dprintf(1, "Принята команда %s \n", res.c_str());
 
     // та сторона положила трубку, надо прекратить обработку тоновых сигналов и сбросить команду
     if (res.find("NO_CARRIER") != std::string::npos)
@@ -328,7 +328,9 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       std::string inCmd = gsb_utils::remove_after(res, "|");
       inCmd = gsb_utils::remove_after(inCmd, "=");
       res = gsb_utils::remove_before(res, "|");
-      //      gsbutils::dprintf(1, "Принят ответ %s на команду %s \n", res.c_str(), inCmd.c_str());
+#ifdef DEBUG
+      gsbutils::dprintf(1, "Принят ответ %s на команду %s \n", res.c_str(), inCmd.c_str());
+#endif
       if (inCmd == "AT" ||
           inCmd == "ATE1" ||
           inCmd == "ATH0" ||

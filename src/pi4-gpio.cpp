@@ -48,11 +48,13 @@ bool Pi4Gpio::initialize_gpio(power_func power)
 		power_ = power;
 		flag.store(true);
 
-		pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
 		// Открываем устройство
 		chip = gpiod_chip_open("/dev/gpiochip0");
 		if (chip)
+		{
+			pwr_thread = std::thread(&Pi4Gpio::power_detect, this); // поток определения наличия 220В
 			return true;
+		}
 	}
 #endif
 	return false;
@@ -153,7 +155,9 @@ void Pi4Gpio::power_detect()
 		while (flag.load())
 		{
 			value = read_pin(20);
-			//		gsbutils::dprintf(1, "GPIO 20 %d\n", value);
+#ifdef DEBUG
+			gsbutils::dprintf(1, "GPIO 20 %d\n", value);
+#endif
 			if (value == 0 && !notify_off)
 			{
 				notify_off = true;

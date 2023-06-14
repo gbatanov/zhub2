@@ -49,6 +49,7 @@ struct GlobalConfig
     bool Gpio;
 };
 
+class Exposer;
 class App
 {
 public:
@@ -92,6 +93,7 @@ private:
     std::thread tempr_thread; // поток определения температуры управляющей платы
     bool noAdapter; // признак отсутствия адаптера координатора
     std::thread cmdThread;     // поток приема команд с клавиатуры
+    std::shared_ptr<Exposer> exposer;
     std::thread exposerThread; // поток ответа прометею
     std::thread httpThread; // поток HTTP-сервера
 };

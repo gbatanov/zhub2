@@ -84,6 +84,7 @@ bool Controller::init_adapter()
     }
     if (noAdapter)
         send_tlg_message("Zigbee adapter не обнаружен.\n");
+    gsbutils::dprintf(3, "Controller init_adapter success\n");
 
     return noAdapter;
 }
@@ -308,7 +309,7 @@ void Controller::after_message_action()
     if (ts - smartPlugTime > 60)
     {
         smartPlugTime = ts;
-        
+
         app.zhub->check_motion_activity();
 
         for (uint64_t &di : smartPlugDevices)
@@ -728,6 +729,9 @@ std::map<uint16_t, uint64_t> Controller::readMapFromFile()
     std::map<uint16_t, uint64_t> item_data{};
 
     std::string filename = app.config.MapPath;
+#ifdef DEBUG
+    gsbutils::dprintf(1, "MapFile  opening file %s\n", filename.c_str());
+#endif
 
     std::FILE *fd = std::fopen(filename.c_str(), "r");
 

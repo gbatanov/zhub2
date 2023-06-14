@@ -609,11 +609,12 @@ void Zhub::check_motion_activity()
     if (as_html)  \
         result = result + "<tr class='empty'><td colspan='8'><hr></td></tr>";
 
-#ifdef DEBUG
-#define EDCHECK (ed && ed->deviceInfo.test)
-#else
-#define EDCHECK (ed && ed->deviceInfo.available)
-#endif
+bool Zhub::edcheck(std::shared_ptr<zigbee::EndDevice> ed){
+    if (app.config.Mode == "test"){
+        return ed && ed->deviceInfo.test;
+    }
+    return ed && ed->deviceInfo.available;
+}
 /// Текущее состояние устройств
 /// используют http_server telegram
 /// TODO: перенести на уровень выше - в App
@@ -648,7 +649,7 @@ std::string Zhub::show_device_statuses(bool as_html)
             for (uint64_t di : *dev)
             {
                 std::shared_ptr<zigbee::EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)di);
-                if EDCHECK
+                if (edcheck(ed))
                 {
                     result = result + show_one_type(ed, as_html);
                 }
