@@ -303,6 +303,7 @@ void Controller::on_message(zigbee::Command command)
 void Controller::after_message_action()
 {
     // Выполнять каждую минуту для устройств, которым нужен более частый контроль состояния
+    // 0x70b3d52b6001b5d9 - зарядники
     std::vector<uint64_t> smartPlugDevices{0x70b3d52b6001b5d9};
 
     std::time_t ts = std::time(0); // get time now
