@@ -65,9 +65,6 @@ bool App::object_create()
             return false;
         }
 
- //       threadPoolModem = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
- //       uint8_t max_threads = 2;
- //       threadPoolModem->init_threads(&GsmModem::on_command, max_threads);
         init_modem();
 
         withGpio = false;

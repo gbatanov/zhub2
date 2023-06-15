@@ -92,4 +92,8 @@ install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION /usr/local/bin)
 install(FILES gsb_style.css DESTINATION /usr/local/etc/zhub2/css/)
 install(FILES ../map_addr_test.cfg DESTINATION /usr/local/etc/zhub2/)
 install(FILES ../map_addr.cfg DESTINATION /usr/local/etc/zhub2/)
+<<<<<<< HEAD
 install(FILES ../config.txt DESTINATION /usr/local/etc/zhub2/)
+=======
+install(FILES ../config.txt DESTINATION /usr/local/etc/zhub2/)
+>>>>>>> master
