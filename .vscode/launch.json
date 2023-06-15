@@ -21,7 +21,7 @@
         "name": "Debug",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/build/src/zhub",
+        "program": "sudo ${workspaceFolder}/build/src/zhub",
         "args": [],
         "stopAtEntry": true,
         "cwd": "${fileDirname}",
@@ -35,7 +35,6 @@
                 "ignoreFailures": true
             }
         ],
-        "miDebuggerPath": "/usr/bin/gdb",
-
+        "miDebuggerPath": "/usr/bin/gdb"
     }]
 }

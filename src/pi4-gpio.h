@@ -3,25 +3,25 @@
 #include <atomic>
 #include <thread>
 
-typedef void(*power_func)(int);
+typedef void (*power_func)(int);
 
 class Pi4Gpio
 {
 public:
-    Pi4Gpio(power_func power);
+
+    Pi4Gpio();
     ~Pi4Gpio();
+
+    void close_gpio();
 
     int read_pin(int pin);
     int write_pin(int pin, int value);
     void power_detect();
-
 private:
-    void initialize_gpio();
-    void close_gpio();
     struct gpiod_chip *chip = nullptr;
     std::atomic<bool> flag;
     power_func power_;
-        std::thread pwr_thread;
+    std::thread pwr_thread;
 };
 
 #endif

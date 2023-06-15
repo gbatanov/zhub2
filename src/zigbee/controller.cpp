@@ -27,7 +27,6 @@
 
 #include "../version.h"
 #include "../telebot32/src/tlg32.h"
-#include "../pi4-gpio.h"
 #include "../comport/unix.h"
 #include "../comport/serial.h"
 #include "../../gsb_utils/gsbutils.h"
@@ -44,7 +43,7 @@ using zigbee::NetworkConfiguration;
 using zigbee::zcl::Cluster;
 using zigbee::zcl::Frame;
 
-extern App app;
+extern std::shared_ptr<App> app;
 extern std::mutex trans_mutex;
 extern std::atomic<uint8_t> transaction_sequence_number;
 
@@ -70,7 +69,7 @@ bool Controller::init_adapter()
     try
     {
         // в connect происходит запуск потока приема команд zigbee
-        if (!connect(app.config.Port, 115200))
+        if (!connect(app->config.Port, 115200))
         {
             gsbutils::dprintf(1, "Zigbee UART is not connected\n");
             // дальнейшее выполнение бессмысленно, но надо уведомить по СМС или телеграм
@@ -84,6 +83,7 @@ bool Controller::init_adapter()
     }
     if (noAdapter)
         send_tlg_message("Zigbee adapter не обнаружен.\n");
+    gsbutils::dprintf(3, "Controller init_adapter success\n");
 
     return noAdapter;
 }
@@ -271,10 +271,10 @@ void Controller::on_message(zigbee::Command command)
 
                     send_tlg_message(alarm_msg);
 
-                    if (app.withSim800)
+                    if (app->withSim800)
                     {
                         gsbutils::dprintf(1, "Phone number call \n");
-                        app.gsmModem->master_call();
+                        app->gsmModem->master_call();
                     }
                 }
                 gsbutils::dprintf(1, "Device 0x%02x Water Leak: %s \n ", message.source.address, message.zcl_frame.payload[0] ? "ALARM" : "NORMAL");
@@ -302,14 +302,15 @@ void Controller::on_message(zigbee::Command command)
 void Controller::after_message_action()
 {
     // Выполнять каждую минуту для устройств, которым нужен более частый контроль состояния
+    // 0x70b3d52b6001b5d9 - зарядники
     std::vector<uint64_t> smartPlugDevices{0x70b3d52b6001b5d9};
 
     std::time_t ts = std::time(0); // get time now
     if (ts - smartPlugTime > 60)
     {
         smartPlugTime = ts;
-        
-        app.zhub->check_motion_activity();
+
+        app->zhub->check_motion_activity();
 
         for (uint64_t &di : smartPlugDevices)
         {
@@ -680,7 +681,7 @@ bool Controller::setDevicesMapToFile()
 
     int dbg = 3;
 
-    std::string filename = app.config.MapPath;
+    std::string filename = app->config.MapPath;
 
     std::FILE *fd = std::fopen(filename.c_str(), "w");
     if (!fd)
@@ -727,7 +728,10 @@ std::map<uint16_t, uint64_t> Controller::readMapFromFile()
 
     std::map<uint16_t, uint64_t> item_data{};
 
-    std::string filename = app.config.MapPath;
+    std::string filename = app->config.MapPath;
+#ifdef DEBUG
+    gsbutils::dprintf(1, "MapFile  opening file %s\n", filename.c_str());
+#endif
 
     std::FILE *fd = std::fopen(filename.c_str(), "r");
 

@@ -107,6 +107,7 @@ namespace clusters
         std::shared_ptr<zigbee::EndDevice> ed;
     };
 
+    //
     class ElectricalMeasurements
     {
     public:
@@ -117,7 +118,9 @@ namespace clusters
         void attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint ep);
 
     protected:
+        void check_charger(uint16_t val);
         std::shared_ptr<zigbee::EndDevice> ed;
+        bool chargerOn = false;
     };
 
     class Tuya
@@ -130,7 +133,8 @@ namespace clusters
         void attribute_handler_private(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint ep);
         void attribute_handler_switch_mode(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint);
 
-            protected : std::shared_ptr<zigbee::EndDevice> ed;
+    protected:
+        std::shared_ptr<zigbee::EndDevice> ed;
     };
 
     class Other
@@ -147,7 +151,6 @@ namespace clusters
         std::shared_ptr<zigbee::EndDevice> ed;
         zigbee::zcl::Cluster cluster;
     };
-
 
 }
 #endif

@@ -21,7 +21,7 @@
 #include "../common.h"
 #include "zigbee.h"
 
-using gsb_utils = gsbutils::SString;
+using gsbstring = gsbutils::SString;
 using namespace zigbee;
 
 // TODO: добавить команду получения текущего статуса устройства для кластера ON_OFF
@@ -267,9 +267,9 @@ std::string EndDevice::get_current_state(uint8_t channel)
     {
         // инвертируем On -> Off
         if (state.find("On") != std::string::npos)
-            gsb_utils::replace_first(state, "On", "Off");
+            gsbstring::replace_first(state, "On", "Off");
         else if (state.find("Off") != std::string::npos)
-            gsb_utils::replace_first(state, "Off", "On");
+            gsbstring::replace_first(state, "Off", "On");
     }
 
     return state;

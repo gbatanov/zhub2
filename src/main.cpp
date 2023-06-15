@@ -40,14 +40,14 @@
 #include "app.h"
 #include "main.h"
 
-App app;
+std::shared_ptr<App> app;
 
-using gsb_utils = gsbutils::SString;
+using gsbstring = gsbutils::SString;
 
 static void sig_int(int signo)
 {
     syslog(LOG_ERR, (char *)"sig_int: %d .Shutting down...", signo);
-    app.Flag.store(false);
+    app->Flag.store(false);
 
     return; // тут сработает closeAll
 }
@@ -58,11 +58,12 @@ static void signal_init(void)
     signal(SIGHUP, sig_int);
     signal(SIGTERM, sig_int);
     signal(SIGKILL, sig_int);
-    //   signal(SIGSEGV, sig_int); приводит к зацикливанию!!!
+    //    signal(SIGSEGV, sig_int); // приводит к зацикливанию сервиса !!!
 }
 
 static void closeAll()
 {
+    app->stop_app();
 }
 
 ///////////////////////////////////////////////////////////
@@ -80,26 +81,20 @@ int main(int argc, char *argv[])
     gsbutils::set_debug_level(1); // 0 - Отключение любого дебагового вывода
 
     gsbutils::dprintf(1, "Start zhub2 v%s.%s.%s \n", Project_VERSION_MAJOR, Project_VERSION_MINOR, Project_VERSION_PATCH);
-    if (!app.parse_config())
+    app = std::make_shared<App>();
+    if (!app->parse_config())
     {
         gsbutils::stop(); // остановка вывода сообщений
         return -100;
     }
-    if (app.config.Mode == "debug" || app.config.Mode == "test")
+    if (app->config.Mode == "debug" || app->config.Mode == "test")
         gsbutils::set_debug_level(3);
 
-    if (app.object_create())
-        app.start_app();
+    if (app->object_create())
+        app->start_app();
 
-    app.stop_app();
+    app->stop_app();
 
     gsbutils::stop(); // остановка вывода сообщений
     return ret;
 }
-
-// Примечания:
-// Если на реле Aqara T1 три раза быстро нажать кнопку, отработает получение идентификатора устройства
-// При включенном реле на кластере 000с на 15 эндпойнте отдается потребляемая нагрузкой мощность, через раз (через нулевое значение)
-// При выключенном реле периодически идет команда в кластере Time
-// Температуру реле можно получить по запросу аттрибута 0х0000 в кластере DEVICE_TEMPERATURE_CONFIGURATION
-// На кранах воды нет датчиков температуры

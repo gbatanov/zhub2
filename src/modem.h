@@ -5,7 +5,6 @@
 #define PI_RX_BUFFER_SIZE 1024
 #define PI_TX_BUFFER_SIZE 256
 
-#include <any>
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "zigbee/zigbee.h"
@@ -25,10 +24,11 @@ public:
   std::string show_balance() { return balance_; };
   bool master_call();
   bool send_sms(std::string sms);
-  static void on_command(void *cmd);
   void execute_tone_command(std::string command);
+  static void on_command(void *cmd);
 
 private:
+  std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> threadPoolModem; // пул потоков работы с модемом
   zigbee::Sim800Event sim800_event_emitter_;
   bool balance_to_sms = false; // отправка баланса по смс, включается по запросу с тонального набора
   bool connected = false;

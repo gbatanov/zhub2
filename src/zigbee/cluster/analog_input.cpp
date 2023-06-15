@@ -20,7 +20,7 @@
 #include "../zigbee.h"
 #include "cluster.h"
 #include "../../modem.h"
-#include "../../main.h"
+//#include "../../main.h"
 
 using AnalogInput = zigbee::clusters::AnalogInput;
 
@@ -41,10 +41,10 @@ void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attribut
         {
         case 0x0055:
         {
-            //  на реле показывает суммарный ток в 0,1 А (потребляемый нагрузкой и самим реле)
-            // показывает сразу после изменения нагрузки в отличие от получаемого в репортинге
+            //  на реле показывает потребляемую мощность в Вт
+            // отдается в моменты включения/выключения
             value = (double)(any_cast<float>(attribute.value));
-            gsbutils::dprintf(dbg, "Device 0x%04x endpoint %d Analog Input Value =  %f \n", endpoint.address, endpoint.number, value);
+            gsbutils::dprintf(dbg, "ANALOG_INPUT Device 0x%04x endpoint %d  Value =  %f \n", endpoint.address, endpoint.number, value);
         }
         break;
         case 0x006f:
@@ -57,21 +57,18 @@ void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attribut
             unit = (any_cast<std::string>(attribute.value));
             unit = gsbutils::SString::remove_after(unit, ",");
 #ifdef DEBUG
-            gsbutils::dprintf(1, "Device 0x%04x endpoint %d Analog Input Unit =  %s \n", endpoint.address, endpoint.number, unit.c_str());
+            gsbutils::dprintf(1, "ANALOG_INPUT Device 0x%04x endpoint %d  Unit =  %s \n", endpoint.address, endpoint.number, unit.c_str());
 #endif
         }
         break;
         default:
-            gsbutils::dprintf(1, "Zhub::on_attribute_report: unknown attribute Id 0x%04x in cluster ANALOG_INPUT device: 0x%04x\n", attribute.id, endpoint.address);
+            gsbutils::dprintf(1, "ANALOG_INPUT Zhub::on_attribute_report: unknown attribute Id 0x%04x  device: 0x%04x\n", attribute.id, endpoint.address);
         }
     }
     if (unit.size() && value > -100.0)
     {
         if (unit == "%")
-        {
             ed->set_humidity(value);
-//            ed->set_current_state("On");
-        }
         else if (unit == "C")
             ed->set_temperature(value);
         else if (unit == "V")
@@ -84,15 +81,14 @@ void AnalogInput::attribute_handler(std::vector<zigbee::zcl::Attribute> attribut
         else if (unit == "Pa")
             ed->set_pressure(value);
         else
-            gsbutils::dprintf(1, "Device 0x%04x endpoint %d Analog Input Unit =  %s \n", endpoint.address, endpoint.number, unit.c_str());
+            gsbutils::dprintf(1, "ANALOG_INPUT Device 0x%04x endpoint %d Unit =  %s \n", endpoint.address, endpoint.number, unit.c_str());
         value = -100.0;
         unit = "";
     }
     else if ((ed->get_device_type() == 11 || ed->get_device_type() == 9 || ed->get_device_type() == 10) && (value > -100.0))
     {
-        ed->set_current(value / 100);
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Device 0x%04x endpoint %d Full Current %0.3fA \n", endpoint.address, endpoint.number, value / 100);
+        gsbutils::dprintf(1, "ANALOG_INPUT Device 0x%04x endpoint %d Power %0.3fW \n", endpoint.address, endpoint.number, value);
 #endif
     }
 }

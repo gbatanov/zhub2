@@ -17,16 +17,14 @@
 #include <termios.h>
 
 #include "../telebot32/src/tlg32.h"
-#include "../pi4-gpio.h"
+
 #include "../../gsb_utils/gsbutils.h"
 #include "../comport/unix.h"
 #include "../comport/serial.h"
 #include "../common.h"
 #include "command.h"
-
-#include "zigbee.h"
 #include "../modem.h"
-
+#include "zigbee.h"
 #include "../app.h"
 
 using zigbee::IEEEAddress;
@@ -36,7 +34,7 @@ using zigbee::zcl::Attribute;
 using zigbee::zcl::Cluster;
 using zigbee::zcl::Frame;
 
-extern App app;
+extern std::shared_ptr<App> app;
 
 std::mutex mtx_timer1;
 uint16_t timer1_counter = 0;
@@ -45,16 +43,14 @@ uint64_t last_seen = 0;
 std::atomic<int> kitchenSensorState{-1};
 std::atomic<int> coridorSensorState{-1};
 
-using gsb_utils = gsbutils::SString;
+using gsbstring = gsbutils::SString;
 using namespace zigbee;
 
 Zhub::Zhub() : Controller()
 {
-
 }
 Zhub::~Zhub()
 {
-    disconnect();
 }
 
 // Старт приложения
@@ -64,11 +60,11 @@ void Zhub::start(std::vector<uint8_t> rfChannels)
 
     // Старт Zigbee-сети
     gsbutils::dprintf(1, "Zhub::start_network \n");
-    while (!start_network(rfChannels) && app.Flag.load())
+    while (!start_network(rfChannels) && app->Flag.load())
     {
         std::this_thread::sleep_for(std::chrono::seconds(10));
     }
-    if (!app.Flag.load())
+    if (!app->Flag.load())
         return;
 
 #ifdef DEBUG
@@ -86,6 +82,11 @@ void Zhub::start(std::vector<uint8_t> rfChannels)
     shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
     read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsOnoff);
 #endif
+}
+
+void Zhub::stop()
+{
+    stop_zdo();
 }
 //
 std::string Zhub::get_device_list(bool as_html)
@@ -474,7 +475,7 @@ void Zhub::onoff_command(zigbee::Message message)
         {
             ed->set_current_state("Double click"); // 1 - double , 2 - single, 0 - long
             std::string alarm_msg = "Вызов с кнопки ";
-            app.ringer();
+            app->ringer();
             send_tlg_message(alarm_msg);
         }
         break;
@@ -590,7 +591,7 @@ std::string Zhub::get_motion_state()
 // Если на момент опроса есть хотя бы один датчик движения в статусе Motion,
 // фиксируем факт наличия движения. Это необходимо для того, что можно находиться возле датчика,
 // он сработает в начале, я через 20 минут сработает условие - Никого нет дома.
-// Чтобы это не происходило, каждую минуту проверяю состояние датчиков движения 
+// Чтобы это не происходило, каждую минуту проверяю состояние датчиков движения
 // и обновляю переменную lastMotionSensorActivity
 // Кухню пока исключаю из процесса из-за нестабильности работы датчика
 void Zhub::check_motion_activity()
@@ -609,11 +610,14 @@ void Zhub::check_motion_activity()
     if (as_html)  \
         result = result + "<tr class='empty'><td colspan='8'><hr></td></tr>";
 
-#ifdef DEBUG
-#define EDCHECK (ed && ed->deviceInfo.test)
-#else
-#define EDCHECK (ed && ed->deviceInfo.available)
-#endif
+bool Zhub::edcheck(std::shared_ptr<zigbee::EndDevice> ed)
+{
+    if (app->config.Mode == "test")
+    {
+        return ed && ed->deviceInfo.test;
+    }
+    return ed && ed->deviceInfo.available;
+}
 /// Текущее состояние устройств
 /// используют http_server telegram
 /// TODO: перенести на уровень выше - в App
@@ -648,7 +652,7 @@ std::string Zhub::show_device_statuses(bool as_html)
             for (uint64_t di : *dev)
             {
                 std::shared_ptr<zigbee::EndDevice> ed = get_device_by_mac((zigbee::IEEEAddress)di);
-                if EDCHECK
+                if (edcheck(ed))
                 {
                     result = result + show_one_type(ed, as_html);
                 }
@@ -703,7 +707,7 @@ std::string Zhub::show_device_statuses(bool as_html)
 
         // Дальше выводится только в телеграм
 
-        float temp = app.get_board_temperature();
+        float temp = app->get_board_temperature();
         if (temp)
         {
             size_t len = snprintf(buff, 1024, "Температура платы управления: %0.1f \n", temp);
@@ -841,6 +845,6 @@ inline void Zhub::switch_off_with_list()
 }
 void Zhub::send_tlg_message(std::string msg)
 {
-    if (app.withTlg)
-    app.tlg32->send_message(msg);
+    if (app->withTlg)
+        app->tlg32->send_message(msg);
 }

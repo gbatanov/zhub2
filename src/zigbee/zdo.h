@@ -98,7 +98,7 @@ public:
     Zdo();
     ~Zdo();
     void init();
-    void stop();
+    void stop_zdo();
     int reset(ResetType resetType, bool clearNetworkState, bool clearConfig);
     int reset() { return reset(ResetType::SOFT, false, false); }
     bool startup(std::chrono::duration<int, std::milli> delay);
@@ -156,7 +156,6 @@ protected:
     std::thread *thr_cmdin = nullptr;
     std::shared_ptr<gsbutils::ThreadPool<Command>> tp;
     bool stopped = false;
-    void stop_zdo();
 };
 
 #endif

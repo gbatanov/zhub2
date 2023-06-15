@@ -1,11 +1,38 @@
-
 #include "version.h"
+
+#include <stddef.h>
+#include <cstddef>
+#include <array>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <fstream>
+#include <fcntl.h>
+#include <sys/select.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <iostream>
+#include <atomic>
+
+#include "../telebot32/src/tlg32.h"
+#include "../gsb_utils/gsbutils.h"
+#include "comport/unix.h"
+#include "comport/serial.h"
+#include "pi4-gpio.h"
+#include "http.h"
+#include "httpserver.h"
+#include "exposer.h"
+#include "modem.h"
+#include "zigbee/zigbee.h"
 #include "app.h"
 
-using gsb_utils = gsbutils::SString;
-extern std::unique_ptr<HttpServer> http;
-extern App app;
+using gsbstring = gsbutils::SString;
+
+extern std::shared_ptr<App> app;
 /// ------- App -----------
+App::App() { std::cout << "app constructor\n"; };
+App::~App() { std::cout << "app destructor\n"; }
+
 bool App::object_create()
 {
     Flag.store(true);
@@ -38,12 +65,16 @@ bool App::object_create()
             return false;
         }
 
-        tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
-        uint8_t max_threads = 2;
-        tpm->init_threads(&GsmModem::on_command, max_threads);
         init_modem();
 
-        gpio = std::make_shared<Pi4Gpio>(&App::handle_power_off);
+        withGpio = false;
+#ifdef __linux__
+        if (config.Gpio)
+        {
+            gpio = std::make_shared<Pi4Gpio>();
+            withGpio = true;
+        }
+#endif
     }
     catch (std::exception &e)
     {
@@ -59,10 +90,14 @@ bool App::start_app()
     startTime = gsbutils::DDate::current_time();
     if (!noAdapter)
     {
+        if (withGpio)
+            withGpio = gpio->initialize_gpio(&App::handle_power_off);
         zhub->start(config.Channels);
-        httpThread = std::thread(http_server);
-        exposerThread = std::thread(&App::exposer_handler, this);
-        tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы Raspberry
+        http = std::make_unique<HttpServer>();
+        http->start();
+        if (config.Prometheus)
+            exposerThread = std::thread(&App::exposer_handler, this);
+        tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы
 
         return true;
     }
@@ -153,13 +188,14 @@ void App::exposer_handler()
     if (config.Prometheus)
     {
         // 2.18.450 - сейчас IP фактически не используется, слушает запросы с любого адреса
-        Exposer exposer(std::string("localhost"), 8092);
-        exposer.start();
+        exposer = std::make_shared<Exposer>(std::string("localhost"), 8092);
+        exposer->start();
     }
 }
 
 bool App::init_modem()
 {
+    gsbutils::dprintf(3, "Start init modem\n");
     gsmModem = std::make_shared<GsmModem>();
     if (config.Sim800)
     {
@@ -168,6 +204,9 @@ bool App::init_modem()
             withSim800 = gsmModem->connect(config.PortModem, 9600); // 115200  19200 9600 7200
             if (!withSim800)
             {
+#ifdef DEBUG
+                gsbutils::dprintf(1, "Модем SIM800 не обнаружен\n");
+#endif
                 if (withTlg)
                     tlg32->send_message("Модем SIM800 не обнаружен.\n");
                 return false;
@@ -176,7 +215,16 @@ bool App::init_modem()
             {
                 withSim800 = gsmModem->init_modem();
                 if (!withSim800)
+                {
+#ifdef DEBUG
+                    gsbutils::dprintf(1, "Модем SIM800 не активирован\n");
+#endif
                     return false;
+                }
+#ifdef DEBUG
+                gsbutils::dprintf(1, "Модем SIM800 активирован\n");
+#endif
+
                 if (withTlg)
                     tlg32->send_message("Модем SIM800 активирован.\n");
                 gsmModem->get_battery_level(true);
@@ -202,36 +250,63 @@ bool App::init_modem()
 // Остановка приложения
 void App::stop_app()
 {
-    if (cmdThread.joinable())
-        cmdThread.join();
-    Flag.store(false);
-
-    if (!noAdapter)
+    if (!stoped)
     {
-        tpm->stop_threads();
-        gsmModem->disconnect();
-
-#ifdef IS_PI
-        gpio->close_gpio();
+        stoped = true;
+        if (cmdThread.joinable())
+            cmdThread.join();
+        Flag.store(false);
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stopped cmd thread \n");
 #endif
-        zhub->stop(); // остановка пулла потоков, длится дольше всего
+        if (!noAdapter)
+        {
+            gsmModem->disconnect();
+ //           threadPoolModem->stop_threads();
+
+            if (withGpio)
+                gpio->close_gpio();
+#ifdef DEBUG
+            gsbutils::dprintf(1, "Stopped modem, gpio \n");
+#endif
+
+            zhub->stop();
+
+            if (config.Prometheus)
+            {
+                exposer->stop_exposer();
+                if (exposerThread.joinable())
+                    exposerThread.join();
+            }
+        }
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stopped zhub, exposer \n");
+#endif
+
+        if (tempr_thread.joinable())
+            tempr_thread.join();
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stopped temperature thread \n");
+#endif
+
+        http->stop_http();
+
+        if (httpThread.joinable())
+            httpThread.join();
+
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stopped http  \n");
+#endif
+
+        tlg32->stop();
+        tlgIn->stop();
+        tlgOut->stop();
+        if (tlgInThread->joinable())
+            tlgInThread->join();
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stopped telegram \n");
+#endif
     }
-
-    if (tempr_thread.joinable())
-        tempr_thread.join();
-    if (exposerThread.joinable())
-        exposerThread.join();
-
-    http_stop();
-    if (httpThread.joinable())
-        httpThread.join();
-
-    tlg32->stop();
-    tlgIn->stop();
-    tlgOut->stop();
-    if (tlgInThread->joinable())
-        tlgInThread->join();
-
     std::this_thread::sleep_for(std::chrono::seconds(10));
 }
 
@@ -274,7 +349,7 @@ void App::get_main_temperature()
 {
 
     bool notify_high_send = false;
-    while (app.Flag.load())
+    while (Flag.load())
     {
 
         float temp_f = get_board_temperature();
@@ -296,6 +371,9 @@ void App::get_main_temperature()
         using namespace std::chrono_literals;
         std::this_thread::sleep_for(10s);
     }
+#ifdef DEBUG
+    gsbutils::dprintf(1, "Thread main temperature, end\n");
+#endif
 }
 // Получить значение температуры управляющей платы
 float App::get_board_temperature()
@@ -339,8 +417,8 @@ void App::handle_power_off(int value)
     else
         return;
     gsbutils::dprintf(1, alarm_msg);
-    if (app.withTlg)
-        app.tlg32->send_message(alarm_msg);
+    if (app->withTlg)
+        app->tlg32->send_message(alarm_msg);
 }
 
 // Обработчик показаний температуры корпуса
@@ -366,7 +444,7 @@ void App::handle_board_temperature(float temp)
 void App::ringer()
 {
     gpio->write_pin(26, 1);
-    sleep(1);
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     gpio->write_pin(26, 0);
 }
 
@@ -415,9 +493,9 @@ void App::handle()
             }
             else if (msg.text.starts_with("/balance"))
             {
-                if (app.withSim800)
+                if (app->withSim800)
                 {
-                    if (app.gsmModem->get_balance())
+                    if (app->gsmModem->get_balance())
                         answer.text = "Запрос баланса отправлен\n";
                 }
                 else
@@ -448,7 +526,7 @@ bool App::parse_config()
     config.Sim800 = false;
     config.Gpio = false;
 
-    std::string filename = "/usr/local/etc/zhub2/config";
+    std::string filename = "/usr/local/etc/zhub2/config.txt";
     std::ifstream infile(filename.c_str());
     if (infile.is_open())
     {
@@ -459,17 +537,17 @@ bool App::parse_config()
         {
             if (line.starts_with("//") || line.size() < 3)
                 continue;
-            line = gsb_utils::trim(line);
+            line = gsbstring::trim(line);
 
             // find mode
             if (mode.size() == 0)
             {
-                std::pair<std::string, std::string> val = gsb_utils::split_string_with_delimiter(line, " ");
-                std::string key = gsb_utils::trim(val.first);
+                std::pair<std::string, std::string> val = gsbstring::split_string_with_delimiter(line, " ");
+                std::string key = gsbstring::trim(val.first);
                 if (key == "Mode")
                 {
                     if (val.second.size() > 0)
-                        mode = gsb_utils::trim(val.second);
+                        mode = gsbstring::trim(val.second);
 
                     config.Mode = mode;
                 }
@@ -479,8 +557,8 @@ bool App::parse_config()
             if (line.starts_with("["))
             {
                 // section start
-                line = gsb_utils::remove_before(line, "[");
-                line = gsb_utils::remove_after(line, "]");
+                line = gsbstring::remove_before(line, "[");
+                line = gsbstring::remove_after(line, "]");
                 sectionMode = config.Mode == line;
                 continue;
             }
@@ -488,9 +566,9 @@ bool App::parse_config()
                 continue; // pass unnecessary section
 
             // Далее идут параметры нужной секции
-            std::pair<std::string, std::string> val = gsb_utils::split_string_with_delimiter(line, " ");
-            std::string key = gsb_utils::trim(val.first);
-            std::string value = gsb_utils::trim(val.second);
+            std::pair<std::string, std::string> val = gsbstring::split_string_with_delimiter(line, " ");
+            std::string key = gsbstring::trim(val.first);
+            std::string value = gsbstring::trim(val.second);
             if (key == "BotName")
             {
                 // TODO: check length
@@ -520,15 +598,20 @@ bool App::parse_config()
                 // TODO: check valid
                 config.Port = value;
             }
+            else if (key == "PortModem")
+            {
+                // TODO: check valid
+                config.PortModem = value;
+            }
             else if (key == "PhoneNumber")
             {
                 // TODO: check valid
                 // Плюс в начале убираю
-                config.PhoneNumber = gsb_utils::remove_before(value, "+");
+                config.PhoneNumber = gsbstring::remove_before(value, "+");
             }
             else if (key == "Channels")
             {
-                std::vector<std::string> resChan = gsb_utils::split(value, ",");
+                std::vector<std::string> resChan = gsbstring::split(value, ",");
                 if (resChan.size() > 0)
                 {
                     unsigned ch = 0;

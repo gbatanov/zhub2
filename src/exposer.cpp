@@ -21,12 +21,14 @@
 #include <any>
 #include <sstream>
 #include <termios.h>
+#include <string>
 
 #include "version.h"
 #include "../gsb_utils/gsbutils.h"
+#include "app.h"
 #include "exposer.h"
 
-extern App app;
+extern std::shared_ptr<App> app;
 
 Exposer::Exposer(std::string url, int port)
 {
@@ -38,9 +40,13 @@ Exposer::~Exposer()
 {
     flag.store(false);
 }
-void Exposer::start()
+
+void Exposer::stop_exposer()
 {
     flag.store(false);
+}
+void Exposer::start()
+{
 
     flag.store(true);
     // Попытка открыть TCP socket для HTTP-сервер
@@ -80,20 +86,15 @@ void Exposer::start()
                 }
                 receive_http(clientSockfd);
             }
-            else
-            {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-        }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
         }
     } // while Flag
 
     if (httpSockfd >= 0)
         close(httpSockfd);
+<<<<<<< HEAD
 
+=======
+>>>>>>> dev
 }
 
 /// @brief Open TCP socket for web-interface
@@ -107,7 +108,6 @@ int Exposer::open_tcp_socket(int port)
     int retry = 0;
     int sock_fd = -1;
 
-    gsbutils::dprintf(7, (char *)"Exposer: Opening TCP server socket...\n");
     // open TCP socket
     sock_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (sock_fd < 0)
@@ -119,16 +119,14 @@ int Exposer::open_tcp_socket(int port)
     server_address.sin_addr.s_addr = htonl(INADDR_ANY); // receive from anybody
     server_address.sin_port = htons(port);              // http server port
     server_len = sizeof(server_address);
-    gsbutils::dprintf(7, (char *)"Exposer:  TCP server socket open on file descriptor %d\n", sock_fd);
     // this is done the way it is to make restarts of the program easier
     // in Linux, TCP sockets have a 2 minute wait period before closing
-    while (app.Flag.load() && bind(sock_fd, (struct sockaddr *)&server_address, server_len) < 0)
+    while (app->Flag.load() && bind(sock_fd, (struct sockaddr *)&server_address, server_len) < 0)
     {
-        gsbutils::dprintf(7, (char *)"Exposer:  Error binding TCP server socket: %s.  Retrying...\n", strerror(errno));
         sleep(5); // wait 5 seconds to see if it clears
         retry++;
         // more than 1 minute has elapsed, there must be something wrong
-        if (retry > ((1 * 60) / 5) || !app.Flag.load())
+        if (retry > ((1 * 60) / 5) || !app->Flag.load())
             return (-1);
     }
     if (listen(sock_fd, 5) < 0)
@@ -138,8 +136,7 @@ int Exposer::open_tcp_socket(int port)
     }
     flags = fcntl(sock_fd, F_GETFL, 0);
     fcntl(sock_fd, F_SETFL, O_NONBLOCK | flags);
-    // TCP socket is ready to go
-    gsbutils::dprintf(7, (char *)"Exposer: TCP server socket listening on local port %d\n", port);
+    // TCP socket is ready
 
     return sock_fd;
 }
@@ -159,9 +156,6 @@ void Exposer::receive_http(int clientSockfd)
         if (numread > (MAX_TCP_SIZE - 1))
             numread = (MAX_TCP_SIZE - 1);
         request[numread] = '\0';
-        gsbutils::dprintf(7, (char *)"Exposer: Client sockfd %d\n", clientSockfd);
-        gsbutils::dprintf(7, (char *)"Exposer: %d bytes received\n", numread);
-        gsbutils::dprintf(7, (char *)"Exposer: http request:\n%s", request);
 
         // GET method from browser
         if (strncmp(request, "GET", 3) == 0)
@@ -174,8 +168,6 @@ void Exposer::receive_http(int clientSockfd)
                 request[i - 4] = tolower(request[i]); // переводим запрос в нижний регистр
             }
             request[i - 4] = '\0'; // terminate URL string
-
-            gsbutils::dprintf(7, (char *)"Exposer: Browser is asking to GET %s\n", request);
 
             // строка ответа
             response = "";
@@ -190,17 +182,12 @@ void Exposer::receive_http(int clientSockfd)
             else
             {
                 send_error(clientSockfd, 404, "Not found");
-                gsbutils::dprintf(7, (char *)"HTTPServer: URL \"%s\" not found\n", url_str.c_str());
             }
         }
         else
         {
             send_error(clientSockfd, 501, "Not implemented");
         }
-    }
-    else
-    {
-        gsbutils::dprintf(7, (char *)"Exposer: numread=%d\n", numread);
     }
 
     close(clientSockfd);
@@ -252,30 +239,28 @@ std::string Exposer::metrics()
 {
     std::string answer = "";
     // Получим давление
-    std::shared_ptr<zigbee::EndDevice> di = app.zhub->get_device_by_mac((zigbee::IEEEAddress)0x00124b000b1bb401); // датчик климата в детской
+    std::shared_ptr<zigbee::EndDevice> di = app->zhub->get_device_by_mac((zigbee::IEEEAddress)0x00124b000b1bb401); // датчик климата в детской
     if (di)
         answer = answer + di->get_prom_pressure();
 
     for (auto &li : zigbee::EndDevice::PROM_MOTION_LIST)
     {
-        std::shared_ptr<zigbee::EndDevice> di = app.zhub->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = app->zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
             answer = answer + di->get_prom_motion_string();
     }
     for (auto &li : zigbee::EndDevice::PROM_RELAY_LIST)
     {
         // для сдвоенного реле показываем по отдельности
-        std::shared_ptr<zigbee::EndDevice> di = app.zhub->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = app->zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
-
             answer = answer + di->get_prom_relay_string();
     }
     for (auto &li : zigbee::EndDevice::PROM_DOOR_LIST)
     {
-        std::shared_ptr<zigbee::EndDevice> di = app.zhub->get_device_by_mac((zigbee::IEEEAddress)li);
+        std::shared_ptr<zigbee::EndDevice> di = app->zhub->get_device_by_mac((zigbee::IEEEAddress)li);
         if (di)
             answer = answer + di->get_prom_door_string();
     }
-    gsbutils::dprintf(7, "%s\n", answer.c_str());
     return answer;
 }

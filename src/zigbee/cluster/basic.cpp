@@ -24,7 +24,7 @@
 #include "../../app.h"
 using Basic =  zigbee::clusters::Basic;
 
-extern App app;
+extern std::shared_ptr<App> app;
 
 void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
@@ -104,12 +104,12 @@ void Basic::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zi
                     zigbee::NetworkAddress shortAddr = ed->get_network_address();
                     // запрос тока и напряжения, работает!
                     std::vector<uint16_t> idsAV{0x0505, 0x508};
-                    app.zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
+                    app->zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ELECTRICAL_MEASUREMENTS, idsAV);
 
                     if (ed->get_current_state(1) != "On" && ed->get_current_state(1) != "Off")
                     {
                         std::vector<uint16_t> idsAV{0x0000};
-                        app.zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
+                        app->zhub->read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsAV);
                     }
                 }
 

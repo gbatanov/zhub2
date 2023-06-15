@@ -2,124 +2,42 @@
     "version": 2,
     "configurePresets": [
         {
-            "name": "DebugComp",
-            "displayName": "Debug Comp",
+            "name": "DebugBuild",
+            "displayName": "DebugBuild",
             "description": "Build and install directory",
             "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "DEBUG": "ON",
-                "SIM800": "ON"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
             }
         },
         {
-            "name": "DebugPi4",
-            "displayName": "Debug Pi 4",
-            "description": "Дебаговая версия на малинке",
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "DEBUG": "ON",
-                "SIM800": "OFF",
-                "GPIO": "ON"
-            }
-        },
-        {
-            "name": "ReleaseComp",
-            "displayName": "Release Comp",
+            "name": "ReleaseBuild",
+            "displayName": "ReleaseBuild",
             "description": "Build and install directory",
             "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "SIM800": "OFF"
-            }
-        },
-        {
-            "name": "ReleasePi",
-            "displayName": "Release Pi",
-            "description": "Релизная версия на малинке",
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "SIM800":"ON",
-                "GPIO": "ON"
-            }
-        },
-        {
-            "name": "DebugLin",
-            "displayName": "Debug Linux",
-            "description": "Отладочная версия на ноуте",
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "SIM800": "OFF",
-                "GPIO": "OFF"
-            }
-        },
-        {
-            "name": "ReleaseLin",
-            "displayName": "Release Lin",
-            "description": "Релизная версия на ноуте",
-            "generator": "Unix Makefiles",
-            "binaryDir": "${sourceDir}/build",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release",
-                "CMAKE_TOOLCHAIN_FILE": "",
-                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build",
-                "SIM800": "OFF",
-                "GPIO": "OFF"
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/build"
             }
         }
     ],
-
     "buildPresets": [
         {
-            "name": "ReleaseBuildPresetComp",
+            "name": "ReleaseBuildPreset",
             "description": "",
-            "displayName": "ReleaseBuildPresetComp",
-            "configurePreset": "ReleaseComp"
-        },{
-            "name": "ReleaseBuildPresetPi",
-            "description": "",
-            "displayName": "ReleaseBuildPresetPi",
-            "configurePreset": "ReleasePi"
-        },{
-            "name": "ReleaseLin",
-            "description": "",
-            "displayName": "ReleaseLin",
-            "configurePreset": "ReleaseLin"
-        },{
-            "name": "DebugLinux",
-            "description": "",
-            "displayName": "DebugLinux",
-            "configurePreset": "DebugLin"
+            "displayName": "ReleaseBuildPreset",
+            "configurePreset": "ReleaseBuild"
         },
         {
-            "name": "DebugBuildPresetPi",
+            "name": "DebugBuildPreset",
             "description": "",
-            "displayName": "DebugBuildPresetPi",
-            "configurePreset": "DebugPi4"
-        },
-        {
-            "name": "DebugBuildPresetComp",
-            "description": "",
-            "displayName": "DebugBuildPresetComp",
-            "configurePreset": "DebugComp"
+            "displayName": "DebugBuildPreset",
+            "configurePreset": "DebugBuild"
         }
     ]
 }

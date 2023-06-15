@@ -16,12 +16,14 @@
 
 #include "../gsb_utils/gsbutils.h"
 #include "../telebot32/src/tlg32.h"
-#include "modem.h"
+#include "comport/unix.h"
+#include "comport/serial.h"
 #include "app.h"
+#include "modem.h"
 
-extern App app;
+extern std::shared_ptr<App> app;
 
-using gsb_utils = gsbutils::SString;
+using gsbstring = gsbutils::SString;
 
 //--------------------------------------------------------------
 // TODO: сейчас все команды идут с одним идентификатором ОК,
@@ -48,7 +50,7 @@ void GsmModem::disconnect()
 {
   connected = false;
   execute_flag_.store(false);
-  app.withSim800 = false;
+  app->withSim800 = false;
   if (receiver_thread_.joinable())
     receiver_thread_.join();
 
@@ -71,7 +73,7 @@ void GsmModem::on_command(void *cmd_)
 {
   std::vector<uint8_t> command = *(static_cast<std::vector<uint8_t> *>(cmd_));
 
-  app.gsmModem->command_handler(command);
+  app->gsmModem->command_handler(command);
 }
 
 bool GsmModem::connect(std::string port, unsigned int baud_rate)
@@ -86,6 +88,10 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
   {
     serial_->open();
     execute_flag_.store(true);
+
+    threadPoolModem = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
+    uint8_t max_threads = 2;
+    threadPoolModem->init_threads(&GsmModem::on_command, max_threads);
 
     receiver_thread_ = std::thread(&GsmModem::loop, this);
     connected = true;
@@ -106,7 +112,7 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
 // Очищаем очередь смс-сообщений
 bool GsmModem::init_modem()
 {
-  if (app.withSim800)
+  if (app->withSim800)
   {
     send_command("AT\r", "At");
     set_echo(true);
@@ -208,7 +214,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
   // Удалить ответ из одних пробелов
   if (res.size())
   {
-    //    gsbutils::dprintf(1, "Принята команда %s \n", res.c_str());
+    gsbutils::dprintf(1, "Принята команда %s \n", res.c_str());
 
     // та сторона положила трубку, надо прекратить обработку тоновых сигналов и сбросить команду
     if (res.find("NO_CARRIER") != std::string::npos)
@@ -222,7 +228,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       if (res.find("CLIP") != std::string::npos)
       {
         // АОН сработал в этом же ответе
-        if (res.find(app.config.PhoneNumber) != std::string::npos) // TODO: номер в конфигурацию
+        if (res.find(app->config.PhoneNumber) != std::string::npos) // TODO: номер в конфигурацию
         {
           // Мой номер, продолжаем дальше
           send_command("ATA\r", "ATA"); // отправка команды (синхронная, макс. 3сек.)
@@ -261,14 +267,14 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
           res = res.substr(pos);
         else
           res = res.substr(pos, pos2 - pos);
-        gsb_utils::remove_all(res, "003");
-        gsb_utils::replace_all(res, "002E", ".");
+        gsbstring::remove_all(res, "003");
+        gsbstring::replace_all(res, "002E", ".");
         //       gsbutils::dprintf(1, "Balance: %s\n", res.c_str());
         balance_ = res;
 
         // отправляем баланс в телеграм
-        if (app.withTlg)
-          app.tlg32->send_message("Баланс: " + res + " руб.");
+        if (app->withTlg)
+          app->tlg32->send_message("Баланс: " + res + " руб.");
 
         // если была команда запроса баланса с тонового набора
         if (balance_to_sms)
@@ -282,7 +288,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
     else if (res.find("+CLIP") != std::string::npos)
     {
       // АОН при входящем звонке
-      if (res.find(app.config.PhoneNumber) != std::string::npos) // TODO: телефон в настройки
+      if (res.find(app->config.PhoneNumber) != std::string::npos) // TODO: телефон в настройки
       {
         send_command("ATA\r", "ATA");
         is_call_ = true;
@@ -325,10 +331,12 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       // AT+COLP
       // AT+CBC
 
-      std::string inCmd = gsb_utils::remove_after(res, "|");
-      inCmd = gsb_utils::remove_after(inCmd, "=");
-      res = gsb_utils::remove_before(res, "|");
-      //      gsbutils::dprintf(1, "Принят ответ %s на команду %s \n", res.c_str(), inCmd.c_str());
+      std::string inCmd = gsbstring::remove_after(res, "|");
+      inCmd = gsbstring::remove_after(inCmd, "=");
+      res = gsbstring::remove_before(res, "|");
+#ifdef DEBUG
+      gsbutils::dprintf(1, "Принят ответ %s на команду %s \n", res.c_str(), inCmd.c_str());
+#endif
       if (inCmd == "AT" ||
           inCmd == "ATE1" ||
           inCmd == "ATH0" ||
@@ -350,8 +358,8 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       {
         // ||+CBC: 0,100,4685||||OK||
         // Получение параметров батареи
-        res = gsb_utils::remove_before(res, ":");
-        std::string answer = gsb_utils::remove_after(res, "|");
+        res = gsbstring::remove_before(res, ":");
+        std::string answer = gsbstring::remove_after(res, "|");
         int charge = -1, level = -1, voltage = -1;
         sscanf(answer.c_str(), "%d,%d,%d", &charge, &level, &voltage);
         //        gsbutils::dprintf(1, "ПришлоCBC:  %s %d %d %d \n", answer.c_str(), charge, level, voltage);
@@ -379,7 +387,6 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
   }
 }
 
-// TODO: организовать потоки
 void GsmModem::loop()
 {
   while (execute_flag_.load())
@@ -391,7 +398,7 @@ void GsmModem::loop()
         rx_buff_.resize(rx_buff_.capacity());
         rx_buff_.clear();
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
-        app.tpm->add_command(rx_buff_);
+        threadPoolModem->add_command(rx_buff_);
       }
       else
       {
@@ -431,17 +438,17 @@ void GsmModem::on_tone_command(std::string command)
 #ifdef DEBUG
     gsbutils::dprintf(1, tone_cmd + "\n");
 #endif
-    gsb_utils::remove_all(tone_cmd, " ");
-    gsb_utils::remove_all(tone_cmd, "|");
-    gsb_utils::remove_all(tone_cmd, "OK");
-    gsb_utils::remove_all(tone_cmd, "+");
-    gsb_utils::remove_all(tone_cmd, "DTMF:");
+    gsbstring::remove_all(tone_cmd, " ");
+    gsbstring::remove_all(tone_cmd, "|");
+    gsbstring::remove_all(tone_cmd, "OK");
+    gsbstring::remove_all(tone_cmd, "+");
+    gsbstring::remove_all(tone_cmd, "DTMF:");
 #ifdef DEBUG
     gsbutils::dprintf(1, tone_cmd + "\n");
 #endif
     if (tone_cmd.find("#") != std::string::npos)
     {
-      gsb_utils::remove_all(tone_cmd, "#");
+      gsbstring::remove_all(tone_cmd, "#");
 
       // выполняем команду, она должна быть строго из 3 цифр, первая - 4
       if (tone_cmd.size() == 3 && tone_cmd[0] == '4')
@@ -468,15 +475,15 @@ void GsmModem::on_sms_command(std::string answer)
 {
   gsbutils::dprintf(1, "on_sms_command: %s\n", answer.c_str());
 
-  if (answer.find("7" + app.config.PhoneNumber) != std::string::npos && answer.find("/cmnd") != std::string::npos)
+  if (answer.find("7" + app->config.PhoneNumber) != std::string::npos && answer.find("/cmnd") != std::string::npos)
   {
     // принимаю команды пока только со своего телефона
     //    gsbutils::dprintf(1, "%s\n", answer.c_str());
-    answer = gsb_utils::remove_before(answer, "/cmnd");
+    answer = gsbstring::remove_before(answer, "/cmnd");
     //    gsbutils::dprintf(1, "%s\n", answer.c_str());
-    answer = gsb_utils::remove_after(answer, "||||");
+    answer = gsbstring::remove_after(answer, "||||");
     //   gsbutils::dprintf(1, "%s\n", answer.c_str());
-    gsb_utils::remove_all(answer, " ");
+    gsbstring::remove_all(answer, " ");
     //    gsbutils::dprintf(1, "%s\n", answer.c_str());
     execute_tone_command(answer);
   }
@@ -490,9 +497,9 @@ void GsmModem::on_sms_command(std::string answer)
 void GsmModem::on_sms(std::string answer)
 {
   //  gsbutils::dprintf(1, "%s\n", answer.c_str());
-  answer = gsb_utils::remove_before(answer, ",");
+  answer = gsbstring::remove_before(answer, ",");
   // gsbutils::dprintf(1, "%s\n", answer.c_str());
-  gsb_utils::remove_all(answer, "||");
+  gsbstring::remove_all(answer, "||");
   // gsbutils::dprintf(1, "%s\n", answer.c_str());
   int num_sms = 0;
   int res = sscanf(answer.c_str(), "%d", &num_sms);
@@ -514,10 +521,10 @@ void GsmModem::on_sms(std::string answer)
 void GsmModem::OnDisconnect()
 {
   gsbutils::dprintf(1, "GsmModem::OnDisconnect.\n");
-  if (app.Flag.load())
+  if (app->Flag.load())
   {
-    app.withSim800 = false;
-    app.zhub->send_tlg_message("Модем отключился.");
+    app->withSim800 = false;
+    app->zhub->send_tlg_message("Модем отключился.");
   }
 }
 
@@ -558,7 +565,7 @@ bool GsmModem::get_balance()
 // вызов на основной номер
 bool GsmModem::master_call()
 {
-  std::string cmd = "ATD+7" + app.config.PhoneNumber + ";\r"; // TODO: номер в конфиг
+  std::string cmd = "ATD+7" + app->config.PhoneNumber + ";\r"; // TODO: номер в конфиг
   std::string res = send_command(cmd, "ATD");
   // При ожидании звонка и при сбросе звонка приходит пустой ответ
   // При ответе абонента приходит ответ COLP сразу после ответа
@@ -681,13 +688,13 @@ void GsmModem::execute_tone_command(std::string command)
   break;
   case 412: // состояние датчиков протечки
   {
-    std::string states = app.zhub->get_leak_state();
+    std::string states = app->zhub->get_leak_state();
     send_sms(states);
   }
   break;
   case 423: // состояние датчиков движения
   {
-    std::string states = app.zhub->get_motion_state();
+    std::string states = app->zhub->get_motion_state();
     send_sms(states);
   }
   break;

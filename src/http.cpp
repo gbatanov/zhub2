@@ -24,28 +24,13 @@
 #include "../gsb_utils/gsbutils.h"
 #include "../telebot32/src/tlg32.h"
 #include "version.h"
-#include "pi4-gpio.h"
 #include "comport/unix.h"
 #include "comport/serial.h"
-
-#include "common.h"
-#include "zigbee/zigbee.h"
-
-#include "modem.h"
-#include "httpserver.h"
-#include "http.h"
 #include "app.h"
 
-extern App app;
-std::unique_ptr<HttpServer> http;
+extern std::shared_ptr<App> app;
 
-using gsb_utils = gsbutils::SString;
-
-void http_server()
-{
-    http = std::make_unique<HttpServer>();
-    http->start(); // поток приема http-запросов
-}
+using gsbstring = gsbutils::SString;
 
 void http_stop()
 {
@@ -54,8 +39,9 @@ void http_stop()
 }
 
 // Функция-обработчик входящих запросов
-void receive_http(int client_sockfd)
+void receive_http(void *cmd)
 {
+    int client_sockfd = *(static_cast<int *>(cmd));
     int i = 0;
     int numread = 0;
     std::string response = "";
@@ -95,9 +81,9 @@ void receive_http(int client_sockfd)
             {
                 char http_header[1024] = {'\0'};
 
-                response = http->get_style_from_file("zhub2/css/gsb_style.css");
+                response = app->http->get_style_from_file("zhub2/css/gsb_style.css");
                 gsbutils::dprintf(7, "%s\n", response.c_str());
-                size_t http_header_size = http->create_header(http_header, 200, (char *)"OK", NULL, (char *)"text/css", response.size(), -1);
+                size_t http_header_size = app->http->create_header(http_header, 200, (char *)"OK", NULL, (char *)"text/css", response.size(), -1);
 
                 response = std::string(http_header) + response;
                 gsbutils::dprintf(7, "gsb_style.css size: %d\n", response.size());
@@ -112,49 +98,49 @@ void receive_http(int client_sockfd)
                 {
                     // отдаем список подключенных устройств
                     response = create_device_list();
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", true);
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", true);
                 }
                 else if (url_str.starts_with("/water"))
                 {
                     // выполнить команду на устройствах охраны
                     response = send_cmd_to_device(url_str);
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else if (url_str.starts_with("/command"))
                 {
                     // выполнить команду на произвольных реле (не охрана протечек)
                     // TODO: что в списке all?
                     response = send_cmd_to_onoff(url_str);
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else if (url_str.starts_with("/balance"))
                 {
                     // запрос баланса сим-карты
                     response = http_get_balance();
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else if (url_str.starts_with("/join"))
                 {
                     // выполнить команду
-                    response = http_join();
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    response = http_permit_join();
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else if (url_str.starts_with("/join"))
                 {
                     // выполнить команду
-                    response = http_join();
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    response = http_permit_join();
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else
                 {
-                    http->send_error(client_sockfd, 404, (char *)"Not found");
+                    app->http->send_error(client_sockfd, 404, (char *)"Not found");
                     gsbutils::dprintf(7, (char *)"HTTPServer: URL \"%s\" not found\n", url_str.c_str());
                 }
             }
         }
         else
         {
-            http->send_error(client_sockfd, 501, (char *)"Not implemented");
+            app->http->send_error(client_sockfd, 501, (char *)"Not implemented");
         }
     }
     else
@@ -174,7 +160,7 @@ std::string create_device_list()
     std::string result = "";
 
 #if !defined __MACH__
-    float board_temperature = app.get_board_temperature();
+    float board_temperature = app->get_board_temperature();
     if (board_temperature > -100.0)
     {
         char buff[128]{0};
@@ -184,14 +170,14 @@ std::string create_device_list()
         result = result + std::string(buff) + "</p>";
     }
 #endif
-    if (app.withSim800)
-        result = result + "<p>" + app.show_sim800_battery() + "</p>";
+    if (app->withSim800)
+        result = result + "<p>" + app->show_sim800_battery() + "</p>";
 
     result = result + "<p>Время последнего срабатывания датчиков движения: " +
-             gsbutils::DDate::timestamp_to_string(app.zhub->getLastMotionSensorActivity()) + "</p>";
-    result = result + "<p>Старт программы: " + app.startTime + "</p>";
+             gsbutils::DDate::timestamp_to_string(app->zhub->getLastMotionSensorActivity()) + "</p>";
+    result = result + "<p>Старт программы: " + app->startTime + "</p>";
 
-    std::string list = app.zhub->show_device_statuses(true);
+    std::string list = app->zhub->show_device_statuses(true);
     result = result + "<h3>Список устройств:</h3>";
     if (list.empty())
         result = result + "<p>(устройства отсутствуют)</p>";
@@ -215,16 +201,16 @@ std::string command_list()
     result += "<p>Кран ГВ&nbsp;<a href=\"/water?on=0xa4c138d9758e1dcd\">Включить</a>&nbsp;<a href=\"/water?off=0xa4c138d9758e1dcd\">Выключить</a></p>";
     result += "<p>Реле СМ&nbsp;<a href=\"/water?on=0x54ef441000193352\">Включить</a>&nbsp;<a href=\"/water?off=0x54ef441000193352\">Выключить</a></p>";
     result += "<p>----------- Умные розетки ---------------</p>";
-    //    result += "<p>Розетка 1&nbsp;<a href=\"/command?on=0x70b3d52b6001b4a4\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b4a4\">Выключить</a></p>";
+    result += "<p>Розетка 1&nbsp;<a href=\"/command?on=0x70b3d52b6001b4a4\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b4a4\">Выключить</a></p>";
     result += "<p>Розетка 2&nbsp;<a href=\"/command?on=0x70b3d52b6001b5d9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b6001b5d9\">Выключить</a></p>";
     result += "<p>Розетка 3&nbsp;<a href=\"/command?on=0x70b3d52b60022ac9\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022ac9\">Выключить</a></p>";
     result += "<p>Розетка 4&nbsp;<a href=\"/command?on=0x70b3d52b60022cfd\">Включить</a>&nbsp;<a href=\"/command?off=0x70b3d52b60022cfd\">Выключить</a></p>";
     result += "<p>----------- реле ---------------</p>";
-    result += "<p>Реле 6&nbsp;<a href=\"/command?on=0x54ef441000609dcc&ep=1\">Включить Реле6</a>&nbsp;<a href=\"/command?off=00x54ef441000609dcc&ep=1\">Выключить Реле6</a></p>";
+    result += "<p>Реле 6&nbsp;<a href=\"/command?on=0x54ef441000609dcc&ep=1\">Включить</a>&nbsp;<a href=\"/command?off=0x54ef441000609dcc&ep=1\">Выключить</a></p>";
     result += "<p>Реле 7&nbsp;<a href=\"/command?on=0x00158d0009414d7e&ep=1\">Включить 1</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=1\">Выключить1</a><a href=\"/command?on=0x00158d0009414d7e&ep=2\">Включить 2</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=2\">Выключить 2</a></p>";
     result += "<p></p>";
     result += "<p>-------------------------------</p>";
-    if (app.withSim800)
+    if (app->withSim800)
     {
         result += "<p><a href=\"/balance\">Запросить баланс</a></p>";
         result += "<p>-------------------------------</p>";
@@ -240,7 +226,7 @@ std::string command_list()
 std::string send_cmd_to_onoff(std::string url)
 {
     std::string result = command_list();
-    std::string command = gsb_utils::remove_before(url, "?"); // отрезаем "/command?"
+    std::string command = gsbstring::remove_before(url, "?"); // отрезаем "/command?"
     size_t pos = command.find_first_of("=");
     if (pos == command.npos)
         return result;
@@ -265,12 +251,12 @@ std::string send_cmd_to_onoff(std::string url)
     }
     if (cmd == "on")
     {
-        app.zhub->switch_relay(mac_addr, 0x01, (uint8_t)ep);
+        app->zhub->switch_relay(mac_addr, 0x01, (uint8_t)ep);
         res_cmd = "Команда \"Включить\" " + param + " исполнена";
     }
     else if (cmd == "off")
     {
-        app.zhub->switch_relay(mac_addr, 0, (uint8_t)ep);
+        app->zhub->switch_relay(mac_addr, 0, (uint8_t)ep);
         res_cmd = "Команда \"Выключить\" " + param + " исполнена";
     }
     else
@@ -293,7 +279,7 @@ std::string send_cmd_to_device(char *url)
     std::string command = "";
     if (strlen(url) > 5)
     {
-        command = gsb_utils::remove_before(std::string(url), "water"); // отрезаем "/water"
+        command = gsbstring::remove_before(std::string(url), "water"); // отрезаем "/water"
     }
     else
     {
@@ -304,7 +290,7 @@ std::string send_cmd_to_device(char *url)
         return result;
     }
 
-    command = gsb_utils::remove_before(command, "?"); // отрезаем   ?
+    command = gsbstring::remove_before(command, "?"); // отрезаем   ?
     size_t pos = command.find_first_of("=");
     if (pos == command.npos)
         return result;
@@ -321,12 +307,12 @@ std::string send_cmd_to_device(char *url)
 
     if (cmd == "on")
     {
-        app.zhub->ias_zone_command(0x01, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
+        app->zhub->ias_zone_command(0x01, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
         res_cmd = "Команда \"Включить\" " + (mac_addr ? param : "all") + " исполнена";
     }
     else if (cmd == "off")
     {
-        app.zhub->ias_zone_command(0x00, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
+        app->zhub->ias_zone_command(0x00, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
         res_cmd = "Команда \"Выключить\" " + (mac_addr ? param : "all") + " исполнена";
     }
     else
@@ -339,11 +325,11 @@ std::string send_cmd_to_device(char *url)
 
 std::string http_get_balance()
 {
-    if (app.withSim800)
+    if (app->withSim800)
     {
-        app.gsmModem->get_balance();
+        app->gsmModem->get_balance();
         std::this_thread::sleep_for(std::chrono::seconds(10));
-        return app.gsmModem->show_balance() + command_list();
+        return app->gsmModem->show_balance() + command_list();
     }
     else
     {
@@ -351,9 +337,9 @@ std::string http_get_balance()
     }
 }
 
-std::string http_join()
+std::string http_permit_join()
 {
-    app.zhub->permitJoin(std::chrono::seconds(60));
+    app->zhub->permitJoin(std::chrono::seconds(60));
     std::string result = command_list();
     return result;
 }

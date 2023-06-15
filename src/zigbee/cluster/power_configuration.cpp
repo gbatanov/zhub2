@@ -25,7 +25,7 @@
 
 using PowerConfiguration = zigbee::clusters::PowerConfiguration;
 
-extern App app;
+extern std::shared_ptr<App> app;
 
 void PowerConfiguration::attribute_handler(std::vector<zigbee::zcl::Attribute> attributes, zigbee::Endpoint endpoint)
 {
