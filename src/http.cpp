@@ -26,17 +26,15 @@
 #include "version.h"
 #include "comport/unix.h"
 #include "comport/serial.h"
+#include "common.h"
+#include "zigbee/zigbee.h"
+#include "httpserver.h"
+#include "http.h"
 #include "app.h"
 
 extern std::shared_ptr<App> app;
 
 using gsbstring = gsbutils::SString;
-
-void http_stop()
-{
-    if (http)
-        http->stop_http();
-}
 
 // Функция-обработчик входящих запросов
 void receive_http(void *cmd)

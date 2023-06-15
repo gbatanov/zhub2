@@ -8,15 +8,15 @@ typedef void (*power_func)(int);
 class Pi4Gpio
 {
 public:
-
     Pi4Gpio();
     ~Pi4Gpio();
 
+    bool initialize_gpio(power_func power);
     void close_gpio();
-
     int read_pin(int pin);
     int write_pin(int pin, int value);
     void power_detect();
+
 private:
     struct gpiod_chip *chip = nullptr;
     std::atomic<bool> flag;

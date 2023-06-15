@@ -91,10 +91,7 @@ void Exposer::start()
 
     if (httpSockfd >= 0)
         close(httpSockfd);
-<<<<<<< HEAD
 
-=======
->>>>>>> dev
 }
 
 /// @brief Open TCP socket for web-interface
