@@ -68,7 +68,7 @@ public:
     bool withSim800 = false;                                                     // признак присутствия GSM-модема
     bool withTlg = false;                                                        // признак работы с телеграм
     std::shared_ptr<Tlg32> tlg32;                                                // телеграм бот
-    std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> threadPoolModem; // пул потоков работы с модемом
+ //   std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> threadPoolModem; // пул потоков работы с модемом
     bool withGpio = false;                                                       // признак работы с портами малинки
     bool stoped = false;
     std::unique_ptr<HttpServer> http;

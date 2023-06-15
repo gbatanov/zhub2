@@ -60,9 +60,8 @@ void Zdo::stop_zdo()
 {
     if (!stopped)
     {
-        disconnect();       // отключаю адаптер компорта
-        tp->stop_threads(); // останавливаю пулл потоков
-        chan_out->stop();   // останавливаю каналы ввода и вывода
+        disconnect();     // отключаю адаптер компорта
+        chan_out->stop(); // останавливаю каналы ввода и вывода
         chan_in->stop();
         if (thr_cmdin && thr_cmdin->joinable()) // останавливаю поток приема входных команд
             thr_cmdin->join();

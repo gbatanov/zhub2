@@ -65,9 +65,9 @@ bool App::object_create()
             return false;
         }
 
-        threadPoolModem = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
-        uint8_t max_threads = 2;
-        threadPoolModem->init_threads(&GsmModem::on_command, max_threads);
+ //       threadPoolModem = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
+ //       uint8_t max_threads = 2;
+ //       threadPoolModem->init_threads(&GsmModem::on_command, max_threads);
         init_modem();
 
         withGpio = false;
@@ -97,7 +97,6 @@ bool App::start_app()
             withGpio = gpio->initialize_gpio(&App::handle_power_off);
         zhub->start(config.Channels);
         http = std::make_unique<HttpServer>();
-        //       httpThread = std::thread(http_server);
         http->start();
         if (config.Prometheus)
             exposerThread = std::thread(&App::exposer_handler, this);
@@ -261,17 +260,17 @@ void App::stop_app()
             cmdThread.join();
         Flag.store(false);
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stoped cmd thread \n");
+        gsbutils::dprintf(1, "Stopped cmd thread \n");
 #endif
         if (!noAdapter)
         {
             gsmModem->disconnect();
-            threadPoolModem->stop_threads();
+ //           threadPoolModem->stop_threads();
 
             if (withGpio)
                 gpio->close_gpio();
 #ifdef DEBUG
-            gsbutils::dprintf(1, "Stoped modem, gpio \n");
+            gsbutils::dprintf(1, "Stopped modem, gpio \n");
 #endif
 
             zhub->stop();
@@ -284,13 +283,13 @@ void App::stop_app()
             }
         }
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop zhub, exposer \n");
+        gsbutils::dprintf(1, "Stopped zhub, exposer \n");
 #endif
 
         if (tempr_thread.joinable())
             tempr_thread.join();
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop temperature thread \n");
+        gsbutils::dprintf(1, "Stopped temperature thread \n");
 #endif
 
         http->stop_http();
@@ -299,7 +298,7 @@ void App::stop_app()
             httpThread.join();
 
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop http  \n");
+        gsbutils::dprintf(1, "Stopped http  \n");
 #endif
 
         tlg32->stop();
@@ -308,7 +307,7 @@ void App::stop_app()
         if (tlgInThread->joinable())
             tlgInThread->join();
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop telegram \n");
+        gsbutils::dprintf(1, "Stopped telegram \n");
 #endif
     }
     std::this_thread::sleep_for(std::chrono::seconds(10));

@@ -89,6 +89,10 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
     serial_->open();
     execute_flag_.store(true);
 
+    threadPoolModem = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
+    uint8_t max_threads = 2;
+    threadPoolModem->init_threads(&GsmModem::on_command, max_threads);
+
     receiver_thread_ = std::thread(&GsmModem::loop, this);
     connected = true;
     return true;
@@ -383,7 +387,6 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
   }
 }
 
-// TODO: организовать потоки
 void GsmModem::loop()
 {
   while (execute_flag_.load())
@@ -395,7 +398,7 @@ void GsmModem::loop()
         rx_buff_.resize(rx_buff_.capacity());
         rx_buff_.clear();
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
-        app->threadPoolModem->add_command(rx_buff_);
+        threadPoolModem->add_command(rx_buff_);
       }
       else
       {
