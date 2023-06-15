@@ -24,19 +24,18 @@
 #include "../gsb_utils/gsbutils.h"
 #include "../telebot32/src/tlg32.h"
 #include "version.h"
-#include "pi4-gpio.h"
+
 #include "comport/unix.h"
 #include "comport/serial.h"
 
 #include "common.h"
 #include "zigbee/zigbee.h"
 
-#include "modem.h"
 #include "httpserver.h"
 #include "http.h"
 #include "app.h"
 
-extern App app;
+extern std::shared_ptr<App> app;
 std::unique_ptr<HttpServer> http;
 
 using gsb_utils = gsbutils::SString;
@@ -174,7 +173,7 @@ std::string create_device_list()
     std::string result = "";
 
 #if !defined __MACH__
-    float board_temperature = app.get_board_temperature();
+    float board_temperature = app->get_board_temperature();
     if (board_temperature > -100.0)
     {
         char buff[128]{0};
@@ -184,14 +183,14 @@ std::string create_device_list()
         result = result + std::string(buff) + "</p>";
     }
 #endif
-    if (app.withSim800)
-        result = result + "<p>" + app.show_sim800_battery() + "</p>";
+    if (app->withSim800)
+        result = result + "<p>" + app->show_sim800_battery() + "</p>";
 
     result = result + "<p>Время последнего срабатывания датчиков движения: " +
-             gsbutils::DDate::timestamp_to_string(app.zhub->getLastMotionSensorActivity()) + "</p>";
-    result = result + "<p>Старт программы: " + app.startTime + "</p>";
+             gsbutils::DDate::timestamp_to_string(app->zhub->getLastMotionSensorActivity()) + "</p>";
+    result = result + "<p>Старт программы: " + app->startTime + "</p>";
 
-    std::string list = app.zhub->show_device_statuses(true);
+    std::string list = app->zhub->show_device_statuses(true);
     result = result + "<h3>Список устройств:</h3>";
     if (list.empty())
         result = result + "<p>(устройства отсутствуют)</p>";
@@ -224,7 +223,7 @@ std::string command_list()
     result += "<p>Реле 7&nbsp;<a href=\"/command?on=0x00158d0009414d7e&ep=1\">Включить 1</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=1\">Выключить1</a><a href=\"/command?on=0x00158d0009414d7e&ep=2\">Включить 2</a>&nbsp;<a href=\"/command?off=0x00158d0009414d7e&ep=2\">Выключить 2</a></p>";
     result += "<p></p>";
     result += "<p>-------------------------------</p>";
-    if (app.withSim800)
+    if (app->withSim800)
     {
         result += "<p><a href=\"/balance\">Запросить баланс</a></p>";
         result += "<p>-------------------------------</p>";
@@ -265,12 +264,12 @@ std::string send_cmd_to_onoff(std::string url)
     }
     if (cmd == "on")
     {
-        app.zhub->switch_relay(mac_addr, 0x01, (uint8_t)ep);
+        app->zhub->switch_relay(mac_addr, 0x01, (uint8_t)ep);
         res_cmd = "Команда \"Включить\" " + param + " исполнена";
     }
     else if (cmd == "off")
     {
-        app.zhub->switch_relay(mac_addr, 0, (uint8_t)ep);
+        app->zhub->switch_relay(mac_addr, 0, (uint8_t)ep);
         res_cmd = "Команда \"Выключить\" " + param + " исполнена";
     }
     else
@@ -321,12 +320,12 @@ std::string send_cmd_to_device(char *url)
 
     if (cmd == "on")
     {
-        app.zhub->ias_zone_command(0x01, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
+        app->zhub->ias_zone_command(0x01, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
         res_cmd = "Команда \"Включить\" " + (mac_addr ? param : "all") + " исполнена";
     }
     else if (cmd == "off")
     {
-        app.zhub->ias_zone_command(0x00, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
+        app->zhub->ias_zone_command(0x00, mac_addr ? (uint64_t)mac_addr : (uint16_t)0);
         res_cmd = "Команда \"Выключить\" " + (mac_addr ? param : "all") + " исполнена";
     }
     else
@@ -339,11 +338,11 @@ std::string send_cmd_to_device(char *url)
 
 std::string http_get_balance()
 {
-    if (app.withSim800)
+    if (app->withSim800)
     {
-        app.gsmModem->get_balance();
+        app->gsmModem->get_balance();
         std::this_thread::sleep_for(std::chrono::seconds(10));
-        return app.gsmModem->show_balance() + command_list();
+        return app->gsmModem->show_balance() + command_list();
     }
     else
     {
@@ -353,7 +352,7 @@ std::string http_get_balance()
 
 std::string http_join()
 {
-    app.zhub->permitJoin(std::chrono::seconds(60));
+    app->zhub->permitJoin(std::chrono::seconds(60));
     std::string result = command_list();
     return result;
 }

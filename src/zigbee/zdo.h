@@ -98,7 +98,7 @@ public:
     Zdo();
     ~Zdo();
     void init();
-    void stop();
+    void stop_zdo();
     int reset(ResetType resetType, bool clearNetworkState, bool clearConfig);
     int reset() { return reset(ResetType::SOFT, false, false); }
     bool startup(std::chrono::duration<int, std::milli> delay);
@@ -150,13 +150,12 @@ public:
     std::shared_ptr<Uart> uart_;
     void on_command();
     static void on_command(void *);
-    void stop_zdo();
+
 protected:
     uint8_t generateTransactionSequenceNumber();
     std::thread *thr_cmdin = nullptr;
     std::shared_ptr<gsbutils::ThreadPool<Command>> tp;
     bool stopped = false;
-
 };
 
 #endif

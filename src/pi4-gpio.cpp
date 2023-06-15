@@ -32,12 +32,17 @@
 
 Pi4Gpio::Pi4Gpio()
 {
+#ifdef DEBUG
+	std::cout << "Pi4Gpio constructor\n";
+#endif
 }
 Pi4Gpio::~Pi4Gpio()
 {
 	if (flag.load())
 		close_gpio();
-	std::cout << "app destructor\n";
+#ifdef DEBUG
+	std::cout << "Pi4Gpio destructor\n";
+#endif
 }
 
 bool Pi4Gpio::initialize_gpio(power_func power)
@@ -163,14 +168,14 @@ void Pi4Gpio::power_detect()
 			{
 				notify_off = true;
 				notify_on = false;
-				//			app.handle_power_off(value);
+				//			app->handle_power_off(value);
 				power_(value);
 			}
 			else if (value == 1 && !notify_on)
 			{
 				notify_on = true;
 				notify_off = false;
-				//			app.handle_power_off(value);
+				//			app->handle_power_off(value);
 				power_(value);
 			}
 

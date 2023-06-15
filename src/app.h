@@ -53,8 +53,8 @@ class Exposer;
 class App
 {
 public:
-    App(){};
-    ~App(){std::cout << "app destructor\n";}
+    App();
+    ~App();
     bool object_create();
     bool start_app();
     void stop_app();
@@ -75,26 +75,27 @@ private:
     std::string show_statuses();
 
 public:
-    std::string startTime{}; // таймштамп старта программы
-    GlobalConfig config; // глобальная конфигурация системы
-    std::atomic<bool> Flag{true}; // флаг разрешения работы системы
-    std::shared_ptr<zigbee::Zhub> zhub; // модуль zigbee верхнего уровня
-    std::shared_ptr<GsmModem> gsmModem; // GSM-модем
-    bool withSim800 = false; // признак присутствия GSM-модема 
-    bool withTlg = false; // признак работы с телеграм
-    std::shared_ptr<Tlg32> tlg32; // телеграм бот
-    std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> tpm; //пул потоков работы с модемом
-    bool withGpio = false; // признак работы с портами малинки
+    std::string startTime{};                                         // таймштамп старта программы
+    GlobalConfig config;                                             // глобальная конфигурация системы
+    std::atomic<bool> Flag{true};                                    // флаг разрешения работы системы
+    std::shared_ptr<zigbee::Zhub> zhub;                              // модуль zigbee верхнего уровня
+    std::shared_ptr<GsmModem> gsmModem;                              // GSM-модем
+    bool withSim800 = false;                                         // признак присутствия GSM-модема
+    bool withTlg = false;                                            // признак работы с телеграм
+    std::shared_ptr<Tlg32> tlg32;                                    // телеграм бот
+    std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> tpm; // пул потоков работы с модемом
+    bool withGpio = false;                                           // признак работы с портами малинки
+    bool stoped = false;
 
 private:
-    std::shared_ptr<Pi4Gpio> gpio; // порты малинки
+    std::shared_ptr<Pi4Gpio> gpio;                                // порты малинки
     std::shared_ptr<gsbutils::Channel<TlgMessage>> tlgIn, tlgOut; // каналы обмена с телеграм
-    std::thread *tlgInThread; // поток приема команд с телеграм
-    std::thread tempr_thread; // поток определения температуры управляющей платы
-    bool noAdapter; // признак отсутствия адаптера координатора
-    std::thread cmdThread;     // поток приема команд с клавиатуры
+    std::thread *tlgInThread;                                     // поток приема команд с телеграм
+    std::thread tempr_thread;                                     // поток определения температуры управляющей платы
+    bool noAdapter;                                               // признак отсутствия адаптера координатора
+    std::thread cmdThread;                                        // поток приема команд с клавиатуры
     std::shared_ptr<Exposer> exposer;
     std::thread exposerThread; // поток ответа прометею
-    std::thread httpThread; // поток HTTP-сервера
+    std::thread httpThread;    // поток HTTP-сервера
 };
 #endif

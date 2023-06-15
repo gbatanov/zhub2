@@ -7,8 +7,11 @@
 
 using gsb_utils = gsbutils::SString;
 extern std::unique_ptr<HttpServer> http;
-extern App app;
+extern std::shared_ptr<App> app;
 /// ------- App -----------
+App::App() { std::cout << "app constructor\n"; };
+App::~App() { std::cout << "app destructor\n"; }
+
 bool App::object_create()
 {
     Flag.store(true);
@@ -228,62 +231,65 @@ bool App::init_modem()
 // Остановка приложения
 void App::stop_app()
 {
-    if (cmdThread.joinable())
-        cmdThread.join();
-    Flag.store(false);
-#ifdef DEBUG
-    gsbutils::dprintf(1, "Stop 1 \n");
-#endif
-    if (!noAdapter)
+    if (!stoped)
     {
-        gsmModem->disconnect();
-        tpm->stop_threads();
-
-        if (withGpio)
-            gpio->close_gpio();
+        stoped = true;
+        if (cmdThread.joinable())
+            cmdThread.join();
+        Flag.store(false);
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop 2 \n");
+        gsbutils::dprintf(1, "Stop 1 \n");
 #endif
-        zhub->disconnect();
-        zhub->stop_zdo();
-        zhub->stop(); // остановка пулла потоков, длится дольше всего
+        if (!noAdapter)
+        {
+            gsmModem->disconnect();
+            tpm->stop_threads();
+
+            if (withGpio)
+                gpio->close_gpio();
+#ifdef DEBUG
+            gsbutils::dprintf(1, "Stop 2 \n");
+#endif
+
+            zhub->stop();
+
+            if (config.Prometheus)
+                exposer->stop_exposer();
+        }
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stop 3 \n");
+#endif
+
+        if (tempr_thread.joinable())
+            tempr_thread.join();
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stop 4 \n");
+#endif
         if (config.Prometheus)
-            exposer->stop_exposer();
+            if (exposerThread.joinable())
+                exposerThread.join();
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stop 5 \n");
+#endif
+
+        http_stop();
+        if (httpThread.joinable())
+            httpThread.join();
+
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stop 6 \n");
+#endif
+
+        tlg32->stop();
+        tlgIn->stop();
+        tlgOut->stop();
+        if (tlgInThread->joinable())
+            tlgInThread->join();
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Stop 7 \n");
+#endif
     }
-#ifdef DEBUG
-    gsbutils::dprintf(1, "Stop 3 \n");
-#endif
-
-    if (tempr_thread.joinable())
-        tempr_thread.join();
-#ifdef DEBUG
-    gsbutils::dprintf(1, "Stop 4 \n");
-#endif
-    if (config.Prometheus)
-        if (exposerThread.joinable())
-            exposerThread.join();
-#ifdef DEBUG
-    gsbutils::dprintf(1, "Stop 5 \n");
-#endif
-
-    http_stop();
-    if (httpThread.joinable())
-        httpThread.join();
-
-#ifdef DEBUG
-    gsbutils::dprintf(1, "Stop 6 \n");
-#endif
-
-    tlg32->stop();
-    tlgIn->stop();
-    tlgOut->stop();
-    if (tlgInThread->joinable())
-        tlgInThread->join();
-#ifdef DEBUG
-    gsbutils::dprintf(1, "Stop 7 \n");
-#endif
-
-       std::this_thread::sleep_for(std::chrono::seconds(20));
+    std::this_thread::sleep_for(std::chrono::seconds(10));
 }
 
 // Параметры питания модема
@@ -325,7 +331,7 @@ void App::get_main_temperature()
 {
 
     bool notify_high_send = false;
-    while (app.Flag.load())
+    while (Flag.load())
     {
 
         float temp_f = get_board_temperature();
@@ -393,8 +399,8 @@ void App::handle_power_off(int value)
     else
         return;
     gsbutils::dprintf(1, alarm_msg);
-    if (app.withTlg)
-        app.tlg32->send_message(alarm_msg);
+    if (app->withTlg)
+        app->tlg32->send_message(alarm_msg);
 }
 
 // Обработчик показаний температуры корпуса
@@ -469,9 +475,9 @@ void App::handle()
             }
             else if (msg.text.starts_with("/balance"))
             {
-                if (app.withSim800)
+                if (app->withSim800)
                 {
-                    if (app.gsmModem->get_balance())
+                    if (app->gsmModem->get_balance())
                         answer.text = "Запрос баланса отправлен\n";
                 }
                 else

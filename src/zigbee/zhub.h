@@ -11,6 +11,8 @@ public:
     ~Zhub();
 
     void start(std::vector<uint8_t> rfChannels);
+    void stop();
+    
     std::string show_device_statuses(bool as_html = false);
     std::string get_device_list(bool as_html = false);
     void onoff_command(zigbee::Message message);

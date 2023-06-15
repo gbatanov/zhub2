@@ -19,7 +19,7 @@
 #include "modem.h"
 #include "app.h"
 
-extern App app;
+extern std::shared_ptr<App> app;
 
 using gsb_utils = gsbutils::SString;
 
@@ -48,7 +48,7 @@ void GsmModem::disconnect()
 {
   connected = false;
   execute_flag_.store(false);
-  app.withSim800 = false;
+  app->withSim800 = false;
   if (receiver_thread_.joinable())
     receiver_thread_.join();
 
@@ -71,7 +71,7 @@ void GsmModem::on_command(void *cmd_)
 {
   std::vector<uint8_t> command = *(static_cast<std::vector<uint8_t> *>(cmd_));
 
-  app.gsmModem->command_handler(command);
+  app->gsmModem->command_handler(command);
 }
 
 bool GsmModem::connect(std::string port, unsigned int baud_rate)
@@ -106,7 +106,7 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
 // Очищаем очередь смс-сообщений
 bool GsmModem::init_modem()
 {
-  if (app.withSim800)
+  if (app->withSim800)
   {
     send_command("AT\r", "At");
     set_echo(true);
@@ -222,7 +222,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       if (res.find("CLIP") != std::string::npos)
       {
         // АОН сработал в этом же ответе
-        if (res.find(app.config.PhoneNumber) != std::string::npos) // TODO: номер в конфигурацию
+        if (res.find(app->config.PhoneNumber) != std::string::npos) // TODO: номер в конфигурацию
         {
           // Мой номер, продолжаем дальше
           send_command("ATA\r", "ATA"); // отправка команды (синхронная, макс. 3сек.)
@@ -267,8 +267,8 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
         balance_ = res;
 
         // отправляем баланс в телеграм
-        if (app.withTlg)
-          app.tlg32->send_message("Баланс: " + res + " руб.");
+        if (app->withTlg)
+          app->tlg32->send_message("Баланс: " + res + " руб.");
 
         // если была команда запроса баланса с тонового набора
         if (balance_to_sms)
@@ -282,7 +282,7 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
     else if (res.find("+CLIP") != std::string::npos)
     {
       // АОН при входящем звонке
-      if (res.find(app.config.PhoneNumber) != std::string::npos) // TODO: телефон в настройки
+      if (res.find(app->config.PhoneNumber) != std::string::npos) // TODO: телефон в настройки
       {
         send_command("ATA\r", "ATA");
         is_call_ = true;
@@ -393,7 +393,7 @@ void GsmModem::loop()
         rx_buff_.resize(rx_buff_.capacity());
         rx_buff_.clear();
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
-        app.tpm->add_command(rx_buff_);
+        app->tpm->add_command(rx_buff_);
       }
       else
       {
@@ -470,7 +470,7 @@ void GsmModem::on_sms_command(std::string answer)
 {
   gsbutils::dprintf(1, "on_sms_command: %s\n", answer.c_str());
 
-  if (answer.find("7" + app.config.PhoneNumber) != std::string::npos && answer.find("/cmnd") != std::string::npos)
+  if (answer.find("7" + app->config.PhoneNumber) != std::string::npos && answer.find("/cmnd") != std::string::npos)
   {
     // принимаю команды пока только со своего телефона
     //    gsbutils::dprintf(1, "%s\n", answer.c_str());
@@ -516,10 +516,10 @@ void GsmModem::on_sms(std::string answer)
 void GsmModem::OnDisconnect()
 {
   gsbutils::dprintf(1, "GsmModem::OnDisconnect.\n");
-  if (app.Flag.load())
+  if (app->Flag.load())
   {
-    app.withSim800 = false;
-    app.zhub->send_tlg_message("Модем отключился.");
+    app->withSim800 = false;
+    app->zhub->send_tlg_message("Модем отключился.");
   }
 }
 
@@ -560,7 +560,7 @@ bool GsmModem::get_balance()
 // вызов на основной номер
 bool GsmModem::master_call()
 {
-  std::string cmd = "ATD+7" + app.config.PhoneNumber + ";\r"; // TODO: номер в конфиг
+  std::string cmd = "ATD+7" + app->config.PhoneNumber + ";\r"; // TODO: номер в конфиг
   std::string res = send_command(cmd, "ATD");
   // При ожидании звонка и при сбросе звонка приходит пустой ответ
   // При ответе абонента приходит ответ COLP сразу после ответа
@@ -683,13 +683,13 @@ void GsmModem::execute_tone_command(std::string command)
   break;
   case 412: // состояние датчиков протечки
   {
-    std::string states = app.zhub->get_leak_state();
+    std::string states = app->zhub->get_leak_state();
     send_sms(states);
   }
   break;
   case 423: // состояние датчиков движения
   {
-    std::string states = app.zhub->get_motion_state();
+    std::string states = app->zhub->get_motion_state();
     send_sms(states);
   }
   break;

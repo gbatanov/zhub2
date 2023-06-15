@@ -23,7 +23,7 @@
 #include "../../modem.h"
 #include "../../main.h"
 #include "../../app.h"
-extern App app;
+extern std::shared_ptr<App> app;
 
 using ElectricalMeasurements = zigbee::clusters::ElectricalMeasurements;
 
@@ -74,5 +74,5 @@ void ElectricalMeasurements::check_charger(uint16_t val)
     if (!chargerOn && val > 20)
         chargerOn = true;
     else if (chargerOn && val < 20)
-        app.zhub->switch_relay(ed->get_ieee_address(), 0);
+        app->zhub->switch_relay(ed->get_ieee_address(), 0);
 }

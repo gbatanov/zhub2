@@ -36,7 +36,7 @@ using zigbee::zcl::Attribute;
 using zigbee::zcl::Cluster;
 using zigbee::zcl::Frame;
 
-extern App app;
+extern std::shared_ptr<App> app;
 
 std::mutex mtx_timer1;
 uint16_t timer1_counter = 0;
@@ -63,11 +63,11 @@ void Zhub::start(std::vector<uint8_t> rfChannels)
 
     // Старт Zigbee-сети
     gsbutils::dprintf(1, "Zhub::start_network \n");
-    while (!start_network(rfChannels) && app.Flag.load())
+    while (!start_network(rfChannels) && app->Flag.load())
     {
         std::this_thread::sleep_for(std::chrono::seconds(10));
     }
-    if (!app.Flag.load())
+    if (!app->Flag.load())
         return;
 
 #ifdef DEBUG
@@ -85,6 +85,10 @@ void Zhub::start(std::vector<uint8_t> rfChannels)
     shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
     read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsOnoff);
 #endif
+}
+
+void Zhub::stop(){
+    stop_zdo();
 }
 //
 std::string Zhub::get_device_list(bool as_html)
@@ -473,7 +477,7 @@ void Zhub::onoff_command(zigbee::Message message)
         {
             ed->set_current_state("Double click"); // 1 - double , 2 - single, 0 - long
             std::string alarm_msg = "Вызов с кнопки ";
-            app.ringer();
+            app->ringer();
             send_tlg_message(alarm_msg);
         }
         break;
@@ -610,7 +614,7 @@ void Zhub::check_motion_activity()
 
 bool Zhub::edcheck(std::shared_ptr<zigbee::EndDevice> ed)
 {
-    if (app.config.Mode == "test")
+    if (app->config.Mode == "test")
     {
         return ed && ed->deviceInfo.test;
     }
@@ -705,7 +709,7 @@ std::string Zhub::show_device_statuses(bool as_html)
 
         // Дальше выводится только в телеграм
 
-        float temp = app.get_board_temperature();
+        float temp = app->get_board_temperature();
         if (temp)
         {
             size_t len = snprintf(buff, 1024, "Температура платы управления: %0.1f \n", temp);
@@ -843,6 +847,6 @@ inline void Zhub::switch_off_with_list()
 }
 void Zhub::send_tlg_message(std::string msg)
 {
-    if (app.withTlg)
-        app.tlg32->send_message(msg);
+    if (app->withTlg)
+        app->tlg32->send_message(msg);
 }
