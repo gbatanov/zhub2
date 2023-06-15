@@ -157,7 +157,7 @@ void SerialImpl::reconfigurePort()
 
   if (tcgetattr(fd_, &options) == -1)
   {
-    throw std::runtime_error( "::tcgetattr");
+    throw std::runtime_error("::tcgetattr");
   }
 
   // set up raw mode / no echo / binary
@@ -384,31 +384,30 @@ void SerialImpl::reconfigurePort()
   // setup char len
   options.c_cflag &= (tcflag_t)~CSIZE;
 
-    options.c_cflag |= CS8;
+  options.c_cflag |= CS8;
   // setup stopbits
 
-    options.c_cflag &= (tcflag_t) ~(CSTOPB);
+  options.c_cflag &= (tcflag_t) ~(CSTOPB);
   // setup parity
   options.c_iflag &= (tcflag_t) ~(INPCK | ISTRIP);
 
-  
-    options.c_cflag &= (tcflag_t) ~(PARENB | PARODD);
- 
+  options.c_cflag &= (tcflag_t) ~(PARENB | PARODD);
+
   // setup flow control
 
   // xonxoff
 #ifdef IXANY
 
-    options.c_iflag &= (tcflag_t) ~(IXON | IXOFF | IXANY);
+  options.c_iflag &= (tcflag_t) ~(IXON | IXOFF | IXANY);
 #else
 
-    options.c_iflag &= (tcflag_t) ~(IXON | IXOFF);
+  options.c_iflag &= (tcflag_t) ~(IXON | IXOFF);
 #endif
-    // rtscts
+  // rtscts
 #ifdef CRTSCTS
-    options.c_cflag &= (unsigned long)~(CRTSCTS);
+  options.c_cflag &= (unsigned long)~(CRTSCTS);
 #elif defined CNEW_RTSCTS
-    options.c_cflag &= (unsigned long)~(CNEW_RTSCTS);
+  options.c_cflag &= (unsigned long)~(CNEW_RTSCTS);
 #else
 #error "OS Support seems wrong."
 #endif
@@ -436,7 +435,7 @@ void SerialImpl::reconfigurePort()
     // PySerial uses IOSSIOSPEED=0x80045402
     if (-1 == ioctl(fd_, IOSSIOSPEED, &new_baud, 1))
     {
-      throw std::runtime_error( "a");
+      throw std::runtime_error("a");
     }
     // Linux Support
 #elif defined(__linux__) && defined(TIOCSSERIAL)
@@ -444,7 +443,7 @@ void SerialImpl::reconfigurePort()
 
     if (-1 == ioctl(fd_, TIOCGSERIAL, &ser))
     {
-       throw std::runtime_error( "b");
+      throw std::runtime_error("b");
     }
 
     // set custom divisor
@@ -455,7 +454,7 @@ void SerialImpl::reconfigurePort()
 
     if (-1 == ioctl(fd_, TIOCSSERIAL, &ser))
     {
-       throw std::runtime_error( "c");
+      throw std::runtime_error("c");
     }
 #else
     throw invalid_argument("OS does not currently support custom bauds");
@@ -465,9 +464,7 @@ void SerialImpl::reconfigurePort()
   // Update byte_time_ based on the new settings.
   uint32_t bit_time_ns = 1e9 / baudrate_;
   byte_time_ns_ = bit_time_ns * (1 + bytesize_ + parity_ + stopbits_);
-
 }
-
 
 void SerialImpl::close()
 {
@@ -506,7 +503,7 @@ size_t SerialImpl::available()
 bool SerialImpl::waitReadable(uint32_t timeout)
 {
   if (timeout == 0)
-  //  timeout = timeout_.read_timeout_constant;
+    //  timeout = timeout_.read_timeout_constant;
     timeout = 100;
 
   // Setup a select call to block for serial data or a timeout
@@ -535,7 +532,7 @@ size_t SerialImpl::read(uint8_t *buf, size_t size)
   size_t bytes_read = 0;
 
   //  timeout in milliseconds
- // MillisecondTimer total_timeout(timeout_.read_timeout_constant);
+  // MillisecondTimer total_timeout(timeout_.read_timeout_constant);
   MillisecondTimer total_timeout(100);
 
   // Pre-fill buffer with available bytes
@@ -705,4 +702,33 @@ void SerialImpl::setTimeout(serial::Timeout &timeout)
 void SerialImpl::setBaudrate(unsigned long baudrate)
 {
   baudrate_ = baudrate;
+}
+
+void SerialImpl::set_DTR(bool level)
+{
+  if (is_open_ == false)
+  {
+    throw std::runtime_error("Serial::setDTR");
+  }
+
+  int command = TIOCM_DTR;
+
+  if (level)
+  {
+    if (-1 == ioctl(fd_, TIOCMBIS, &command))
+    {
+      stringstream ss;
+      ss << "setDTR failed on a call to ioctl(TIOCMBIS): " << errno << " " << strerror(errno);
+      throw std::runtime_error(ss.str().c_str());
+    }
+  }
+  else
+  {
+    if (-1 == ioctl(fd_, TIOCMBIC, &command))
+    {
+      stringstream ss;
+      ss << "setDTR failed on a call to ioctl(TIOCMBIC): " << errno << " " << strerror(errno);
+      throw std::runtime_error(ss.str().c_str());
+    }
+  }
 }

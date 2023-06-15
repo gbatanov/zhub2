@@ -58,6 +58,7 @@ namespace serial
         void setPort(const string &port);
         void setTimeout(Timeout &timeout);
         void setBaudrate(unsigned long baudrate);
+        void set_DTR(bool level);
 
     protected:
         void reconfigurePort();

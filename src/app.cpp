@@ -142,18 +142,13 @@ int App::cmd_func()
         {
             switch (c)
             {
-            case 'P': //
-            case 'p': //
-            {
-                zhub->switch_relay(0x00158d0009414d7e, c == 'P' ? 1 : 0, 1);
-            }
-            break;
-            case 'R':
-            case 'r':
-            {
-                zhub->switch_relay(0x00158d0009414d7e, c == 'R' ? 1 : 0, 2);
-            }
-            break;
+            case 'T': // DTR  High level
+                gsmModem->dtr(1);
+                break;
+            case 't': // DTR Low level
+                gsmModem->dtr(0);
+                break;
+
             case 'd': // уровень отладки
             {
                 first_command = 'd';
@@ -262,7 +257,7 @@ void App::stop_app()
         if (!noAdapter)
         {
             gsmModem->disconnect();
- //           threadPoolModem->stop_threads();
+//            threadPoolModem->stop_threads();
 
             if (withGpio)
                 gpio->close_gpio();

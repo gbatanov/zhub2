@@ -26,6 +26,7 @@ public:
   bool send_sms(std::string sms);
   void execute_tone_command(std::string command);
   static void on_command(void *cmd);
+  void dtr(int level);
 
 private:
   std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> threadPoolModem; // пул потоков работы с модемом
