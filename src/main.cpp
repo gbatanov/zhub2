@@ -59,7 +59,6 @@ static void signal_init(void)
     signal(SIGTERM, sig_int);
     signal(SIGKILL, sig_int);
     //    signal(SIGSEGV, sig_int); // приводит к зацикливанию сервиса !!!
-    
 }
 
 static void closeAll()
@@ -99,4 +98,3 @@ int main(int argc, char *argv[])
     gsbutils::stop(); // остановка вывода сообщений
     return ret;
 }
-

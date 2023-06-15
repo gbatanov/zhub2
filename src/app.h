@@ -1,27 +1,12 @@
 #ifndef GSB_APP_H
 #define GSB_APP_H
 
-#include <stddef.h>
-#include <cstddef>
-#include <array>
-#include <memory>
-#include <sstream>
-#include <string>
-#include <fstream>
-#include <fcntl.h>
-#include <sys/select.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <iostream>
-
-#include "../telebot32/src/tlg32.h"
-#include "../gsb_utils/gsbutils.h"
-#include "pi4-gpio.h"
-#include "http.h"
 #include "httpserver.h"
-#include "exposer.h"
-#include "modem.h"
+#include "pi4-gpio.h"
+#include "../telebot32/src/tlg32.h"
 #include "zigbee/zigbee.h"
+
+class GsmModem;
 
 struct GlobalConfig
 {
@@ -75,16 +60,16 @@ private:
     std::string show_statuses();
 
 public:
-    std::string startTime{};                                         // таймштамп старта программы
-    GlobalConfig config;                                             // глобальная конфигурация системы
-    std::atomic<bool> Flag{true};                                    // флаг разрешения работы системы
-    std::shared_ptr<zigbee::Zhub> zhub;                              // модуль zigbee верхнего уровня
-    std::shared_ptr<GsmModem> gsmModem;                              // GSM-модем
-    bool withSim800 = false;                                         // признак присутствия GSM-модема
-    bool withTlg = false;                                            // признак работы с телеграм
-    std::shared_ptr<Tlg32> tlg32;                                    // телеграм бот
+    std::string startTime{};                                                     // таймштамп старта программы
+    GlobalConfig config;                                                         // глобальная конфигурация системы
+    std::atomic<bool> Flag{true};                                                // флаг разрешения работы системы
+    std::shared_ptr<zigbee::Zhub> zhub;                                          // модуль zigbee верхнего уровня
+    std::shared_ptr<GsmModem> gsmModem;                                          // GSM-модем
+    bool withSim800 = false;                                                     // признак присутствия GSM-модема
+    bool withTlg = false;                                                        // признак работы с телеграм
+    std::shared_ptr<Tlg32> tlg32;                                                // телеграм бот
     std::shared_ptr<gsbutils::ThreadPool<std::vector<uint8_t>>> threadPoolModem; // пул потоков работы с модемом
-    bool withGpio = false;                                           // признак работы с портами малинки
+    bool withGpio = false;                                                       // признак работы с портами малинки
     bool stoped = false;
     std::unique_ptr<HttpServer> http;
 

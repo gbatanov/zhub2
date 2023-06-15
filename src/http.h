@@ -1,6 +1,8 @@
 #ifndef GSBHTTP_H
 #define GSBHTTP_H
 
+#include "modem.h"
+
 std::string create_device_list();
 std::string http_get_balance();
 void receive_http(void *cmd);

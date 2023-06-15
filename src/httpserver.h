@@ -3,6 +3,7 @@
 
 #include <string>
 #include <cstring>
+#include "modem.h"
 
 class HttpServer;
 

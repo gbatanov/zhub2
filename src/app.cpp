@@ -1,12 +1,33 @@
-
 #include "version.h"
-#include <cstdio>
-#include <cstdlib>
+
+#include <stddef.h>
+#include <cstddef>
+#include <array>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <fstream>
+#include <fcntl.h>
+#include <sys/select.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <iostream>
+#include <atomic>
+
+#include "../telebot32/src/tlg32.h"
+#include "../gsb_utils/gsbutils.h"
+#include "comport/unix.h"
+#include "comport/serial.h"
+#include "pi4-gpio.h"
+#include "http.h"
+#include "httpserver.h"
 #include "exposer.h"
+#include "modem.h"
+#include "zigbee/zigbee.h"
 #include "app.h"
 
 using gsbstring = gsbutils::SString;
-extern std::unique_ptr<HttpServer> http;
+
 extern std::shared_ptr<App> app;
 /// ------- App -----------
 App::App() { std::cout << "app constructor\n"; };
