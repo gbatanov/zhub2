@@ -37,6 +37,8 @@ HttpServer::~HttpServer() { flag.store(false); }
 void HttpServer::stop_http()
 {
     flag.store(false);
+    if (http_main_thread.joinable())
+        http_main_thread.join();
 }
 
 bool HttpServer::start()
@@ -52,6 +54,12 @@ bool HttpServer::start()
     }
     gsbutils::dprintf(1, (char *)"HTTPServer: HTTP ServerSocket=%d\n", http_sockfd);
 
+    threadPoolHttp = std::make_shared<gsbutils::ThreadPool<int>>();
+    uint8_t max_threads = 2;
+    threadPoolHttp->init_threads(receive_http, max_threads);
+
+    http_main_thread = std::thread([this]
+                                   {
     // Стартуем цикл сервера
     while (flag.load())
     {
@@ -78,22 +86,14 @@ bool HttpServer::start()
                 {
                     continue;
                 }
-                receive_http(client_sockfd);
-            }
-            else
-            {
-                std::this_thread::sleep_for(std::chrono::seconds(1));
-            }
-        }
-        else
-        {
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+
+                threadPoolHttp->add_command(client_sockfd);
+            }   
         }
     } // while flag
 
     if (http_sockfd >= 0)
-        close(http_sockfd);
-
+        close(http_sockfd); });
     return true;
 }
 

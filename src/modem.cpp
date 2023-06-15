@@ -21,7 +21,7 @@
 
 extern std::shared_ptr<App> app;
 
-using gsb_utils = gsbutils::SString;
+using gsbstring = gsbutils::SString;
 
 //--------------------------------------------------------------
 // TODO: сейчас все команды идут с одним идентификатором ОК,
@@ -261,8 +261,8 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
           res = res.substr(pos);
         else
           res = res.substr(pos, pos2 - pos);
-        gsb_utils::remove_all(res, "003");
-        gsb_utils::replace_all(res, "002E", ".");
+        gsbstring::remove_all(res, "003");
+        gsbstring::replace_all(res, "002E", ".");
         //       gsbutils::dprintf(1, "Balance: %s\n", res.c_str());
         balance_ = res;
 
@@ -325,9 +325,9 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       // AT+COLP
       // AT+CBC
 
-      std::string inCmd = gsb_utils::remove_after(res, "|");
-      inCmd = gsb_utils::remove_after(inCmd, "=");
-      res = gsb_utils::remove_before(res, "|");
+      std::string inCmd = gsbstring::remove_after(res, "|");
+      inCmd = gsbstring::remove_after(inCmd, "=");
+      res = gsbstring::remove_before(res, "|");
 #ifdef DEBUG
       gsbutils::dprintf(1, "Принят ответ %s на команду %s \n", res.c_str(), inCmd.c_str());
 #endif
@@ -352,8 +352,8 @@ void GsmModem::command_handler(std::vector<uint8_t> &data)
       {
         // ||+CBC: 0,100,4685||||OK||
         // Получение параметров батареи
-        res = gsb_utils::remove_before(res, ":");
-        std::string answer = gsb_utils::remove_after(res, "|");
+        res = gsbstring::remove_before(res, ":");
+        std::string answer = gsbstring::remove_after(res, "|");
         int charge = -1, level = -1, voltage = -1;
         sscanf(answer.c_str(), "%d,%d,%d", &charge, &level, &voltage);
         //        gsbutils::dprintf(1, "ПришлоCBC:  %s %d %d %d \n", answer.c_str(), charge, level, voltage);
@@ -393,7 +393,7 @@ void GsmModem::loop()
         rx_buff_.resize(rx_buff_.capacity());
         rx_buff_.clear();
         rx_buff_.resize(serial_->read(rx_buff_, rx_buff_.capacity()));
-        app->tpm->add_command(rx_buff_);
+        app->threadPoolModem->add_command(rx_buff_);
       }
       else
       {
@@ -433,17 +433,17 @@ void GsmModem::on_tone_command(std::string command)
 #ifdef DEBUG
     gsbutils::dprintf(1, tone_cmd + "\n");
 #endif
-    gsb_utils::remove_all(tone_cmd, " ");
-    gsb_utils::remove_all(tone_cmd, "|");
-    gsb_utils::remove_all(tone_cmd, "OK");
-    gsb_utils::remove_all(tone_cmd, "+");
-    gsb_utils::remove_all(tone_cmd, "DTMF:");
+    gsbstring::remove_all(tone_cmd, " ");
+    gsbstring::remove_all(tone_cmd, "|");
+    gsbstring::remove_all(tone_cmd, "OK");
+    gsbstring::remove_all(tone_cmd, "+");
+    gsbstring::remove_all(tone_cmd, "DTMF:");
 #ifdef DEBUG
     gsbutils::dprintf(1, tone_cmd + "\n");
 #endif
     if (tone_cmd.find("#") != std::string::npos)
     {
-      gsb_utils::remove_all(tone_cmd, "#");
+      gsbstring::remove_all(tone_cmd, "#");
 
       // выполняем команду, она должна быть строго из 3 цифр, первая - 4
       if (tone_cmd.size() == 3 && tone_cmd[0] == '4')
@@ -474,11 +474,11 @@ void GsmModem::on_sms_command(std::string answer)
   {
     // принимаю команды пока только со своего телефона
     //    gsbutils::dprintf(1, "%s\n", answer.c_str());
-    answer = gsb_utils::remove_before(answer, "/cmnd");
+    answer = gsbstring::remove_before(answer, "/cmnd");
     //    gsbutils::dprintf(1, "%s\n", answer.c_str());
-    answer = gsb_utils::remove_after(answer, "||||");
+    answer = gsbstring::remove_after(answer, "||||");
     //   gsbutils::dprintf(1, "%s\n", answer.c_str());
-    gsb_utils::remove_all(answer, " ");
+    gsbstring::remove_all(answer, " ");
     //    gsbutils::dprintf(1, "%s\n", answer.c_str());
     execute_tone_command(answer);
   }
@@ -492,9 +492,9 @@ void GsmModem::on_sms_command(std::string answer)
 void GsmModem::on_sms(std::string answer)
 {
   //  gsbutils::dprintf(1, "%s\n", answer.c_str());
-  answer = gsb_utils::remove_before(answer, ",");
+  answer = gsbstring::remove_before(answer, ",");
   // gsbutils::dprintf(1, "%s\n", answer.c_str());
-  gsb_utils::remove_all(answer, "||");
+  gsbstring::remove_all(answer, "||");
   // gsbutils::dprintf(1, "%s\n", answer.c_str());
   int num_sms = 0;
   int res = sscanf(answer.c_str(), "%d", &num_sms);

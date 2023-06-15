@@ -36,25 +36,13 @@
 #include "app.h"
 
 extern std::shared_ptr<App> app;
-std::unique_ptr<HttpServer> http;
 
-using gsb_utils = gsbutils::SString;
-
-void http_server()
-{
-    http = std::make_unique<HttpServer>();
-    http->start(); // поток приема http-запросов
-}
-
-void http_stop()
-{
-    if (http)
-        http->stop_http();
-}
+using gsbstring = gsbutils::SString;
 
 // Функция-обработчик входящих запросов
-void receive_http(int client_sockfd)
+void receive_http(void *cmd)
 {
+    int client_sockfd = *(static_cast<int *>(cmd));
     int i = 0;
     int numread = 0;
     std::string response = "";
@@ -94,9 +82,9 @@ void receive_http(int client_sockfd)
             {
                 char http_header[1024] = {'\0'};
 
-                response = http->get_style_from_file("zhub2/css/gsb_style.css");
+                response = app->http->get_style_from_file("zhub2/css/gsb_style.css");
                 gsbutils::dprintf(7, "%s\n", response.c_str());
-                size_t http_header_size = http->create_header(http_header, 200, (char *)"OK", NULL, (char *)"text/css", response.size(), -1);
+                size_t http_header_size = app->http->create_header(http_header, 200, (char *)"OK", NULL, (char *)"text/css", response.size(), -1);
 
                 response = std::string(http_header) + response;
                 gsbutils::dprintf(7, "gsb_style.css size: %d\n", response.size());
@@ -111,49 +99,49 @@ void receive_http(int client_sockfd)
                 {
                     // отдаем список подключенных устройств
                     response = create_device_list();
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", true);
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", true);
                 }
                 else if (url_str.starts_with("/water"))
                 {
                     // выполнить команду на устройствах охраны
                     response = send_cmd_to_device(url_str);
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else if (url_str.starts_with("/command"))
                 {
                     // выполнить команду на произвольных реле (не охрана протечек)
                     // TODO: что в списке all?
                     response = send_cmd_to_onoff(url_str);
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else if (url_str.starts_with("/balance"))
                 {
                     // запрос баланса сим-карты
                     response = http_get_balance();
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else if (url_str.starts_with("/join"))
                 {
                     // выполнить команду
-                    response = http_join();
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    response = http_permit_join();
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else if (url_str.starts_with("/join"))
                 {
                     // выполнить команду
-                    response = http_join();
-                    http->send_answer(client_sockfd, response, response.size(), "text/html", false);
+                    response = http_permit_join();
+                    app->http->send_answer(client_sockfd, response, response.size(), "text/html", false);
                 }
                 else
                 {
-                    http->send_error(client_sockfd, 404, (char *)"Not found");
+                    app->http->send_error(client_sockfd, 404, (char *)"Not found");
                     gsbutils::dprintf(7, (char *)"HTTPServer: URL \"%s\" not found\n", url_str.c_str());
                 }
             }
         }
         else
         {
-            http->send_error(client_sockfd, 501, (char *)"Not implemented");
+            app->http->send_error(client_sockfd, 501, (char *)"Not implemented");
         }
     }
     else
@@ -239,7 +227,7 @@ std::string command_list()
 std::string send_cmd_to_onoff(std::string url)
 {
     std::string result = command_list();
-    std::string command = gsb_utils::remove_before(url, "?"); // отрезаем "/command?"
+    std::string command = gsbstring::remove_before(url, "?"); // отрезаем "/command?"
     size_t pos = command.find_first_of("=");
     if (pos == command.npos)
         return result;
@@ -292,7 +280,7 @@ std::string send_cmd_to_device(char *url)
     std::string command = "";
     if (strlen(url) > 5)
     {
-        command = gsb_utils::remove_before(std::string(url), "water"); // отрезаем "/water"
+        command = gsbstring::remove_before(std::string(url), "water"); // отрезаем "/water"
     }
     else
     {
@@ -303,7 +291,7 @@ std::string send_cmd_to_device(char *url)
         return result;
     }
 
-    command = gsb_utils::remove_before(command, "?"); // отрезаем   ?
+    command = gsbstring::remove_before(command, "?"); // отрезаем   ?
     size_t pos = command.find_first_of("=");
     if (pos == command.npos)
         return result;
@@ -350,7 +338,7 @@ std::string http_get_balance()
     }
 }
 
-std::string http_join()
+std::string http_permit_join()
 {
     app->zhub->permitJoin(std::chrono::seconds(60));
     std::string result = command_list();

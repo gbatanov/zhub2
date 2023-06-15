@@ -45,7 +45,7 @@ uint64_t last_seen = 0;
 std::atomic<int> kitchenSensorState{-1};
 std::atomic<int> coridorSensorState{-1};
 
-using gsb_utils = gsbutils::SString;
+using gsbstring = gsbutils::SString;
 using namespace zigbee;
 
 Zhub::Zhub() : Controller()

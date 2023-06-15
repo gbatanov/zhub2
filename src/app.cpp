@@ -5,7 +5,7 @@
 #include "exposer.h"
 #include "app.h"
 
-using gsb_utils = gsbutils::SString;
+using gsbstring = gsbutils::SString;
 extern std::unique_ptr<HttpServer> http;
 extern std::shared_ptr<App> app;
 /// ------- App -----------
@@ -44,9 +44,9 @@ bool App::object_create()
             return false;
         }
 
-        tpm = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
+        threadPoolModem = std::make_shared<gsbutils::ThreadPool<std::vector<uint8_t>>>();
         uint8_t max_threads = 2;
-        tpm->init_threads(&GsmModem::on_command, max_threads);
+        threadPoolModem->init_threads(&GsmModem::on_command, max_threads);
         init_modem();
 
         withGpio = false;
@@ -75,7 +75,9 @@ bool App::start_app()
         if (withGpio)
             withGpio = gpio->initialize_gpio(&App::handle_power_off);
         zhub->start(config.Channels);
-        httpThread = std::thread(http_server);
+        http = std::make_unique<HttpServer>();
+        //       httpThread = std::thread(http_server);
+        http->start();
         if (config.Prometheus)
             exposerThread = std::thread(&App::exposer_handler, this);
         tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы
@@ -238,46 +240,45 @@ void App::stop_app()
             cmdThread.join();
         Flag.store(false);
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop 1 \n");
+        gsbutils::dprintf(1, "Stoped cmd thread \n");
 #endif
         if (!noAdapter)
         {
             gsmModem->disconnect();
-            tpm->stop_threads();
+            threadPoolModem->stop_threads();
 
             if (withGpio)
                 gpio->close_gpio();
 #ifdef DEBUG
-            gsbutils::dprintf(1, "Stop 2 \n");
+            gsbutils::dprintf(1, "Stoped modem, gpio \n");
 #endif
 
             zhub->stop();
 
             if (config.Prometheus)
+            {
                 exposer->stop_exposer();
+                if (exposerThread.joinable())
+                    exposerThread.join();
+            }
         }
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop 3 \n");
+        gsbutils::dprintf(1, "Stop zhub, exposer \n");
 #endif
 
         if (tempr_thread.joinable())
             tempr_thread.join();
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop 4 \n");
-#endif
-        if (config.Prometheus)
-            if (exposerThread.joinable())
-                exposerThread.join();
-#ifdef DEBUG
-        gsbutils::dprintf(1, "Stop 5 \n");
+        gsbutils::dprintf(1, "Stop temperature thread \n");
 #endif
 
-        http_stop();
+        http->stop_http();
+
         if (httpThread.joinable())
             httpThread.join();
 
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop 6 \n");
+        gsbutils::dprintf(1, "Stop http  \n");
 #endif
 
         tlg32->stop();
@@ -286,7 +287,7 @@ void App::stop_app()
         if (tlgInThread->joinable())
             tlgInThread->join();
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stop 7 \n");
+        gsbutils::dprintf(1, "Stop telegram \n");
 #endif
     }
     std::this_thread::sleep_for(std::chrono::seconds(10));
@@ -519,17 +520,17 @@ bool App::parse_config()
         {
             if (line.starts_with("//") || line.size() < 3)
                 continue;
-            line = gsb_utils::trim(line);
+            line = gsbstring::trim(line);
 
             // find mode
             if (mode.size() == 0)
             {
-                std::pair<std::string, std::string> val = gsb_utils::split_string_with_delimiter(line, " ");
-                std::string key = gsb_utils::trim(val.first);
+                std::pair<std::string, std::string> val = gsbstring::split_string_with_delimiter(line, " ");
+                std::string key = gsbstring::trim(val.first);
                 if (key == "Mode")
                 {
                     if (val.second.size() > 0)
-                        mode = gsb_utils::trim(val.second);
+                        mode = gsbstring::trim(val.second);
 
                     config.Mode = mode;
                 }
@@ -539,8 +540,8 @@ bool App::parse_config()
             if (line.starts_with("["))
             {
                 // section start
-                line = gsb_utils::remove_before(line, "[");
-                line = gsb_utils::remove_after(line, "]");
+                line = gsbstring::remove_before(line, "[");
+                line = gsbstring::remove_after(line, "]");
                 sectionMode = config.Mode == line;
                 continue;
             }
@@ -548,9 +549,9 @@ bool App::parse_config()
                 continue; // pass unnecessary section
 
             // Далее идут параметры нужной секции
-            std::pair<std::string, std::string> val = gsb_utils::split_string_with_delimiter(line, " ");
-            std::string key = gsb_utils::trim(val.first);
-            std::string value = gsb_utils::trim(val.second);
+            std::pair<std::string, std::string> val = gsbstring::split_string_with_delimiter(line, " ");
+            std::string key = gsbstring::trim(val.first);
+            std::string value = gsbstring::trim(val.second);
             if (key == "BotName")
             {
                 // TODO: check length
@@ -589,11 +590,11 @@ bool App::parse_config()
             {
                 // TODO: check valid
                 // Плюс в начале убираю
-                config.PhoneNumber = gsb_utils::remove_before(value, "+");
+                config.PhoneNumber = gsbstring::remove_before(value, "+");
             }
             else if (key == "Channels")
             {
-                std::vector<std::string> resChan = gsb_utils::split(value, ",");
+                std::vector<std::string> resChan = gsbstring::split(value, ",");
                 if (resChan.size() > 0)
                 {
                     unsigned ch = 0;

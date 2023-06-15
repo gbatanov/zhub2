@@ -42,7 +42,7 @@
 
 std::shared_ptr<App> app;
 
-using gsb_utils = gsbutils::SString;
+using gsbstring = gsbutils::SString;
 
 static void sig_int(int signo)
 {
