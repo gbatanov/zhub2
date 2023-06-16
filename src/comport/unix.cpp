@@ -772,7 +772,7 @@ int SerialImpl::get_cts()
   if (-1 == ioctl(fd_, TIOCMGET, &status))
     return -1; // "getCTS failed on a call to ioctl(TIOCMGET)
   else
-    return (status & TIOCM_CTS);
+    return (int)(bool)(status & TIOCM_CTS);
 }
 
 /// @brief Получение уровня на выводе DSR (готовность источника данных)
@@ -787,5 +787,5 @@ int SerialImpl::get_dsr()
   if (-1 == ioctl(fd_, TIOCMGET, &status))
     return -1; // getDSR failed on a call to ioctl(TIOCMGET)
   else
-    return (status & TIOCM_DSR);
+    return (int)(bool)(status & TIOCM_DSR);
 }

@@ -113,82 +113,6 @@ bool App::start_app()
 
     return false;
 }
-// Функция потока ожидания команд с клавиатуры
-int App::cmd_func()
-{
-    time_t waitTime = 1;
-    struct timeval tv;
-    char first_command = 0;
-
-    while (Flag.load())
-    {
-        char c = '\0';
-        int nfds = 1;
-
-        tv.tv_sec = (long)5;
-        tv.tv_usec = (long)0;
-
-        fd_set readfds;
-        FD_ZERO(&readfds);
-        FD_SET(0, &readfds); // 0 - STDIN
-
-        int count = select(nfds, &readfds, NULL, NULL, (timeval *)&tv);
-        if (count > 0)
-        {
-            if (FD_ISSET(0, &readfds))
-            {
-                c = getchar();
-            }
-        }
-
-        if (c <= '9' && c >= '0' && first_command == 'd')
-        {
-#ifdef DEBUG
-            gsbutils::set_debug_level(static_cast<unsigned int>(c - '0'));
-            first_command = 0;
-#endif
-        }
-        else
-        {
-            switch (c)
-            {
-            case 'T': // DTR  High level
-                if (withUsbPin)
-                    usbPin->set_dtr(1);
-                break;
-            case 't': // DTR Low level
-                if (withUsbPin)
-                    usbPin->set_dtr(0);
-                break;
-
-            case 'd': // уровень отладки
-            {
-                first_command = 'd';
-            }
-            break;
-            case 'F': // включить вентилятор
-                fan(1);
-                break;
-            case 'f': // выключить вентилятор
-                fan(0);
-                break;
-
-            case 'q': // завершение программы
-                fprintf(stderr, "Exit\n");
-                Flag.store(false);
-
-                return 0;
-
-            case 'j': // команда разрешения привязки
-                zhub->permitJoin(std::chrono::seconds(60));
-                break;
-            } // switch
-        }
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-    }
-
-    return 0;
-}
 
 void App::exposer_handler()
 {
@@ -665,4 +589,92 @@ bool App::parse_config()
     } // if
 
     return false;
+}
+// Функция потока ожидания команд с клавиатуры
+int App::cmd_func()
+{
+    time_t waitTime = 1;
+    struct timeval tv;
+    char first_command = 0;
+
+    while (Flag.load())
+    {
+        char c = '\0';
+        int nfds = 1;
+
+        tv.tv_sec = (long)5;
+        tv.tv_usec = (long)0;
+
+        fd_set readfds;
+        FD_ZERO(&readfds);
+        FD_SET(0, &readfds); // 0 - STDIN
+
+        int count = select(nfds, &readfds, NULL, NULL, (timeval *)&tv);
+        if (count > 0)
+        {
+            if (FD_ISSET(0, &readfds))
+            {
+                c = getchar();
+            }
+        }
+
+        if (c <= '9' && c >= '0' && first_command == 'd')
+        {
+#ifdef DEBUG
+            gsbutils::set_debug_level(static_cast<unsigned int>(c - '0'));
+            first_command = 0;
+#endif
+        }
+        else
+        {
+            switch (c)
+            {
+            case 'c': // DTR  High level
+                if (withUsbPin)
+                {
+                    int cts = usbPin->get_cts();
+                    gsbutils::dprintf(1, "CTS: %d \n", cts);
+                }
+                break;
+            case 'T': // DTR  High level
+                if (withUsbPin)
+                {
+                    usbPin->set_dtr(1);
+                }
+                break;
+            case 't': // DTR Low level
+                if (withUsbPin)
+                {
+                    usbPin->set_dtr(0);
+                }
+                break;
+
+            case 'd': // уровень отладки
+            {
+                first_command = 'd';
+            }
+            break;
+            case 'F': // включить вентилятор
+                fan(1);
+                break;
+            case 'f': // выключить вентилятор
+                fan(0);
+                break;
+
+            case 'j': // команда разрешения привязки
+                zhub->permitJoin(std::chrono::seconds(60));
+                break;
+
+            case 'q': // завершение программы
+                fprintf(stderr, "Exit\n");
+                Flag.store(false);
+
+                return 0;
+
+            } // switch
+        }
+        std::this_thread::sleep_for(std::chrono::seconds(2));
+    }
+
+    return 0;
 }

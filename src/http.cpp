@@ -69,8 +69,6 @@ void receive_http(void *cmd)
             }
             request[i - 4] = '\0'; // terminate URL string
 
-            gsbutils::dprintf(7, (char *)"HTTPServer: Browser is asking to GET %s\n", request);
-
             // строка ответа
             response = "";
             std::string url_str = std::string(request);
@@ -78,17 +76,11 @@ void receive_http(void *cmd)
             if (url_str.starts_with("/gsb_style.css"))
             {
                 char http_header[1024] = {'\0'};
-
                 response = app->http->get_style_from_file("zhub2/css/gsb_style.css");
-                gsbutils::dprintf(7, "%s\n", response.c_str());
                 size_t http_header_size = app->http->create_header(http_header, 200, (char *)"OK", NULL, (char *)"text/css", response.size(), -1);
-
                 response = std::string(http_header) + response;
-                gsbutils::dprintf(7, "gsb_style.css size: %d\n", response.size());
-                gsbutils::dprintf(7, "%s\n", response.c_str());
                 ssize_t written = write(client_sockfd, response.c_str(), response.size());
-                gsbutils::dprintf(7, "gsb_style.css written: %ld\n", written);
-            }
+             }
             else
             {
                 // команды
@@ -132,7 +124,6 @@ void receive_http(void *cmd)
                 else
                 {
                     app->http->send_error(client_sockfd, 404, (char *)"Not found");
-                    gsbutils::dprintf(7, (char *)"HTTPServer: URL \"%s\" not found\n", url_str.c_str());
                 }
             }
         }

@@ -55,7 +55,7 @@ bool HttpServer::start()
     gsbutils::dprintf(1, (char *)"HTTPServer: HTTP ServerSocket=%d\n", http_sockfd);
 
     threadPoolHttp = std::make_shared<gsbutils::ThreadPool<int>>();
-    uint8_t max_threads = 2;
+    uint8_t max_threads = 4;
     threadPoolHttp->init_threads(receive_http, max_threads);
 
     http_main_thread = std::thread([this]
@@ -69,7 +69,7 @@ bool HttpServer::start()
 
         struct timeval select_timeout;
 
-        select_timeout.tv_sec = (long)1;
+        select_timeout.tv_sec = (long)2;
         select_timeout.tv_usec = (long)0;
 
         FD_ZERO(&read_fds); // clear the file handle set
@@ -88,8 +88,12 @@ bool HttpServer::start()
                 }
 
                 threadPoolHttp->add_command(client_sockfd);
-            }   
-        }
+            }  else{
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+            } 
+        }else{
+                std::this_thread::sleep_for(std::chrono::seconds(1));
+        } 
     } // while flag
 
     if (http_sockfd >= 0)

@@ -64,3 +64,7 @@ int Usb2pin::get_dsr()
 {
     return serial_->get_dsr();
 }
+int Usb2pin::get_cts()
+{
+    return serial_->get_cts();
+}
