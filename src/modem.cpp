@@ -104,10 +104,10 @@ bool GsmModem::connect(std::string port, unsigned int baud_rate)
   return false;
 }
 
-// Управление выводом DTR на плате  адаптора USB-UART
+// Управление выводом DTR на плате  адаптера USB-UART
 void GsmModem::dtr(int level)
 {
-  serial_->set_DTR(level == 1 ? 0 : 1);
+  serial_->set_dtr(level == 1 ? 0 : 1);
 }
 // Стартовая инициализация модема:
 // устанавливаем ответ с эхом

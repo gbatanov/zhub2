@@ -383,27 +383,22 @@ void SerialImpl::reconfigurePort()
 
   // setup char len
   options.c_cflag &= (tcflag_t)~CSIZE;
-
   options.c_cflag |= CS8;
   // setup stopbits
-
   options.c_cflag &= (tcflag_t) ~(CSTOPB);
   // setup parity
   options.c_iflag &= (tcflag_t) ~(INPCK | ISTRIP);
-
   options.c_cflag &= (tcflag_t) ~(PARENB | PARODD);
 
   // setup flow control
-
   // xonxoff
 #ifdef IXANY
-
   options.c_iflag &= (tcflag_t) ~(IXON | IXOFF | IXANY);
 #else
-
   options.c_iflag &= (tcflag_t) ~(IXON | IXOFF);
 #endif
-  // rtscts
+
+  // rtscts - Flow control.
 #ifdef CRTSCTS
   options.c_cflag &= (unsigned long)~(CRTSCTS);
 #elif defined CNEW_RTSCTS
@@ -704,31 +699,93 @@ void SerialImpl::setBaudrate(unsigned long baudrate)
   baudrate_ = baudrate;
 }
 
-void SerialImpl::set_DTR(bool level)
+/// @brief Установка уровня на выводе DTR.
+/// При инициализации адаптера USB-UART уровень становится в низкий,
+/// после отключения - переходит в высокий.
+/// Это надо учитывать при использовании этого вывода как сигнала управления чем-либо.
+/// @param level false - HighLevel, true - LowLevel
+bool SerialImpl::set_dtr(bool level)
 {
   if (is_open_ == false)
-  {
-    throw std::runtime_error("Serial::setDTR");
-  }
+    return false;
 
   int command = TIOCM_DTR;
 
   if (level)
   {
     if (-1 == ioctl(fd_, TIOCMBIS, &command))
-    {
-      stringstream ss;
-      ss << "setDTR failed on a call to ioctl(TIOCMBIS): " << errno << " " << strerror(errno);
-      throw std::runtime_error(ss.str().c_str());
-    }
+      return false;
   }
   else
   {
     if (-1 == ioctl(fd_, TIOCMBIC, &command))
-    {
-      stringstream ss;
-      ss << "setDTR failed on a call to ioctl(TIOCMBIC): " << errno << " " << strerror(errno);
-      throw std::runtime_error(ss.str().c_str());
-    }
+      return false;
   }
+  return true;
+}
+
+/// @brief TIOCMIWAIT - Ожидание изменения CTS или DSR
+/// @return
+bool SerialImpl::wait_for_change()
+{
+#ifndef TIOCMIWAIT
+
+  while (is_open_ == true)
+  {
+
+    int status;
+
+    if (-1 == ioctl(fd_, TIOCMGET, &status))
+    {
+      return false;
+    }
+    else
+    {
+      if (0 != (status & TIOCM_CTS) || 0 != (status & TIOCM_DSR))
+      {
+        return true;
+      }
+    }
+
+    usleep(1000);
+  }
+
+  return false;
+#else
+  int command = (TIOCM_CD | TIOCM_DSR | TIOCM_RI | TIOCM_CTS);
+
+  if (-1 == ioctl(fd_, TIOCMIWAIT, &command))
+    return false; // waitForDSR failed on a call to ioctl(TIOCMIWAIT)
+  return true;
+#endif
+}
+
+/// @brief Получение уровня на выводе CTS (готовность передачи)
+/// @return 1 / 0 (-1 при ошибке)
+int SerialImpl::get_cts()
+{
+  if (is_open_ == false)
+    return -1;
+
+  int status;
+
+  if (-1 == ioctl(fd_, TIOCMGET, &status))
+    return -1; // "getCTS failed on a call to ioctl(TIOCMGET)
+  else
+    return (status & TIOCM_CTS);
+}
+
+/// @brief Получение уровня на выводе DSR (готовность источника данных)
+/// @return 1 / 0 (-1 при ошибке)
+int SerialImpl::get_dsr()
+{
+  if (is_open_ == false)
+    return -1;
+
+  int status;
+
+  if (-1 == ioctl(fd_, TIOCMGET, &status))
+    return -1; // getDSR failed on a call to ioctl(TIOCMGET)
+  else
+    return (status & TIOCM_DSR);
 }
