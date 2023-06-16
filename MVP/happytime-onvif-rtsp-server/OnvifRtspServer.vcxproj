@@ -1,0 +1,295 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{74FA5931-2AB8-480E-B455-027B52BE4E38}</ProjectGuid>
+    <RootNamespace>ltOnvif</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <CharacterSet>Unicode</CharacterSet>
+    <PlatformToolset>v140</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.40219.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\$(ProjectName)\</IntDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" />
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Release|x64'">AllRules.ruleset</CodeAnalysisRuleSet>
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRules Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" />
+    <CodeAnalysisRuleAssemblies Condition="'$(Configuration)|$(Platform)'=='Release|x64'" />
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\;.\bm;.\http;.\onvif;.\media;.\rtp;.\rtsp;.\rtmp;.\librtmp;.\openssl\include;.\openssl\include\win;.\ffmpeg;.\ffmpeg\include;.\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;HT_STATIC;HTTPD;MEDIA_SUPPORT;IMAGE_SUPPORT;AUDIO_SUPPORT;DEVICEIO_SUPPORT;PTZ_SUPPORT;MEDIA2_SUPPORT;VIDEO_ANALYTICS;THERMAL_SUPPORT;CREDENTIAL_SUPPORT;ACCESS_RULES;RECEIVER_SUPPORT;SCHEDULE_SUPPORT;IPFILTER_SUPPORT;PROVISIONING_SUPPORT;PROFILE_G_SUPPORT;PROFILE_C_SUPPORT;PROFILE_Q_SUPPORT;MEDIA_FILE;MEDIA_DEVICE;MEDIA_PROXY;RTMP_PROXY;MEDIA_PUSHER;RTSP_BACKCHANNEL;RTSP_OVER_HTTP;RTSP_RTCP;RTSP_METADATA;RTSP_REPLAY;ZLIB_WINAPI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4996;4100;4819;4244;4995;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;avdevice.lib;avutil.lib;swresample.lib;swscale.lib;dsound.lib;zlibwapi.lib;libcrypto.lib;libssl.lib;mf.lib;mfplat.lib;mfreadwrite.lib;mfuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\ffmpeg\lib\x86;.\zlib\lib\x86;.\openssl\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\;.\bm;.\http;.\onvif;.\media;.\rtp;.\rtsp;.\rtmp;.\librtmp;.\openssl\include;.\openssl\include\win;.\ffmpeg;.\ffmpeg\include;.\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;HT_STATIC;HTTPS;HTTPD;MEDIA_SUPPORT;IMAGE_SUPPORT;AUDIO_SUPPORT;DEVICEIO_SUPPORT;PTZ_SUPPORT;MEDIA2_SUPPORT;VIDEO_ANALYTICS;THERMAL_SUPPORT;CREDENTIAL_SUPPORT;ACCESS_RULES;RECEIVER_SUPPORT;SCHEDULE_SUPPORT;IPFILTER_SUPPORT;PROVISIONING_SUPPORT;PROFILE_G_SUPPORT;PROFILE_C_SUPPORT;PROFILE_Q_SUPPORT;MEDIA_FILE;MEDIA_DEVICE;MEDIA_PROXY;RTMP_PROXY;MEDIA_PUSHER;RTSP_BACKCHANNEL;RTSP_OVER_HTTP;RTSP_RTCP;RTSP_METADATA;RTSP_REPLAY;ZLIB_WINAPI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4996;4819;4244;4995;4100;4267</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;avdevice.lib;avutil.lib;swresample.lib;swscale.lib;dsound.lib;zlibwapi.lib;libcrypto.lib;libssl.lib;mf.lib;mfplat.lib;mfreadwrite.lib;mfuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\ffmpeg\lib\x64;.\zlib\lib\x64;.\openssl\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>false</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>.\;.\bm;.\http;.\onvif;.\media;.\rtp;.\rtsp;.\rtmp;.\librtmp;.\openssl\include;.\openssl\include\win;.\ffmpeg;.\ffmpeg\include;.\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;HT_STATIC;HTTPS;HTTPD;MEDIA_SUPPORT;IMAGE_SUPPORT;AUDIO_SUPPORT;DEVICEIO_SUPPORT;PTZ_SUPPORT;MEDIA2_SUPPORT;VIDEO_ANALYTICS;THERMAL_SUPPORT;CREDENTIAL_SUPPORT;ACCESS_RULES;RECEIVER_SUPPORT;SCHEDULE_SUPPORT;IPFILTER_SUPPORT;PROVISIONING_SUPPORT;PROFILE_G_SUPPORT;PROFILE_C_SUPPORT;MEDIA_FILE;MEDIA_DEVICE;MEDIA_PROXY;RTMP_PROXY;MEDIA_PUSHER;RTSP_BACKCHANNEL;RTSP_OVER_HTTP;RTSP_RTCP;RTSP_METADATA;RTSP_REPLAY;ZLIB_WINAPI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4996;4100;4819;4244;4995;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;avdevice.lib;avutil.lib;swresample.lib;swscale.lib;dsound.lib;zlibwapi.lib;libcrypto.lib;libssl.lib;mf.lib;mfplat.lib;mfreadwrite.lib;mfuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\ffmpeg\lib\x86;.\zlib\lib\x86;.\openssl\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>.\;.\bm;.\http;.\onvif;.\media;.\rtp;.\rtsp;.\rtmp;.\librtmp;.\openssl\include;.\openssl\include\win;.\ffmpeg;.\ffmpeg\include;.\zlib\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;_CONSOLE;HT_STATIC;HTTPS;HTTPD;MEDIA_SUPPORT;IMAGE_SUPPORT;AUDIO_SUPPORT;DEVICEIO_SUPPORT;PTZ_SUPPORT;MEDIA2_SUPPORT;VIDEO_ANALYTICS;THERMAL_SUPPORT;CREDENTIAL_SUPPORT;ACCESS_RULES;RECEIVER_SUPPORT;SCHEDULE_SUPPORT;IPFILTER_SUPPORT;PROVISIONING_SUPPORT;PROFILE_G_SUPPORT;PROFILE_C_SUPPORT;MEDIA_FILE;MEDIA_DEVICE;MEDIA_PROXY;RTMP_PROXY;MEDIA_PUSHER;RTSP_BACKCHANNEL;RTSP_OVER_HTTP;RTSP_RTCP;RTSP_METADATA;RTSP_REPLAY;ZLIB_WINAPI;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>
+      </PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4996;4819;4244;4995;4100;4267</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>avcodec.lib;avformat.lib;avdevice.lib;avutil.lib;swresample.lib;swscale.lib;dsound.lib;zlibwapi.lib;libcrypto.lib;libssl.lib;mf.lib;mfplat.lib;mfreadwrite.lib;mfuuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>.\ffmpeg\lib\x64;.\zlib\lib\x64;.\openssl\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Console</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="bm\hxml.c" />
+    <ClCompile Include="bm\xml_node.c" />
+    <ClCompile Include="http\httpd.c" />
+    <ClCompile Include="http\http_auth.c" />
+    <ClCompile Include="http\http_cln.c" />
+    <ClCompile Include="http\http_mjpeg_cln.cpp" />
+    <ClCompile Include="http\http_parse.c" />
+    <ClCompile Include="http\http_srv.cpp" />
+    <ClCompile Include="librtmp\amf.c" />
+    <ClCompile Include="librtmp\hashswf.c" />
+    <ClCompile Include="librtmp\log.c" />
+    <ClCompile Include="librtmp\parseurl.c" />
+    <ClCompile Include="librtmp\rtmp.c" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="bm\base64.c" />
+    <ClCompile Include="bm\hqueue.c" />
+    <ClCompile Include="bm\linked_list.c" />
+    <ClCompile Include="bm\ppstack.c" />
+    <ClCompile Include="bm\rfc_md5.c" />
+    <ClCompile Include="bm\sha1.c" />
+    <ClCompile Include="bm\sys_buf.c" />
+    <ClCompile Include="bm\sys_log.c" />
+    <ClCompile Include="bm\sys_os.c" />
+    <ClCompile Include="bm\util.c" />
+    <ClCompile Include="bm\word_analyse.c" />
+    <ClCompile Include="media\audio_capture.cpp" />
+    <ClCompile Include="media\audio_capture_dsound.cpp" />
+    <ClCompile Include="media\audio_decoder.cpp" />
+    <ClCompile Include="media\audio_encoder.cpp" />
+    <ClCompile Include="media\audio_play.cpp" />
+    <ClCompile Include="media\audio_play_dsound.cpp" />
+    <ClCompile Include="media\avcodec_mutex.cpp" />
+    <ClCompile Include="media\file_demux.cpp" />
+    <ClCompile Include="media\media_util.cpp" />
+    <ClCompile Include="media\screen_capture.cpp" />
+    <ClCompile Include="media\screen_capture_win.cpp" />
+    <ClCompile Include="media\video_capture.cpp" />
+    <ClCompile Include="media\video_capture_win.cpp" />
+    <ClCompile Include="media\video_decoder.cpp" />
+    <ClCompile Include="media\video_encoder.cpp" />
+    <ClCompile Include="onvif\onvif.c" />
+    <ClCompile Include="onvif\onvif_accessrules.c" />
+    <ClCompile Include="onvif\onvif_analytics.c" />
+    <ClCompile Include="onvif\onvif_cfg.c" />
+    <ClCompile Include="onvif\onvif_cm.c" />
+    <ClCompile Include="onvif\onvif_credential.c" />
+    <ClCompile Include="onvif\onvif_device.c" />
+    <ClCompile Include="onvif\onvif_deviceio.c" />
+    <ClCompile Include="onvif\onvif_doorcontrol.c" />
+    <ClCompile Include="onvif\onvif_event.c" />
+    <ClCompile Include="onvif\onvif_image.c" />
+    <ClCompile Include="onvif\onvif_media.c" />
+    <ClCompile Include="onvif\onvif_media2.c" />
+    <ClCompile Include="onvif\onvif_pkt.c" />
+    <ClCompile Include="onvif\onvif_probe.c" />
+    <ClCompile Include="onvif\onvif_provisioning.c" />
+    <ClCompile Include="onvif\onvif_ptz.c" />
+    <ClCompile Include="onvif\onvif_receiver.c" />
+    <ClCompile Include="onvif\onvif_recording.c" />
+    <ClCompile Include="onvif\onvif_schedule.c" />
+    <ClCompile Include="onvif\onvif_srv.c" />
+    <ClCompile Include="onvif\onvif_thermal.c" />
+    <ClCompile Include="onvif\onvif_timer.c" />
+    <ClCompile Include="onvif\onvif_utils.c" />
+    <ClCompile Include="onvif\soap.c" />
+    <ClCompile Include="onvif\soap_parser.c" />
+    <ClCompile Include="rtmp\rtmp_cln.cpp" />
+    <ClCompile Include="rtp\aac_rtp_rx.cpp" />
+    <ClCompile Include="rtp\bit_vector.cpp" />
+    <ClCompile Include="rtp\h264_rtp_rx.cpp" />
+    <ClCompile Include="rtp\h264_util.cpp" />
+    <ClCompile Include="rtp\h265_rtp_rx.cpp" />
+    <ClCompile Include="rtp\h265_util.cpp" />
+    <ClCompile Include="rtp\mjpeg_rtp_rx.cpp" />
+    <ClCompile Include="rtp\mjpeg_tables.cpp" />
+    <ClCompile Include="rtp\mpeg4.cpp" />
+    <ClCompile Include="rtp\mpeg4_rtp_rx.cpp" />
+    <ClCompile Include="rtp\pcm_rtp_rx.cpp" />
+    <ClCompile Include="rtp\rtcp.cpp" />
+    <ClCompile Include="rtp\rtp_rx.cpp" />
+    <ClCompile Include="rtp\rtp_tx.cpp" />
+    <ClCompile Include="rtsp\media_proxy.cpp" />
+    <ClCompile Include="rtsp\rtsp_backchannel.cpp" />
+    <ClCompile Include="rtsp\rtsp_cfg.cpp" />
+    <ClCompile Include="rtsp\rtsp_cln.cpp" />
+    <ClCompile Include="rtsp\rtsp_crypt.cpp" />
+    <ClCompile Include="rtsp\rtsp_http.cpp" />
+    <ClCompile Include="rtsp\rtsp_mc.cpp" />
+    <ClCompile Include="rtsp\rtsp_media.cpp" />
+    <ClCompile Include="rtsp\rtsp_parse.cpp" />
+    <ClCompile Include="rtsp\rtsp_pusher.cpp" />
+    <ClCompile Include="rtsp\rtsp_rcua.cpp" />
+    <ClCompile Include="rtsp\rtsp_rsua.cpp" />
+    <ClCompile Include="rtsp\rtsp_srv.cpp" />
+    <ClCompile Include="rtsp\rtsp_srv_backchannel.cpp" />
+    <ClCompile Include="rtsp\rtsp_stream.cpp" />
+    <ClCompile Include="rtsp\rtsp_timer.cpp" />
+    <ClCompile Include="rtsp\rtsp_util.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="rtmp\rtmp_cln.h" />
+    <ClInclude Include="stdafx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

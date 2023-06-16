@@ -1,0 +1,397 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{B12702AD-ABFB-343A-A199-8E24837244A3}</ProjectGuid>
+    <Keyword>Qt4VSv1.0</Keyword>
+    <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <PropertyGroup Condition="'$(QtMsBuild)'=='' or !Exists('$(QtMsBuild)\qt.targets')">
+    <QtMsBuild>$(MSBuildProjectDirectory)\QtMsBuild</QtMsBuild>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir>$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
+  </PropertyGroup>
+  <Target Name="QtMsBuildNotFound" BeforeTargets="CustomBuild;ClCompile" Condition="!Exists('$(QtMsBuild)\qt.targets') or !Exists('$(QtMsBuild)\qt.props')">
+    <Message Importance="High" Text="QtMsBuild: could not locate qt.targets, qt.props; project may not build correctly." />
+  </Target>
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.props')">
+    <Import Project="$(QtMsBuild)\qt.props" />
+  </ImportGroup>
+  <ImportGroup Label="ExtensionSettings" />
+  <ImportGroup Label="Shared" />
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>UNICODE;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_WINEXTRAS_LIB;HT_STATIC;BACKCHANNEL;REPLAY;OVER_HTTP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;.\ffmpeg\lib\x86;.\directx\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>qtmaind.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;swresample.lib;d3d9.lib;d3dx9.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;Qt5WinExtrasd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+    <QtMoc>
+      <OutputFile>.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</OutputFile>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <IncludePath>.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras;%(AdditionalIncludeDirectories)</IncludePath>
+      <Define>UNICODE;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_WINEXTRAS_LIB;HT_STATIC;BACKCHANNEL;REPLAY;OVER_HTTP;%(PreprocessorDefinitions)</Define>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <OutputFile>.\GeneratedFiles\ui_%(Filename).h</OutputFile>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <OutputFile>.\GeneratedFiles\qrc_%(Filename).cpp</OutputFile>
+    </QtRcc>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>UNICODE;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_WINEXTRAS_LIB;HT_STATIC;BACKCHANNEL;REPLAY;OVER_HTTP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <Optimization>Disabled</Optimization>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;.\ffmpeg\lib\x64;.\directx\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>qtmaind.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;swresample.lib;d3d9.lib;d3dx9.lib;Qt5Cored.lib;Qt5Guid.lib;Qt5Widgetsd.lib;Qt5WinExtrasd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+    </Link>
+    <QtMoc>
+      <OutputFile>.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</OutputFile>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <IncludePath>.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras;%(AdditionalIncludeDirectories)</IncludePath>
+      <Define>UNICODE;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_WINEXTRAS_LIB;HT_STATIC;BACKCHANNEL;REPLAY;OVER_HTTP;%(PreprocessorDefinitions)</Define>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <OutputFile>.\GeneratedFiles\ui_%(Filename).h</OutputFile>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <OutputFile>.\GeneratedFiles\qrc_%(Filename).cpp</OutputFile>
+    </QtRcc>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>UNICODE;NDEBUG;QT_NO_DEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_WINEXTRAS_LIB;HT_STATIC;BACKCHANNEL;REPLAY;OVER_HTTP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat />
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;.\ffmpeg\lib\x86;.\directx\lib\x86;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>qtmain.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;swresample.lib;d3d9.lib;d3dx9.lib;Qt5Core.lib;Qt5Gui.lib;Qt5Widgets.lib;Qt5WinExtras.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+    </Link>
+    <QtMoc>
+      <OutputFile>.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</OutputFile>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <IncludePath>.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras;%(AdditionalIncludeDirectories)</IncludePath>
+      <Define>UNICODE;NDEBUG;QT_NO_DEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_WINEXTRAS_LIB;HT_STATIC;BACKCHANNEL;REPLAY;OVER_HTTP;%(PreprocessorDefinitions)</Define>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <OutputFile>.\GeneratedFiles\ui_%(Filename).h</OutputFile>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <OutputFile>.\GeneratedFiles\qrc_%(Filename).cpp</OutputFile>
+    </QtRcc>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <PreprocessorDefinitions>UNICODE;NDEBUG;QT_NO_DEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_WINEXTRAS_LIB;HT_STATIC;BACKCHANNEL;REPLAY;OVER_HTTP;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <DebugInformationFormat>
+      </DebugInformationFormat>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <TreatWChar_tAsBuiltInType>true</TreatWChar_tAsBuiltInType>
+      <DisableSpecificWarnings>4819</DisableSpecificWarnings>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <OutputFile>$(OutDir)\$(ProjectName).exe</OutputFile>
+      <AdditionalLibraryDirectories>$(QTDIR)\lib;.\ffmpeg\lib\x64;.\directx\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>false</GenerateDebugInformation>
+      <AdditionalDependencies>qtmain.lib;avcodec.lib;avformat.lib;avutil.lib;swscale.lib;swresample.lib;d3d9.lib;d3dx9.lib;Qt5Core.lib;Qt5Gui.lib;Qt5Widgets.lib;Qt5WinExtras.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
+      <UACExecutionLevel>RequireAdministrator</UACExecutionLevel>
+    </Link>
+    <QtMoc>
+      <OutputFile>.\GeneratedFiles\$(ConfigurationName)\moc_%(Filename).cpp</OutputFile>
+      <ExecutionDescription>Moc'ing %(Identity)...</ExecutionDescription>
+      <IncludePath>.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras;%(AdditionalIncludeDirectories)</IncludePath>
+      <Define>UNICODE;NDEBUG;QT_NO_DEBUG;QT_CORE_LIB;QT_GUI_LIB;QT_WIDGETS_LIB;QT_WINEXTRAS_LIB;HT_STATIC;BACKCHANNEL;REPLAY;OVER_HTTP;%(PreprocessorDefinitions)</Define>
+    </QtMoc>
+    <QtUic>
+      <ExecutionDescription>Uic'ing %(Identity)...</ExecutionDescription>
+      <OutputFile>.\GeneratedFiles\ui_%(Filename).h</OutputFile>
+    </QtUic>
+    <QtRcc>
+      <ExecutionDescription>Rcc'ing %(Identity)...</ExecutionDescription>
+      <OutputFile>.\GeneratedFiles\qrc_%(Filename).cpp</OutputFile>
+    </QtRcc>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="bm\base64.cpp" />
+    <ClCompile Include="bm\hqueue.cpp" />
+    <ClCompile Include="bm\linked_list.cpp" />
+    <ClCompile Include="bm\ppstack.cpp" />
+    <ClCompile Include="bm\rfc_md5.cpp" />
+    <ClCompile Include="bm\sys_buf.cpp" />
+    <ClCompile Include="bm\sys_log.cpp" />
+    <ClCompile Include="bm\sys_os.cpp" />
+    <ClCompile Include="bm\util.cpp" />
+    <ClCompile Include="bm\word_analyse.cpp" />
+    <ClCompile Include="formClass\CustomLayoutWidget.cpp" />
+    <ClCompile Include="formClass\dialogtitle.cpp" />
+    <ClCompile Include="formClass\FloatWidget.cpp" />
+    <ClCompile Include="formClass\RtspClient.cpp" />
+    <ClCompile Include="formClass\SetRtspInfo.cpp" />
+    <ClCompile Include="formClass\SystemSetting.cpp" />
+    <ClCompile Include="formClass\VideoSubWidget.cpp" />
+    <ClCompile Include="formClass\VideoWidget.cpp" />
+    <ClCompile Include="formClass\WidgetManager.cpp" />
+    <ClCompile Include="formClass\ZoneConfig.cpp" />
+    <ClCompile Include="globalLock.cpp" />
+    <ClCompile Include="http\http_cln.cpp" />
+    <ClCompile Include="http\http_parse.cpp" />
+    <ClCompile Include="main.cpp" />
+    <ClCompile Include="media\audio_capture.cpp" />
+    <ClCompile Include="media\audio_capture_dsound.cpp" />
+    <ClCompile Include="media\audio_decoder.cpp" />
+    <ClCompile Include="media\audio_encoder.cpp" />
+    <ClCompile Include="media\audio_play.cpp" />
+    <ClCompile Include="media\audio_play_dsound.cpp" />
+    <ClCompile Include="media\avcodec_mutex.cpp" />
+    <ClCompile Include="media\avi_write.cpp" />
+    <ClCompile Include="media\rtsp_player.cpp" />
+    <ClCompile Include="media\video_decoder.cpp" />
+    <ClCompile Include="media\video_player.cpp" />
+    <ClCompile Include="media\video_render.cpp" />
+    <ClCompile Include="media\video_render_d3d.cpp" />
+    <ClCompile Include="media\video_render_gdi.cpp" />
+    <ClCompile Include="rtp\aac_rtp_rx.cpp" />
+    <ClCompile Include="rtp\bit_vector.cpp" />
+    <ClCompile Include="rtp\h264_rtp_rx.cpp" />
+    <ClCompile Include="rtp\h264_util.cpp" />
+    <ClCompile Include="rtp\h265_rtp_rx.cpp" />
+    <ClCompile Include="rtp\h265_util.cpp" />
+    <ClCompile Include="rtp\media_util.cpp" />
+    <ClCompile Include="rtp\mjpeg_rtp_rx.cpp" />
+    <ClCompile Include="rtp\mjpeg_tables.cpp" />
+    <ClCompile Include="rtp\mpeg4.cpp" />
+    <ClCompile Include="rtp\mpeg4_rtp_rx.cpp" />
+    <ClCompile Include="rtp\pcm_rtp_rx.cpp" />
+    <ClCompile Include="rtp\rtp_rx.cpp" />
+    <ClCompile Include="rtsp\rtsp_backchannel.cpp" />
+    <ClCompile Include="rtsp\rtsp_cln.cpp" />
+    <ClCompile Include="rtsp\rtsp_parse.cpp" />
+    <ClCompile Include="rtsp\rtsp_rcua.cpp" />
+    <ClCompile Include="rtsp\rtsp_util.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="umslider.cpp" />
+    <ClCompile Include="utils.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="RtspClient.qrc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RtspClient.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="ui\CustomLayoutWidget.ui" />
+    <QtUic Include="ui\FloatWidget.ui" />
+    <QtUic Include="ui\RtspClient.ui" />
+    <QtUic Include="ui\SetRtspInfo.ui" />
+    <QtUic Include="ui\SystemSetting.ui" />
+    <QtUic Include="ui\VideoWidget.ui" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="utils.h" />
+    <QtMoc Include="umslider.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\formClass;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\CustomLayoutWidget.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\dialogtitle.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\FloatWidget.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\RtspClient.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\SetRtspInfo.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\SystemSetting.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\VideoSubWidget.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\VideoWidget.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\WidgetManager.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <QtMoc Include="formClass\ZoneConfig.h">
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+      <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">.;.\bm;.\http;.\src;.\media;.\rtp;.\rtsp;.\ffmpeg;.\ffmpeg\include;.\directx\include;.\GeneratedFiles;.\GeneratedFiles\$(ConfigurationName);$(QTDIR)\include;$(QTDIR)\include\QtCore;$(QTDIR)\include\QtGui;$(QTDIR)\include\QtANGLE;$(QTDIR)\include\QtWidgets;$(QTDIR)\include\QtWinExtras</IncludePath>
+    </QtMoc>
+    <ClInclude Include="config.h" />
+    <ClInclude Include="globalLock.h" />
+    <QtMoc Include="media\rtsp_player.h" />
+    <QtMoc Include="media\video_player.h" />
+    <ClInclude Include="rtsp\rtsp_backchannel.h" />
+    <ClInclude Include="rtsp\rtsp_cln.h" />
+    <ClInclude Include="rtsp\rtsp_parse.h" />
+    <ClInclude Include="rtsp\rtsp_rcua.h" />
+    <ClInclude Include="rtsp\rtsp_util.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="rtspclient_zh.ts" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Condition="Exists('$(QtMsBuild)\qt.targets')">
+    <Import Project="$(QtMsBuild)\qt.targets" />
+  </ImportGroup>
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties MocDir=".\GeneratedFiles\$(ConfigurationName)" UicDir=".\GeneratedFiles" RccDir=".\GeneratedFiles" lupdateOptions="" lupdateOnBuild="0" lreleaseOptions="" Qt5Version_x0020_Win32="QT5.11.3-32" Qt5Version_x0020_x64="QT5.11.3-64" MocOptions="" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

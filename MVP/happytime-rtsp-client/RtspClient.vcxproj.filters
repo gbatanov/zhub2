@@ -1,0 +1,331 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>moc;h;cpp</Extensions>
+      <SourceControlFiles>False</SourceControlFiles>
+    </Filter>
+    <Filter Include="bm">
+      <UniqueIdentifier>{eb49f5f7-8396-4bb6-9e22-e004f09a1036}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rtp">
+      <UniqueIdentifier>{50641c30-571e-495a-b4e0-118a86572743}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="rtsp">
+      <UniqueIdentifier>{7c795c77-2eb9-45cf-82e8-ba3c20b37734}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="media">
+      <UniqueIdentifier>{0fed5174-b936-46bd-8218-29875072506b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="http">
+      <UniqueIdentifier>{2f18a031-4b2c-4ca0-aab0-6b01a246f5eb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Translation Files">
+      <UniqueIdentifier>{639EADAA-A684-42e4-A9AD-28FC9BCB8F7C}</UniqueIdentifier>
+      <Extensions>ts</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="main.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\base64.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\hqueue.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\ppstack.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\sys_buf.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\sys_log.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\sys_os.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\util.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\word_analyse.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\aac_rtp_rx.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\bit_vector.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\h264_rtp_rx.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\h265_rtp_rx.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\mjpeg_rtp_rx.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\mjpeg_tables.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\mpeg4.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\mpeg4_rtp_rx.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\pcm_rtp_rx.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\rtp_rx.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtsp\rtsp_backchannel.cpp">
+      <Filter>rtsp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtsp\rtsp_cln.cpp">
+      <Filter>rtsp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtsp\rtsp_parse.cpp">
+      <Filter>rtsp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtsp\rtsp_rcua.cpp">
+      <Filter>rtsp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtsp\rtsp_util.cpp">
+      <Filter>rtsp</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\rfc_md5.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="media\audio_play.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\audio_encoder.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="bm\linked_list.cpp">
+      <Filter>bm</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="media\audio_capture.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\audio_decoder.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\avi_write.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\rtsp_player.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\video_decoder.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\video_player.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\video_render.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\video_render_d3d.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\video_render_gdi.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\h264_util.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\h265_util.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="rtp\media_util.cpp">
+      <Filter>rtp</Filter>
+    </ClCompile>
+    <ClCompile Include="media\audio_capture_dsound.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="media\audio_play_dsound.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="http\http_cln.cpp">
+      <Filter>http</Filter>
+    </ClCompile>
+    <ClCompile Include="http\http_parse.cpp">
+      <Filter>http</Filter>
+    </ClCompile>
+    <ClCompile Include="media\avcodec_mutex.cpp">
+      <Filter>media</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\CustomLayoutWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\dialogtitle.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\FloatWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\RtspClient.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\SetRtspInfo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\SystemSetting.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\VideoSubWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\VideoWidget.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\WidgetManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="formClass\ZoneConfig.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="globalLock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="umslider.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <QtRcc Include="RtspClient.qrc">
+      <Filter>Resource Files</Filter>
+    </QtRcc>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="RtspClient.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <QtUic Include="ui\RtspClient.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\VideoWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\FloatWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\CustomLayoutWidget.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\SetRtspInfo.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+    <QtUic Include="ui\SystemSetting.ui">
+      <Filter>Form Files</Filter>
+    </QtUic>
+  </ItemGroup>
+  <ItemGroup>
+    <QtMoc Include="media\rtsp_player.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="media\video_player.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\CustomLayoutWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\dialogtitle.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\FloatWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\RtspClient.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\SetRtspInfo.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\SystemSetting.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\VideoSubWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\VideoWidget.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\WidgetManager.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="formClass\ZoneConfig.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+    <QtMoc Include="umslider.h">
+      <Filter>Header Files</Filter>
+    </QtMoc>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="rtsp\rtsp_backchannel.h">
+      <Filter>rtsp</Filter>
+    </ClInclude>
+    <ClInclude Include="rtsp\rtsp_cln.h">
+      <Filter>rtsp</Filter>
+    </ClInclude>
+    <ClInclude Include="rtsp\rtsp_parse.h">
+      <Filter>rtsp</Filter>
+    </ClInclude>
+    <ClInclude Include="rtsp\rtsp_rcua.h">
+      <Filter>rtsp</Filter>
+    </ClInclude>
+    <ClInclude Include="rtsp\rtsp_util.h">
+      <Filter>rtsp</Filter>
+    </ClInclude>
+    <ClInclude Include="config.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="globalLock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="rtspclient_zh.ts">
+      <Filter>Translation Files</Filter>
+    </None>
+  </ItemGroup>
+</Project>
