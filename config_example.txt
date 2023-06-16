@@ -5,6 +5,14 @@ PhoneNumber +71020109365
 Sim800 1
 PortModem /dev/ttyAMA0
 MyId 536457770
+//BotName
+//TokenPath
+//MapPath
+//Channels
+//Gpio
+//Prometheus
+//UsbUart
+//PortUsbUart
 
 [prod]
 // telegram bot

@@ -3,6 +3,7 @@
 
 #include "httpserver.h"
 #include "pi4-gpio.h"
+#include "usb2pin.h"
 #include "../telebot32/src/tlg32.h"
 #include "zigbee/zigbee.h"
 
@@ -32,6 +33,9 @@ struct GlobalConfig
     bool Prometheus;
     // using gpio
     bool Gpio;
+    // ising UsbUart adapter as in/out 2 pin device
+    bool UsbUart;
+    std::string PortUsbUart;
 };
 
 class Exposer;
@@ -60,17 +64,19 @@ private:
     std::string show_statuses();
 
 public:
-    std::string startTime{};                                                     // таймштамп старта программы
-    GlobalConfig config;                                                         // глобальная конфигурация системы
-    std::atomic<bool> Flag{true};                                                // флаг разрешения работы системы
-    std::shared_ptr<zigbee::Zhub> zhub;                                          // модуль zigbee верхнего уровня
-    std::shared_ptr<GsmModem> gsmModem;                                          // GSM-модем
-    bool withSim800 = false;                                                     // признак присутствия GSM-модема
-    bool withTlg = false;                                                        // признак работы с телеграм
-    std::shared_ptr<Tlg32> tlg32;                                                // телеграм бот
-    bool withGpio = false;                                                       // признак работы с портами малинки
+    std::string startTime{};            // таймштамп старта программы
+    GlobalConfig config;                // глобальная конфигурация системы
+    std::atomic<bool> Flag{true};       // флаг разрешения работы системы
+    std::shared_ptr<zigbee::Zhub> zhub; // модуль zigbee верхнего уровня
+    std::shared_ptr<GsmModem> gsmModem; // GSM-модем
+    bool withSim800 = false;            // признак присутствия GSM-модема
+    bool withTlg = false;               // признак работы с телеграм
+    std::shared_ptr<Tlg32> tlg32;       // телеграм бот
+    bool withGpio = false;              // признак работы с портами малинки
     bool stoped = false;
     std::unique_ptr<HttpServer> http;
+    bool withUsbPin = false;
+    std::shared_ptr<Usb2pin> usbPin;
 
 private:
     std::shared_ptr<Pi4Gpio> gpio;                                // порты малинки

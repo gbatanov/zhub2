@@ -19,6 +19,7 @@
 #include "comport/unix.h"
 #include "comport/serial.h"
 #include "pi4-gpio.h"
+#include "usb2pin.h"
 #include "http.h"
 #include "httpserver.h"
 #include "exposer.h"
@@ -55,17 +56,25 @@ bool App::object_create()
             tlg32->send_message("Программа перезапущена.\n");
         }
 
-        cmdThread = std::thread(&App::cmd_func, this);
-        zhub = std::make_shared<zigbee::Zhub>();
+        // Модем инициализируем вне зависимости от координатора
+        // для возможности отладки самого модема
+        init_modem();
 
+        if (config.UsbUart)
+        {
+            usbPin = std::make_shared<Usb2pin>();
+            withUsbPin = usbPin->connect(config.PortUsbUart);
+        }
+        cmdThread = std::thread(&App::cmd_func, this);
+
+        zhub = std::make_shared<zigbee::Zhub>();
         noAdapter = zhub->init_adapter();
-        if (noAdapter)
+
+        if (noAdapter && !(config.Mode == "test"))
         {
             Flag.store(false);
             return false;
         }
-
-        init_modem();
 
         withGpio = false;
 #ifdef __linux__
@@ -97,10 +106,11 @@ bool App::start_app()
         http->start();
         if (config.Prometheus)
             exposerThread = std::thread(&App::exposer_handler, this);
-        tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы
 
         return true;
     }
+    tempr_thread = std::thread(&App::get_main_temperature, this); // поток определения температуры платы
+
     return false;
 }
 // Функция потока ожидания команд с клавиатуры
@@ -143,10 +153,12 @@ int App::cmd_func()
             switch (c)
             {
             case 'T': // DTR  High level
-                gsmModem->dtr(1);
+                if (withUsbPin)
+                    usbPin->set_dtr(1);
                 break;
             case 't': // DTR Low level
-                gsmModem->dtr(0);
+                if (withUsbPin)
+                    usbPin->set_dtr(0);
                 break;
 
             case 'd': // уровень отладки
@@ -237,6 +249,9 @@ bool App::init_modem()
     }
     else
     {
+#ifdef DEBUG
+        gsbutils::dprintf(1, "Модем SIM800 не активирован\n");
+#endif
         withSim800 = false;
         return false;
     }
@@ -254,10 +269,11 @@ void App::stop_app()
 #ifdef DEBUG
         gsbutils::dprintf(1, "Stopped cmd thread \n");
 #endif
+        if (withSim800)
+            gsmModem->disconnect();
+        //            threadPoolModem->stop_threads();
         if (!noAdapter)
         {
-            gsmModem->disconnect();
-//            threadPoolModem->stop_threads();
 
             if (withGpio)
                 gpio->close_gpio();
@@ -273,24 +289,19 @@ void App::stop_app()
                 if (exposerThread.joinable())
                     exposerThread.join();
             }
+            http->stop_http();
+
+            if (httpThread.joinable())
+                httpThread.join();
         }
 #ifdef DEBUG
-        gsbutils::dprintf(1, "Stopped zhub, exposer \n");
+        gsbutils::dprintf(1, "Stopped zhub,http, exposer \n");
 #endif
 
         if (tempr_thread.joinable())
             tempr_thread.join();
 #ifdef DEBUG
         gsbutils::dprintf(1, "Stopped temperature thread \n");
-#endif
-
-        http->stop_http();
-
-        if (httpThread.joinable())
-            httpThread.join();
-
-#ifdef DEBUG
-        gsbutils::dprintf(1, "Stopped http  \n");
 #endif
 
         tlg32->stop();
@@ -520,6 +531,7 @@ bool App::parse_config()
     config.Prometheus = false;
     config.Sim800 = false;
     config.Gpio = false;
+    config.UsbUart = false;
 
     std::string filename = "/usr/local/etc/zhub2/config.txt";
     std::ifstream infile(filename.c_str());
@@ -598,6 +610,11 @@ bool App::parse_config()
                 // TODO: check valid
                 config.PortModem = value;
             }
+            else if (key == "PortUsbUart")
+            {
+                // TODO: check valid
+                config.PortUsbUart = value;
+            }
             else if (key == "PhoneNumber")
             {
                 // TODO: check valid
@@ -635,6 +652,12 @@ bool App::parse_config()
                 unsigned v;
                 if (sscanf(value.c_str(), "%u", &v) > 0)
                     config.Gpio = v != 0;
+            }
+            else if (key == "UsbUart")
+            {
+                unsigned v;
+                if (sscanf(value.c_str(), "%u", &v) > 0)
+                    config.UsbUart = v != 0;
             }
 
         } // while

@@ -82,8 +82,12 @@ bool Controller::init_adapter()
         noAdapter = true;
     }
     if (noAdapter)
+    {
         send_tlg_message("Zigbee adapter не обнаружен.\n");
-    gsbutils::dprintf(3, "Controller init_adapter success\n");
+        gsbutils::dprintf(3, "Controller init_adapter error\n");
+    }
+    else
+        gsbutils::dprintf(3, "Controller init_adapter success\n");
 
     return noAdapter;
 }

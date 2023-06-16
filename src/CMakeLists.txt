@@ -52,6 +52,7 @@ list( APPEND SOURCES
   http.cpp
   httpserver.cpp
   pi4-gpio.cpp
+  usb2pin.cpp
 )
 
 set(DEPENDENTS "libcurl")
