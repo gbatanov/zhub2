@@ -66,7 +66,9 @@ list( APPEND SOURCES
 #    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
 #endforeach(flag)
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};/Users/gbatanov/vcpkg/packages/curl_x64-osx/share/curl")
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};~/vcpkg/packages/curl_x64-osx/share/curl")
+else()
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};~/vcpkg/packages/curl_x64-linux/share/curl")
 endif()
 
 string(STRIP ${CMAKE_EXE_LINKER_FLAGS} CMAKE_EXE_LINKER_FLAGS)
