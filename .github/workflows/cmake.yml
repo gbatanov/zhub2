@@ -1,4 +1,4 @@
-name: CMake-action v10
+name: CMake-action v11
 
 #trigger
 on:
@@ -41,3 +41,5 @@ jobs:
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
+      - name: Build task
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
