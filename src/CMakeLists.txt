@@ -55,21 +55,27 @@ list( APPEND SOURCES
   usb2pin.cpp
 )
 
-set(DEPENDENTS "libcurl")
-include(FindPkgConfig)
-pkg_check_modules(PKGS REQUIRED ${DEPENDENTS})
-
-foreach(flag ${PKGS_CFLAGS})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
-endforeach(flag)
-foreach(flag ${PKGS_LDFLAGS})
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
-endforeach(flag)
+#set(DEPENDENTS "libcurl")
+#include(FindPkgConfig)
+#pkg_check_modules(PKGS REQUIRED ${DEPENDENTS})
+#
+#foreach(flag ${PKGS_CFLAGS})
+#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
+#endforeach(flag)
+#foreach(flag ${PKGS_LDFLAGS})
+#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
+#endforeach(flag)
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};/Users/gbatanov/vcpkg/packages/curl_x64-osx/share/curl")
+endif()
 
 string(STRIP ${CMAKE_EXE_LINKER_FLAGS} CMAKE_EXE_LINKER_FLAGS)
 message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
 
 add_executable (${PROJECT_NAME} ${SOURCES})
+
+find_package(CURL CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PUBLIC CURL::libcurl)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC gsbutils)
 target_link_libraries(${PROJECT_NAME} PUBLIC telebot32)
