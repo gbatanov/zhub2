@@ -1,4 +1,4 @@
-name: CMake-action
+name: CMake-action v8
 
 #trigger
 on:
@@ -14,7 +14,11 @@ jobs:
       BUILD_TYPE: Debug
 
     #version Os
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+        fail-fast: false
+        matrix:
+          os: [macOS-latest, ubuntu-22.04]
 
     steps:
       - uses: actions/checkout@v3
