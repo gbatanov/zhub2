@@ -1,4 +1,4 @@
-name: CMake-action v11
+name: CMake-action v12
 
 #trigger
 on:
@@ -37,6 +37,10 @@ jobs:
 
       - name: Install libcurl
         run: vcpkg install curl
+
+      - name: Install gpiod
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: vcpkg install gpiod libgpiod-dev
 
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
