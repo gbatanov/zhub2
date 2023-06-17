@@ -55,20 +55,10 @@ list( APPEND SOURCES
   usb2pin.cpp
 )
 
-#set(DEPENDENTS "libcurl")
-#include(FindPkgConfig)
-#pkg_check_modules(PKGS REQUIRED ${DEPENDENTS})
-#
-#foreach(flag ${PKGS_CFLAGS})
-#    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
-#endforeach(flag)
-#foreach(flag ${PKGS_LDFLAGS})
-#    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
-#endforeach(flag)
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
 set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};~/vcpkg/packages/curl_x64-osx/share/curl")
 else()
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};~/vcpkg/packages/curl_x64-linux/share/curl")
+set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};~/vcpkg/packages/curl_x64-linux/share/curl;/usr/local/share/vcpkg/packages/vcpkg-cmake-config_x64-linux/share/vcpkg-cmake-config")
 endif()
 
 string(STRIP ${CMAKE_EXE_LINKER_FLAGS} CMAKE_EXE_LINKER_FLAGS)
