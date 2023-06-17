@@ -56,12 +56,12 @@ list( APPEND SOURCES
 )
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};~/vcpkg/packages/curl_x64-osx/share/curl")
+set(CURL_DIR "/usr/local/share/vcpkg/packages/curl_x64-osx/share/curl/")
 else()
-set(CMAKE_PREFIX_PATH "${CMAKE_PREFIX_PATH};~/vcpkg/packages/curl_x64-linux/share/curl;/usr/local/share/vcpkg/packages/vcpkg-cmake-config_x64-linux/share/vcpkg-cmake-config")
+set(CURL_DIR "~/vcpkg/packages/curl_x64-linux/share/curl")
 endif()
 
-string(STRIP ${CMAKE_EXE_LINKER_FLAGS} CMAKE_EXE_LINKER_FLAGS)
+string(STRIP "${CMAKE_EXE_LINKER_FLAGS}" CMAKE_EXE_LINKER_FLAGS)
 message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
 
 add_executable (${PROJECT_NAME} ${SOURCES})

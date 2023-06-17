@@ -21,7 +21,10 @@ jobs:
           os: [macOS-latest, ubuntu-22.04]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout source code
+        uses: actions/checkout@v3
+        with:
+          submodules:
 
       - name: Mount vcpkg cache
         uses: actions/cache@v3
