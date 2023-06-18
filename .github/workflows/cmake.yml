@@ -1,4 +1,4 @@
-name: CMake-action v12
+name: CMake-action v13
 
 #trigger
 on:
@@ -43,8 +43,13 @@ jobs:
 #        if: ${{ matrix.os == 'ubuntu-22.04' }}
 #        run: apt-get install -y gpiod libgpiod-dev
 
-      - name: Configure CMake
+      - name: Configure CMake MacOsx
+        if: ${{ matrix.os == 'macOS-latest' }}
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
+
+      - name: Configure CMake 'ubuntu-22.04
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DGITHUB_BUILD=ON
 
       - name: Build task
         if: ${{ matrix.os == 'macOS-latest' }}
