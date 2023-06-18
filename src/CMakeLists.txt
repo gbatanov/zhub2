@@ -55,7 +55,8 @@ list( APPEND SOURCES
   usb2pin.cpp
 )
 
-if(DEFINED ENV{GITHUB_BUILD>})
+set(ONGITHUB ON)
+if (ONHITHUB)
   message(STATUS "Build on github")
   if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
    set(CURL_DIR "/usr/local/share/vcpkg/packages/curl_x64-osx/share/curl/")
@@ -81,24 +82,23 @@ message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
 
 add_executable (${PROJECT_NAME} ${SOURCES})
 
-if(DEFINED ENV{GITHUB_BUILD>})
-  find_package(CURL CONFIG REQUIRED)
-  target_link_libraries(${PROJECT_NAME} PUBLIC CURL::libcurl)
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+  find_library(IOKIT_LIBRARY IOKit)
+  find_library(FOUNDATION_LIBRARY Foundation)
+  target_link_libraries(${PROJECT_NAME} PUBLIC ${FOUNDATION_LIBRARY} ${IOKIT_LIBRARY})
 else()
-  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
-    find_library(IOKIT_LIBRARY IOKit)
-    find_library(FOUNDATION_LIBRARY Foundation)
-    target_link_libraries(${PROJECT_NAME} PUBLIC ${FOUNDATION_LIBRARY} ${IOKIT_LIBRARY})
+  if (ONHITHUB)
+    find_package(CURL CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC CURL::libcurl)
   else()
     target_link_libraries(${PROJECT_NAME} PUBLIC curl)  
   endif()
 endif()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC gsbutils)
-target_link_libraries(${PROJECT_NAME} PUBLIC telebot32)
+target_link_libraries(${PROJECT_NAME} PUBLIC gsbutils telebot32)
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-message (STATUS "Librarty gpiod included")
+  message (STATUS "Librarty gpiod included")
   target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
 endif()
 

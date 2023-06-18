@@ -12,7 +12,6 @@ jobs:
 
     env:
       BUILD_TYPE: Debug
-      GITHUB_BUILD: on
 
     #version Os
     runs-on: ${{ matrix.os }}
