@@ -59,6 +59,7 @@ namespace serial
         void setTimeout(Timeout &timeout);
         void setBaudrate(unsigned long baudrate);
         bool set_dtr(bool level);
+        bool set_rts(bool level);
         bool wait_for_change();
         int get_cts();
         int get_dsr();

@@ -10,6 +10,7 @@ public:
     void disconnect();
 
     bool set_dtr(int level);
+    bool set_rts(int level);
     int get_dsr();
     int get_cts();
 

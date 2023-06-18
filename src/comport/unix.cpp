@@ -699,6 +699,32 @@ void SerialImpl::setBaudrate(unsigned long baudrate)
   baudrate_ = baudrate;
 }
 
+
+/// @brief Установка уровня на выводе RTS.
+/// При инициализации адаптера USB-UART уровень становится в низкий,
+/// после отключения - переходит в высокий.
+/// Это надо учитывать при использовании этого вывода как сигнала управления чем-либо.
+/// @param level false - HighLevel, true - LowLevel
+bool SerialImpl::set_rts(bool level)
+{
+  if (is_open_ == false)
+    return false;
+
+  int command = TIOCM_RTS;
+
+  if (level)
+  {
+    if (-1 == ioctl(fd_, TIOCMBIS, &command))
+      return false;
+  }
+  else
+  {
+    if (-1 == ioctl(fd_, TIOCMBIC, &command))
+      return false;
+  }
+  return true;
+}
+
 /// @brief Установка уровня на выводе DTR.
 /// При инициализации адаптера USB-UART уровень становится в низкий,
 /// после отключения - переходит в высокий.
