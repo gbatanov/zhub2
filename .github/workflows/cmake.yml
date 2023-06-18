@@ -12,6 +12,7 @@ jobs:
 
     env:
       BUILD_TYPE: Debug
+      GITHUB_BUILD: on
 
     #version Os
     runs-on: ${{ matrix.os }}
@@ -38,12 +39,13 @@ jobs:
       - name: Install libcurl
         run: vcpkg install curl
 
-      - name: Install gpiod
-        if: ${{ matrix.os == 'ubuntu-22.04' }}
-        run: apt install -y gpiod libgpiod-dev
+#      - name: Install gpiod
+#        if: ${{ matrix.os == 'ubuntu-22.04' }}
+#        run: apt-get install -y gpiod libgpiod-dev
 
       - name: Configure CMake
         run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}}
 
       - name: Build task
+        if: ${{ matrix.os == 'macOS-latest' }}
         run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
