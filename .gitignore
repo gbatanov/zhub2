@@ -11,3 +11,4 @@ telebot32/src/version.h
 .DS_Store
 src/.token*
 config.txt
+actions-runner

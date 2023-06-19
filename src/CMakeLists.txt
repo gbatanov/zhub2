@@ -55,15 +55,11 @@ list( APPEND SOURCES
   usb2pin.cpp
 )
 
-  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
    set(CURL_DIR "/usr/local/share/vcpkg/packages/curl_x64-osx/share/curl/")
-  else()
-   set(CURL_DIR "/usr/local/share/vcpkg/packages/curl_x64-linux/share/curl")
-  endif()
-
-
-string(STRIP "${CMAKE_EXE_LINKER_FLAGS}" CMAKE_EXE_LINKER_FLAGS)
-message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
+else()
+   set(CURL_DIR "/usr/local/share/vcpkg/packages/curl_x64-linux/share/curl/")
+endif()
 
 add_executable (${PROJECT_NAME} ${SOURCES})
 
