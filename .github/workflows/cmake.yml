@@ -1,0 +1,50 @@
+name: CMake-action v14
+
+#trigger
+on:
+  push:
+   branches: [dev]
+  workflow_dispatch:
+
+jobs:
+    #job name "build"
+  build:
+
+    env:
+      BUILD_TYPE: Release
+
+    #version Os
+    runs-on: ${{ matrix.os }}
+    strategy:
+        fail-fast: false
+        matrix:
+          os: [macOS-latest, ubuntu-22.04]
+
+    steps:
+      - name: Checkout source code
+        uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Submodules
+        run: git submodule init && git submodule update
+
+      - name: Mount vcpkg cache
+        uses: actions/cache@v3
+        with:
+          path: "~/.cache/vcpkg/archives"
+          key: vcpkg-linux
+
+      - name: Install libcurl
+        run: vcpkg install curl
+
+      - name: Install gpiod
+        if: ${{ matrix.os == 'ubuntu-22.04' }}
+        # github virtual machine uses passwordless sudo
+        run: sudo apt-get install -y autoconf libtool autoconf-archive gpiod libgpiod-dev
+
+      - name: Configure CMake 
+        run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} "-DCMAKE_TOOLCHAIN_FILE=${VCPKG_INSTALLATION_ROOT}/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build task
+        run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} 

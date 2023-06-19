@@ -55,35 +55,27 @@ list( APPEND SOURCES
   usb2pin.cpp
 )
 
-set(DEPENDENTS "libcurl")
-include(FindPkgConfig)
-pkg_check_modules(PKGS REQUIRED ${DEPENDENTS})
-
-foreach(flag ${PKGS_CFLAGS})
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${flag}")
-endforeach(flag)
-foreach(flag ${PKGS_LDFLAGS})
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${flag}")
-endforeach(flag)
-
-string(STRIP ${CMAKE_EXE_LINKER_FLAGS} CMAKE_EXE_LINKER_FLAGS)
-message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
+   set(CURL_DIR "/usr/local/share/vcpkg/packages/curl_x64-osx/share/curl/")
+else()
+   set(CURL_DIR "/usr/local/share/vcpkg/packages/curl_x64-linux/share/curl/")
+endif()
 
 add_executable (${PROJECT_NAME} ${SOURCES})
-
-target_link_libraries(${PROJECT_NAME} PUBLIC gsbutils)
-target_link_libraries(${PROJECT_NAME} PUBLIC telebot32)
 
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
   find_library(IOKIT_LIBRARY IOKit)
   find_library(FOUNDATION_LIBRARY Foundation)
   target_link_libraries(${PROJECT_NAME} PUBLIC ${FOUNDATION_LIBRARY} ${IOKIT_LIBRARY})
 else()
-target_link_libraries(${PROJECT_NAME} PUBLIC curl)  
+    find_package(CURL CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PUBLIC CURL::libcurl)
 endif()
 
+target_link_libraries(${PROJECT_NAME} PUBLIC gsbutils telebot32)
+
 if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Linux")
-message (STATUS "Librarty gpiod included")
+  message (STATUS "Librarty gpiod included")
   target_link_libraries(${PROJECT_NAME} PUBLIC gpiod)
 endif()
 

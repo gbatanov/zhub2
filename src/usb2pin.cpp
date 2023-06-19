@@ -28,6 +28,8 @@ bool Usb2pin::connect(std::string port)
     try
     {
         serial_->open();
+        set_dtr(1);
+        set_rts(1);
     }
     catch (std::exception &e)
     {
@@ -56,9 +58,15 @@ void Usb2pin::disconnect()
     }
 }
 
+// level inverted
 bool Usb2pin::set_dtr(int level)
 {
-    return serial_->set_dtr(level);
+    return serial_->set_dtr(level == 0 ? 1 : 0);
+}
+// level inverted
+bool Usb2pin::set_rts(int level)
+{
+    return serial_->set_rts(level == 0 ? 1 : 0);
 }
 int Usb2pin::get_dsr()
 {

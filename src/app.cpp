@@ -629,23 +629,27 @@ int App::cmd_func()
         {
             switch (c)
             {
-            case 'c': // DTR  High level
+            case 'c': // get CTS | DSR level
                 if (withUsbPin)
                 {
                     int cts = usbPin->get_cts();
-                    gsbutils::dprintf(1, "CTS: %d \n", cts);
+                    int dsr = usbPin->get_dsr();
+
+                    gsbutils::dprintf(1, "CTS | DSR: %d \n", cts + dsr * 2);
                 }
                 break;
-            case 'T': // DTR  High level
+            case 'T': // DTR and RTS High level
                 if (withUsbPin)
                 {
                     usbPin->set_dtr(1);
+                    usbPin->set_rts(1);
                 }
                 break;
-            case 't': // DTR Low level
+            case 't': // DTR and  RTS Low level
                 if (withUsbPin)
                 {
                     usbPin->set_dtr(0);
+                    usbPin->set_rts(0);
                 }
                 break;
 
