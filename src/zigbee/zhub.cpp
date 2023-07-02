@@ -81,6 +81,8 @@ void Zhub::start(std::vector<uint8_t> rfChannels)
     read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsOnoff);
     shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0xa4c138373e89d731);
     read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsOnoff);
+    shortAddr = getShortAddrByMacAddr((zigbee::IEEEAddress)0x70b3d52b60024ac9);
+    read_attribute(shortAddr, zigbee::zcl::Cluster::ON_OFF, idsOnoff);
 #endif
 }
 
@@ -133,12 +135,11 @@ std::string Zhub::get_device_list(bool as_html)
 // при включении исполнительного реле контактор выключается
 void Zhub::ias_zone_command(uint8_t cmnd, uint16_t one)
 {
-    uint64_t executive_devices[3]{
+    uint64_t executive_devices[4]{
         0xa4c138d9758e1dcd,
         0xa4c138373e89d731,
-        0x54ef441000193352
-
-    };
+        0x54ef441000193352,
+        0x70b3d52b60024ac9};
     uint8_t cmd = cmnd; // автоматически только выключаем,
     // команду включения/переключения используем только через веб-апи
     if (one)
@@ -628,7 +629,7 @@ std::string Zhub::show_device_statuses(bool as_html)
 
     const std::vector<uint64_t> ClimatSensors = {0x00124b000b1bb401};
     const std::vector<uint64_t> WaterSensors = {0x00158d0006e469a4, 0x00158d0006f8fc61, 0x00158d0006b86b79, 0x00158d0006ea99db};
-    const std::vector<uint64_t> WaterValves = {0xa4c138d9758e1dcd, 0xa4c138373e89d731};
+    const std::vector<uint64_t> WaterValves = {0xa4c138d9758e1dcd, 0xa4c138373e89d731, 0x70b3d52b60024ac9};
     const std::vector<uint64_t> MotionSensors = {0x00124b0007246963, 0x00124b0014db2724, 0x00124b0025137475, 0x00124b0024455048, 0x00124b002444d159, 0x00124b0009451438, 0x0c4314fffe17d8a8};
     const std::vector<uint64_t> DoorSensors = {0x00124b0025485ee6, 0x00124b002512a60b, 0x00124b00250bba63};
     const std::vector<uint64_t> Relays = {0x54ef44100019335b, 0x54ef441000193352, 0x54ef4410001933d3, 0x54ef44100018b523, 0x54ef4410005b2639, 0x54ef441000609dcc, 0x00158d0009414d7e};

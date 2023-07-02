@@ -47,6 +47,7 @@ const std::map<const uint64_t, const DeviceInfo> EndDevice::KNOWN_DEVICES = {
     // краны
     {0xa4c138d9758e1dcd, {6, "TUYA", "Valve", "КранГВ", "Кран 1 ГВ", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
     {0xa4c138373e89d731, {6, "TUYA", "Valve", "КранХВ", "Кран 2 ХВ", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 1, 0}},
+    {0x70b3d52b60024ac9, {6, "TUYA", "Valve", "Кран3", "Кран 3", zigbee::zcl::Cluster::ON_OFF, zigbee::zcl::Attributes::PowerSource::SINGLE_PHASE, 0, 1}},
     // датчики движения и/или освещения
     {0x00124b0025137475, {2, "Sonoff", "SNZB-03", "КоридорДвижение", "Датчик движения 1 (коридор)", zigbee::zcl::Cluster::IAS_ZONE, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},
     {0x00124b0024455048, {2, "Sonoff", "SNZB-03", "КомнатаДвижение", "Датчик движения 2 (комната)", zigbee::zcl::Cluster::IAS_ZONE, zigbee::zcl::Attributes::PowerSource::BATTERY, 1, 0}},

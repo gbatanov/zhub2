@@ -55,7 +55,7 @@ bool HttpServer::start()
     gsbutils::dprintf(1, (char *)"HTTPServer: HTTP ServerSocket=%d\n", http_sockfd);
 
     threadPoolHttp = std::make_shared<gsbutils::ThreadPool<int>>();
-    uint8_t max_threads = 4;
+    uint8_t max_threads = 6;
     threadPoolHttp->init_threads(receive_http, max_threads);
 
     http_main_thread = std::thread([this]
